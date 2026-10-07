@@ -1,0 +1,304 @@
+// Generated from privacy_unicode.json by tools/parity/to_ts.py. Do not edit.
+export default [
+ {
+  "is_sensitive": false,
+  "normalize": "call ٨٥٠٥٥٥٠١٣٤ today",
+  "redact": "call [phone] today",
+  "redact_80": "call [phone] today",
+  "text": "call ٨٥٠٥٥٥٠١٣٤ today"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "फ़ोन ८५०५५५०१३४",
+  "redact": "फ़ोन [phone]",
+  "redact_80": "फ़ोन [phone]",
+  "text": "फ़ोन ८५०५५५०१३४"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "card ٤١١١ ١١١١ ١١١١ ١١١١",
+  "redact": "card ٤١١١ ١١١١ ١١١١ ١١١١",
+  "redact_80": "card ٤١١١ ١١١١ ١١١١ ١١١١",
+  "text": "card ٤١١١ ١١١١ ١١١١ ١١١١"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "card ४१११४१११४१११४१११",
+  "redact": "card ४१११४१११४१११४१११",
+  "redact_80": "card ४१११४१११४१११४१११",
+  "text": "card ४१११४१११४१११४१११"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "tel +٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+  "redact": "tel [phone]",
+  "redact_80": "tel [phone]",
+  "text": "tel +٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "ref ๘๕๐๕๕๕๐๑๓๔ thai",
+  "redact": "ref [phone] thai",
+  "redact_80": "ref [phone] thai",
+  "text": "ref ๘๕๐๕๕๕๐๑๓๔ thai"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "4111 1111 1111 1111",
+  "redact": "[card]",
+  "redact_80": "[card]",
+  "text": "４１１１ １１１１ １１１１ １１１１"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "AKIA1234567890ABCDEF",
+  "redact": "[secret]",
+  "redact_80": "[secret]",
+  "text": "ＡＫＩＡ１２３４５６７８９０ＡＢＣＤＥＦ"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "éjohn@example.com",
+  "redact": "éjohn@example.com",
+  "redact_80": "éjohn@example.com",
+  "text": "éjohn@example.com"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "josé@example.com",
+  "redact": "josé@example.com",
+  "redact_80": "josé@example.com",
+  "text": "josé@example.com"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "mail to Zoë.Smith@exämple.com or zoe@example.com",
+  "redact": "mail to Zoë.Smith@exämple.com or [email]",
+  "redact_80": "mail to Zoë.Smith@exämple.com or [email]",
+  "text": "mail to Zoë.Smith@exämple.com or zoe@example.com"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "éAKIA1234567890ABCDEF",
+  "redact": "éAKIA[phone]ABCDEF",
+  "redact_80": "éAKIA[phone]ABCDEF",
+  "text": "éAKIA1234567890ABCDEF"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "naïveSECRET_KEY=abc123",
+  "redact": "naïveSECRET_KEY=abc123",
+  "redact_80": "naïveSECRET_KEY=abc123",
+  "text": "naïveSECRET_KEY=abc123"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "café_API_KEY=abc123",
+  "redact": "café_API_KEY=abc123",
+  "redact_80": "café_API_KEY=abc123",
+  "text": "café_API_KEY=abc123"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "ñGITHUB_TOKEN=ghp_x",
+  "redact": "ñGITHUB_TOKEN=ghp_x",
+  "redact_80": "ñGITHUB_TOKEN=ghp_x",
+  "text": "ñGITHUB_TOKEN=ghp_x"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "secret_key here",
+  "redact": "secret_key here",
+  "redact_80": "secret_key here",
+  "text": "ſecret_key here"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "API_KEY=value",
+  "redact": "API_KEY=[secret]",
+  "redact_80": "API_KEY=[secret]",
+  "text": "API_KEY=value"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "password: hunter2",
+  "redact": "password: hunter2",
+  "redact_80": "password: hunter2",
+  "text": "pass​word: hunter2"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "раssword in cyrillic",
+  "redact": "раssword in cyrillic",
+  "redact_80": "раssword in cyrillic",
+  "text": "раssword in cyrillic"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "apikey=1",
+  "redact": "apikey=1",
+  "redact_80": "apikey=1",
+  "text": "api­key=1"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "é composed and file ligature",
+  "redact": "é composed and file ligature",
+  "redact_80": "é composed and file ligature",
+  "text": "é composed and ﬁle ligature"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "850 555 0134",
+  "redact": "[phone]",
+  "redact_80": "[phone]",
+  "text": "850 555 0134"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "phone 850 555 0134",
+  "redact": "phone [phone]",
+  "redact_80": "phone [phone]",
+  "text": "phone 850 555 0134"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "8505550134é",
+  "redact": "[phone]é",
+  "redact_80": "[phone]é",
+  "text": "8505550134é"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "é8505550134",
+  "redact": "é[phone]",
+  "redact_80": "é[phone]",
+  "text": "é8505550134"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "x٨٥٠٥٥٥٠١٣٤",
+  "redact": "x[phone]",
+  "redact_80": "x[phone]",
+  "text": "x٨٥٠٥٥٥٠١٣٤"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "1Z999AA10123456784 and ١Z999AA10123456784",
+  "redact": "1Z999AA10123456784 and ١Z999AA[phone]",
+  "redact_80": "1Z999AA10123456784 and ١Z999AA[phone]",
+  "text": "1Z999AA10123456784 and ١Z999AA10123456784"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "deadbeefdeadbeefdeadbeefdeadbeefé",
+  "redact": "deadbeefdeadbeefdeadbeefdeadbeefé",
+  "redact_80": "deadbeefdeadbeefdeadbeefdeadbeefé",
+  "text": "deadbeefdeadbeefdeadbeefdeadbeefé"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "édeadbeefdeadbeefdeadbeefdeadbeef",
+  "redact": "édeadbeefdeadbeefdeadbeefdeadbeef",
+  "redact_80": "édeadbeefdeadbeefdeadbeefdeadbeef",
+  "text": "édeadbeefdeadbeefdeadbeefdeadbeef"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "ὈΔΥΣΣΕΎΣ Ab3dEf7hIj9kLm2nOp4qRs6tUv8wXy0zAb",
+  "redact": "ὈΔΥΣΣΕΎΣ [secret]",
+  "redact_80": "ὈΔΥΣΣΕΎΣ [secret]",
+  "text": "ὈΔΥΣΣΕΎΣ Ab3dEf7hIj9kLm2nOp4qRs6tUv8wXy0zAb"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "ÄbcdefGhijkl1234567890MnopqrStuvwx",
+  "redact": "Ä[secret]",
+  "redact_80": "Ä[secret]",
+  "text": "ÄbcdefGhijkl1234567890MnopqrStuvwx"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+  "redact": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+  "redact_80": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+  "text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀tail",
+  "redact": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀tail",
+  "redact_80": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀\n[…]\n😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀tail",
+  "text": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀tail"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+  "redact": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+  "redact_80": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+  "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+  "redact": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+  "redact_80": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n[…]\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀",
+  "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😀"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "😀yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+  "redact": "😀yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n[…]\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+  "redact_80": "😀yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n[…]\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+  "text": "😀yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "a😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀b",
+  "redact": "a😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀\n[…]\n😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀b",
+  "redact_80": "a😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba\n[…]\nba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀b",
+  "text": "a😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀ba😀b"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+  "redact": "[hex]",
+  "redact_80": "[hex]",
+  "text": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "名前: 山田太郎 電話 090-1234-5678 メール taro@example.jp",
+  "redact": "名前: 山田太郎 電話 090-1234-5678 メール [email]",
+  "redact_80": "名前: 山田太郎 電話 090-1234-5678 メール [email]",
+  "text": "名前: 山田太郎 電話 090-1234-5678 メール taro@example.jp"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "Bearer Abc123xyz789",
+  "redact": "Bearer Abc123xyz789",
+  "redact_80": "Bearer Abc123xyz789",
+  "text": "Bearer Ａｂｃ１２３ｘｙｚ７８９"
+ },
+ {
+  "is_sensitive": true,
+  "normalize": "Authorization:Bearer abcdef123456",
+  "redact": "Authorization:Bearer abcdef123456",
+  "redact_80": "Authorization:Bearer abcdef123456",
+  "text": "Authorization：Bearer abcdef123456"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "evil text with bidi controls",
+  "redact": "evil text with bidi controls",
+  "redact_80": "evil text with bidi controls",
+  "text": "‮evil‬ text with bidi controls"
+ },
+ {
+  "is_sensitive": false,
+  "normalize": "tab\tand\nnewline kept, bell dropped",
+  "redact": "tab\tand\nnewline kept, bell dropped",
+  "redact_80": "tab\tand\nnewline kept, bell dropped",
+  "text": "tab\tand\nnewline kept, \u0007bell dropped"
+ }
+]

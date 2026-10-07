@@ -104,6 +104,28 @@ CORPUS = list(dict.fromkeys(HAND + literals("test_jevkit.py", "test_privacy_toke
 save("privacy", [{"text": t, "normalize": privacy.normalize(t), "redact": privacy.redact(t),
                   "redact_80": privacy.redact(t, 80), "is_sensitive": privacy.is_sensitive(t)} for t in CORPUS])
 
+# Where Python's regex and JavaScript's differ: Unicode digits and word characters (\\d, \\w,
+# \\b), look-alikes NFKC folds, invisible characters, astral characters (a code point is one
+# character to Python, two UTF-16 units to JavaScript) and truncation at both caps.
+UNICODE = [
+    "call ٨٥٠٥٥٥٠١٣٤ today", "फ़ोन ८५०५५५०१३४", "card ٤١١١ ١١١١ ١١١١ ١١١١", "card ४१११४१११४१११४१११",
+    "tel +٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨", "ref ๘๕๐๕๕๕๐๑๓๔ thai", "４１１１ １１１１ １１１１ １１１１", "ＡＫＩＡ１２３４５６７８９０ＡＢＣＤＥＦ",
+    "éjohn@example.com", "josé@example.com", "mail to Zoë.Smith@exämple.com or zoe@example.com",
+    "éAKIA1234567890ABCDEF", "naïveSECRET_KEY=abc123", "café_API_KEY=abc123", "ñGITHUB_TOKEN=ghp_x",
+    "ſecret_key here", "API_\u212aEY=value", "pass\u200bword: hunter2", "раssword in cyrillic",
+    "api\u00adkey=1", "e\u0301 composed and ﬁle ligature", "850\u2028555\u20290134",
+    "phone 850\u00a0555\u00a00134", "8505550134é", "é8505550134", "x٨٥٠٥٥٥٠١٣٤",
+    "1Z999AA10123456784 and ١Z999AA10123456784", "deadbeef" * 4 + "é", "é" + "deadbeef" * 4,
+    "ὈΔΥΣΣΕΎΣ " + "Ab3dEf7hIj9kLm2nOp4qRs6tUv8wXy0zAb", "ÄbcdefGhijkl1234567890MnopqrStuvwx",
+    "😀" * 50, "😀" * 100 + "tail", "x" * 79 + "😀", "x" * 80 + "😀", "😀" + "y" * 4100,
+    "a\U0001F600b" * 1500, "ab" * 2100, "名前: 山田太郎 電話 090-1234-5678 メール taro@example.jp",
+    "Bearer Ａｂｃ１２３ｘｙｚ７８９", "Authorization：Bearer abcdef123456",
+    "\u202eevil\u202c text with bidi controls", "tab\tand\nnewline kept, \x07bell dropped",
+]
+UNICODE = [t.encode().decode("unicode_escape") if "\\" in t else t for t in UNICODE]
+save("privacy_unicode", [{"text": t, "normalize": privacy.normalize(t), "redact": privacy.redact(t),
+                          "redact_80": privacy.redact(t, 80), "is_sensitive": privacy.is_sensitive(t)} for t in UNICODE])
+
 # ── local injection screen, whole texts and sentence by sentence ────────────
 sentences = list(dict.fromkeys(s.strip() for t in CORPUS for s in t.replace("\n", ". ").split(". ") if s.strip()))
 save("local_screen", [{"text": t, "screen": rerank.local_screen(t), "unvetted": rerank.local_screen(t, unvetted=True)}

@@ -14,3 +14,5 @@ jobs:
         run: claude plugin test .
       - name: parity fixtures are valid JSON
         run: for f in test/parity/fixtures/*.json; do python3 -m json.tool "$f" > /dev/null || exit 1; done
+      - name: the tests' .ts copies of the fixtures match the JSON
+        run: python3 tools/parity/to_ts.py --check

@@ -56,7 +56,7 @@ the session line three is hidden:
 🧭 easy → haiku 4.5 · low | $0.0043 (112) | 🛡 withheld 2 | 🔌 jev-1.13 · openrouter
 ```
 
-`"statusLine": {"type": "command", "command": "<path>/statusline/statusline.py"}` in
+`"statusLine": {"type": "command", "command": "<path>/statusline/statusline.py", "refreshInterval": 60}` in
 `~/.claude/settings.json`. A row the mod draws itself is planned.
 
 ## Develop

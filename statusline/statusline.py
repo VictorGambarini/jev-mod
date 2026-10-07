@@ -2,7 +2,7 @@
 """A two-line Claude Code status line: the session on top, what jev decided below.
 
     [Opus 5.5 · medium] 📁 jev-mod | 🌿 main* | +120/-30
-    ██░░░░░░░░ 25% · 84k/200k | $1.23 | ⏱️ 1h 5m | 5h 23% · 7d 41%
+    ██░░░░░░░░ 25% · 84k/200k | 🔥 1h · 42m left · hit 99% | $1.23 | ⏱️ 1h 5m | 5h 23% · 7d 41%
     🧭 jev small · haiku 4.5 · low | 🎯 release-notes | 🛡 withheld 2 | 🔌 jev via openrouter
 
 Plain coloured text, three short lines: where you are, what the session has used (the bar is
@@ -15,7 +15,8 @@ Side effects kept from the earlier script, both atomic and best-effort (a read-o
 breaks or slows the line): ~/.claude/statusline-quota.json, a flat quota/context snapshot for
 other processes to poll, and ~/.claude/statusline-last-payload.json, the raw payload.
 
-Settings: "statusLine": {"type": "command", "command": "<path to this file>"}.
+Settings: "statusLine": {"type": "command", "command": "<path to this file>", "refreshInterval": 60}.
+refreshInterval re-runs it every 60 s so the cache countdown keeps moving while the session is idle.
 """
 from __future__ import annotations
 
@@ -144,6 +145,28 @@ def line_one(data: Dict[str, Any]) -> str:
     return SEP.join(parts)
 
 
+def prompt_cache(pc: Any) -> Optional[str]:
+    """🔥 1h · 42m left · hit 99% while the cached prefix is alive; ❄️ cold once it has expired.
+
+    Needs "refreshInterval" in the statusLine setting to keep counting down between turns.
+    """
+    if not isinstance(pc, dict):
+        return None
+    expires = num(pc.get("expires_at"))
+    left = expires - time.time() if expires is not None else None
+    warm = bool(pc.get("warm")) and (left is None or left > 0)
+    if warm:
+        text = "🔥" + (f" {pc['ttl']}" if pc.get("ttl") else "")
+        if left is not None:
+            minutes = int(left // 60)
+            text += " · " + (f"{minutes // 60}h {minutes % 60}m" if minutes >= 60 else f"{minutes}m" if minutes else "<1m") + " left"
+        text = c(text, YELLOW if left is not None and left < 300 else GREEN)
+    else:
+        text = c("❄️ cold", YELLOW)
+    hit = num(pc.get("hit_ratio"))
+    return text + (f" · hit {hit * 100:.0f}%" if hit is not None else "")
+
+
 def line_usage(data: Dict[str, Any]) -> str:
     parts: List[str] = []
     cw = data.get("context_window") or {}
@@ -158,6 +181,10 @@ def line_usage(data: Dict[str, Any]) -> str:
         filled = int(pct // 10)
         amount = f" · {human(used)}/{human(size)}" if used is not None and size else ""
         parts.append(c("█" * filled + "░" * (10 - filled), level(pct)) + f" {pct:.0f}%{amount}")
+
+    cache = prompt_cache(data.get("prompt_cache"))
+    if cache:
+        parts.append(cache)
 
     cost = data.get("cost") or {}
     if num(cost.get("total_cost_usd")) is not None:

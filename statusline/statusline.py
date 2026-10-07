@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """A two-line Claude Code status line: the session on top, what jev decided below.
 
-    jev-skills  main*  │  Opus 5.5  │  ━━━━━──── 84k/200k 42%  │  $1.23 · 1h05 · +120 −30  │  5h 23% · 7d 41%
-    jev  small · haiku 4.5 · low  │  skill release-notes  │  withheld 2  │  lais05
+     📁 …/github/jev-mod  🌿 main*  🤖 Opus 5.5 · medium  🧠 ███████░ 92% · 81k/1M  💰 $1.23 · 1h05m · +120/-30  ⚡ 5h 23%  7d 41%
+     🧭 jev small · haiku 4.5 · low  🎯 release-notes  🛡 withheld 2  🔌 lais05
 
-Line one is the session (folder, git branch, model, context, cost, time, lines changed, rate
-limits), drawn flat. Line two reads jev-mod's own record of this session (its plugin store
+Drawn powerline style: each segment is a coloured block joined by  arrows, so it needs a Nerd
+Font (or any powerline-patched font). Context and rate-limit blocks turn amber, then red, as they
+fill. Line one is the session (folder, git branch, model and effort, context left, cost, time,
+lines changed, rate limits). Line two reads jev-mod's own record of this session (its plugin store
 file, src/core/memory.ts) and jev's config: the turn's lane, model and effort,
 the last skill suggested, how many injected parts were withheld, and the decision backend.
 Without the mod in the session it shows the backend and the hook switches instead.
@@ -32,19 +34,32 @@ CLAUDE_DIR = Path(os.environ.get("CLAUDE_CONFIG_DIR") or HOME / ".claude")
 QUOTA_FILE = CLAUDE_DIR / "statusline-quota.json"
 RAW_FILE = CLAUDE_DIR / "statusline-last-payload.json"
 
-# Foreground colours only: the terminal's own background shows through.
-DIM, GOOD, WARN, BAD, ACCENT = 244, 71, 179, 167, 110
+# 256-colour backgrounds for each block; text on them is white.
+BG_DIR, BG_GIT_CLEAN, BG_GIT_DIRTY, BG_MODEL, BG_COST = 24, 22, 94, 54, 238
+BG_JEV, BG_SKILL, BG_BACKEND = 30, 60, 238
+GOOD, WARN, BAD = 22, 94, 88
+FG = 15
 RESET = "\033[0m"
+ARROW = "\ue0b0"
 
 
-def c(text: str, colour: Optional[int] = None, bold: bool = False) -> str:
-    if colour is None and not bold:
-        return text
-    return ("\033[1m" if bold else "") + (f"\033[38;5;{colour}m" if colour is not None else "") + text + RESET
+def bg(colour: int) -> str:
+    return f"\033[48;5;{colour}m"
 
 
-SEP = c("  │  ", DIM)
-DOT = c(" · ", DIM)
+def fg(colour: int) -> str:
+    return f"\033[38;5;{colour}m"
+
+
+def powerline(segments: List[tuple]) -> str:
+    """(text, background) pairs drawn as blocks joined by arrows."""
+    out, prev = [], None
+    for text, colour in segments:
+        out.append((fg(prev) + bg(colour) + ARROW if prev is not None else bg(colour)) + fg(FG) + f" {text} ")
+        prev = colour
+    if prev is not None:
+        out.append(RESET + fg(prev) + ARROW)
+    return "".join(out) + RESET
 
 
 def num(value: Any) -> Optional[float]:
@@ -62,6 +77,7 @@ def human(n: Optional[float]) -> Optional[str]:
 
 
 def level(pct: float, warn: float, bad: float) -> int:
+    """Background for a fill level: green, amber at `warn`, red at `bad`."""
     return BAD if pct >= bad else WARN if pct >= warn else GOOD
 
 
@@ -126,29 +142,31 @@ def folder(cwd: str) -> str:
     return "…/" + "/".join(parts[-2:]) if len(parts) > 3 else path
 
 
-def git(cwd: str) -> Optional[str]:
+def git(cwd: str) -> Optional[tuple]:
+    """(branch, dirty) or None outside a repository."""
     def run(*args: str) -> str:
         done = subprocess.run(["git", "-C", cwd, "--no-optional-locks", *args],
                               capture_output=True, text=True, timeout=2)
         return done.stdout.strip() if done.returncode == 0 else ""
     try:
         branch = run("symbolic-ref", "--short", "HEAD") or run("rev-parse", "--short", "HEAD")
-        if not branch:
-            return None
-        return branch + (c("*", WARN) if run("status", "--porcelain") else "")
+        return (branch, bool(run("status", "--porcelain"))) if branch else None
     except (OSError, subprocess.SubprocessError):
         return None
 
 
 def line_one(data: Dict[str, Any]) -> str:
     cwd = (data.get("workspace") or {}).get("current_dir") or os.getcwd()
-    parts: List[str] = []
-    where = c(folder(cwd), bold=True)
-    branch = git(cwd)
-    parts.append(where + (c("  ", DIM) + c(branch, DIM) if branch else ""))
+    segments: List[tuple] = [(f"📁 {folder(cwd)}", BG_DIR)]
+    repo = git(cwd)
+    if repo:
+        branch, dirty = repo
+        segments.append((f"🌿 {branch}" + ("*" if dirty else ""), BG_GIT_DIRTY if dirty else BG_GIT_CLEAN))
+
     model = (data.get("model") or {}).get("display_name")
     if model:
-        parts.append(model)
+        effort = (data.get("effort") or {}).get("level")
+        segments.append((f"🤖 {model}" + (f" · {effort}" if effort else ""), BG_MODEL))
 
     cw = data.get("context_window") or {}
     used, size = context_used(cw), num(cw.get("context_window_size"))
@@ -158,12 +176,10 @@ def line_one(data: Dict[str, Any]) -> str:
     if pct is None and used is not None and size:
         pct = used / size * 100
     if pct is not None:
-        pct = max(0.0, min(100.0, pct))
-        filled = round((100 - pct) / 100 * 8)
-        colour = level(pct, 50, 80)
-        bar = c("━" * filled, colour) + c("─" * (8 - filled), DIM)
-        amount = f"{human(used)}/{human(size)} " if used is not None and size else ""
-        parts.append(f"{bar} {amount}{c(f'{pct:.0f}%', colour)}")
+        left = 100 - max(0.0, min(100.0, pct))
+        filled = round(left / 100 * 8)
+        amount = f" · {human(used)}/{human(size)}" if used is not None and size else ""
+        segments.append((f"🧠 {'█' * filled}{'░' * (8 - filled)} {left:.0f}%{amount}", level(100 - left, 50, 80)))
 
     cost = data.get("cost") or {}
     money: List[str] = []
@@ -171,22 +187,23 @@ def line_one(data: Dict[str, Any]) -> str:
         money.append(f"${cost['total_cost_usd']:.2f}")
     if num(cost.get("total_duration_ms")) is not None:
         minutes = int(cost["total_duration_ms"] // 60000)
-        money.append(f"{minutes // 60}h{minutes % 60:02d}" if minutes >= 60 else f"{minutes}m")
+        money.append(f"{minutes // 60}h{minutes % 60:02d}m" if minutes >= 60 else f"{minutes}m")
     added, removed = cost.get("total_lines_added"), cost.get("total_lines_removed")
     if added is not None or removed is not None:
-        money.append(c(f"+{added or 0}", GOOD) + " " + c(f"−{removed or 0}", BAD))
+        money.append(f"+{added or 0}/-{removed or 0}")
     if money:
-        parts.append(DOT.join(money))
+        segments.append(("💰 " + " · ".join(money), BG_COST))
 
     rl = data.get("rate_limits") or {}
-    limits = []
+    limits, worst = [], 0.0
     for label, key in (("5h", "five_hour"), ("7d", "seven_day")):
         value = num((rl.get(key) or {}).get("used_percentage"))
         if value is not None:
-            limits.append(c(label, DIM) + " " + c(f"{value:.0f}%", level(value, 50, 80)))
+            limits.append(f"{label} {value:.0f}%")
+            worst = max(worst, value)
     if limits:
-        parts.append(DOT.join(limits))
-    return SEP.join(parts)
+        segments.append(("⚡ " + "  ".join(limits), level(worst, 50, 80)))
+    return powerline(segments)
 
 
 # ── line two: jev ───────────────────────────────────────────────────────────
@@ -227,7 +244,8 @@ def mod_record(session: Optional[str]) -> Optional[Dict[str, Any]]:
     if not session:
         return None
     newest: Optional[Dict[str, Any]] = None
-    for path in glob.glob(str(CLAUDE_DIR / "plugins" / "store" / "jev-mod*.json")):
+    store = CLAUDE_DIR / "plugins" / "store"
+    for path in glob.glob(str(store / "jev-mod*.json")) + glob.glob(str(store / "jev-router*.json")):
         entry = (read_json(Path(path)).get("sessions") or {}).get(session)
         if isinstance(entry, dict) and (newest is None or (entry.get("at") or 0) > (newest.get("at") or 0)):
             newest = entry
@@ -246,29 +264,28 @@ def short_model(model: Optional[str]) -> Optional[str]:
 
 
 def line_two(data: Dict[str, Any]) -> str:
-    label = c("jev", ACCENT, bold=True)
     record = mod_record(data.get("session_id"))
-    parts: List[str] = []
+    segments: List[tuple] = []
     if record:
+        # jev-mod keeps one namespace per feature; the older jev-router record is flat.
         features = record.get("features") or {}
-        routing, skills, screening = (features.get(name) or {} for name in ("routing", "skills", "screening"))
+        routing = features.get("routing") or record
+        skills = features.get("skills") or record
+        screening = features.get("screening") or record
         lane = routing.get("lane") or (routing.get("previous") or {}).get("lane")
         decided = [x for x in (lane, short_model(routing.get("lastModel")), routing.get("effort")) if x]
-        if decided:
-            parts.append(label + "  " + DOT.join(decided))
-        else:
-            parts.append(label)
+        segments.append(("🧭 jev" + (" " + " · ".join(decided) if decided else ""), BG_JEV))
         if skills.get("skill"):
-            parts.append(c("skill ", DIM) + skills["skill"])
+            segments.append((f"🎯 {skills['skill']}", BG_SKILL))
         if screening.get("withheld"):
-            parts.append(c("withheld ", DIM) + c(str(screening["withheld"]), WARN))
+            segments.append((f"🛡 withheld {screening['withheld']}", BAD))
     else:
         state = read_json(jev_config_dir() / "state.json")
-        hooks = [f"{name} {state.get('hook_' + name, 'off')}" for name in ("skills", "screen")]
-        parts.append(label + "  " + c("no mod in this session", DIM))
-        parts.append(c("hooks ", DIM) + DOT.join(hooks))
-    parts.append(c(backend_name(), DIM))
-    return SEP.join(parts)
+        hooks = " · ".join(f"{name} {state.get('hook_' + name, 'off')}" for name in ("skills", "screen"))
+        segments.append(("🧭 jev · no mod in this session", BG_JEV))
+        segments.append((f"🪝 hooks {hooks}", BG_SKILL))
+    segments.append((f"🔌 {backend_name()}", BG_BACKEND))
+    return powerline(segments)
 
 
 def main() -> int:

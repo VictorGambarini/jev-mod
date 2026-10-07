@@ -42,12 +42,16 @@ each backend can carry its own tuning.
 
 ## Status line
 
-`statusline/statusline.py` draws the session on line one and what jev decided on line two:
+`statusline/statusline.py` draws the session on line one and what jev decided on line two, as
+powerline-style coloured blocks (it needs a Nerd Font or another powerline-patched font):
 
 ```text
-jev-mod  main*  │  Opus 5.5  │  ━━━━━━─── 84k/200k 25%  │  $1.23 · 1h05 · +120 −30  │  5h 23% · 7d 41%
-jev  small · haiku 4.5 · low  │  skill release-notes  │  withheld 2  │  jev via openrouter
+ 📁 …/github/jev-mod  🌿 main*  🤖 Opus 5.5 · medium  🧠 ██████░░ 75% · 84k/200k  💰 $1.23 · 1h05m · +120/-30  ⚡ 5h 23%  7d 41%
+ 🧭 jev small · haiku 4.5 · low  🎯 release-notes  🛡 withheld 2  🔌 jev via openrouter
 ```
+
+The context block shows how much is left. It and the rate-limit block turn amber, then red, as they
+fill.
 
 `"statusLine": {"type": "command", "command": "<path>/statusline/statusline.py"}` in
 `~/.claude/settings.json`. A row the mod draws itself is planned.

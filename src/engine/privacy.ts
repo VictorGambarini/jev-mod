@@ -8,29 +8,20 @@
 // answers over 847 inputs and privacy.test.ts requires these to match every one. The rules'
 // reasons are kept beside them, as in the original.
 //
-// Python's \d, \w and \b are Unicode-aware and JavaScript's are ASCII, so the patterns are
-// written as Python wrote them and translated by `py` below; lengths are counted in code
-// points, as Python counts them, not UTF-16 units.
+// The patterns are written as Python wrote them and compiled by `py` (pyre.ts), which gives
+// \d, \w, \s and \b Python's Unicode meaning; lengths are counted in code points, as Python
+// counts them, not UTF-16 units.
 //
 // Where this deliberately differs from privacy.py (leaks the Unicode fixtures exposed), the
 // rule says so, and test/parity/divergences.ts records each changed answer with its reason.
 
-const WORD = '[\\p{L}\\p{N}_]'
+import { py } from './pyre'
+
 // Secret patterns start and end at an ASCII boundary, not Python's Unicode \b: with \b an
 // accented letter in front glued the secret to it ("naïveSECRET_KEY=…", "éAKIA…"), there was
 // no boundary, and the value went out unmasked. Divergence from privacy.py.
 const START = '(?<![A-Za-z0-9_])'
 const END = '(?![A-Za-z0-9_])'
-
-/** Compile a Python `re` pattern: Unicode \d, \D, \w and \b, and the `u` flag. */
-function py(source: string, flags = ''): RegExp {
-  const translated = source
-    .replace(/\\b/g, `(?:(?<=${WORD})(?!${WORD})|(?<!${WORD})(?=${WORD}))`)
-    .replace(/\\d/g, '\\p{Nd}')
-    .replace(/\\D/g, '\\P{Nd}')
-    .replace(/\\w/g, WORD)
-  return new RegExp(translated, 'u' + flags)
-}
 
 const SECRET_WORDS = py(
   'api[_ -]?key|access[_ -]?token|authorization\\s*:|bearer\\s+[a-z0-9._-]{8,}|password|passwd|' +

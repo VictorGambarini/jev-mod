@@ -43,12 +43,17 @@ each backend can carry its own tuning.
 ## Status line
 
 `statusline/statusline.py` draws three short lines: where you are, what the session has used, and
-what jev decided this turn. The bar is context used (green, yellow from 70%, red from 90%):
+what jev decided this turn. The bar is context used (green, yellow from 70%, red from 90%); 🔥
+counts down the prompt cache's time to live. On line three the lane reads as difficulty (easy,
+normal, hard, critical), followed by the model and effort the mod switched to, or "kept" when it
+changed nothing; then jev's cost and calls this session, 🛡 only when injected text was withheld,
+and the decision model and backend, red with the reason while jev is failing. Without the mod in
+the session line three is hidden:
 
 ```text
 [Opus 5.5 · medium] 📁 jev-mod | 🌿 main* | +120/-30
-██░░░░░░░░ 25% · 84k/200k | $1.23 | ⏱️ 1h 5m | 5h 23% · 7d 41%
-🧭 jev small · haiku 4.5 · low | 🎯 release-notes | 🛡 withheld 2 | 🔌 jev via openrouter
+██░░░░░░░░ 25% · 84k/200k | 🔥 1h · 42m left · hit 99% | $1.23 | ⏱️ 1h 5m | 5h 23% · 7d 41%
+🧭 easy → haiku 4.5 · low | $0.0043 (112) | 🛡 withheld 2 | 🔌 jev-1.13 · openrouter
 ```
 
 `"statusLine": {"type": "command", "command": "<path>/statusline/statusline.py"}` in

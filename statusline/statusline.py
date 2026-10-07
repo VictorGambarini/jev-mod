@@ -3,13 +3,15 @@
 
     [Opus 5.5 · medium] 📁 jev-mod | 🌿 main* | +120/-30
     ██░░░░░░░░ 25% · 84k/200k | 🔥 1h · 42m left · hit 99% | $1.23 | ⏱️ 1h 5m | 5h 23% · 7d 41%
-    🧭 jev small · haiku 4.5 · low | 🎯 release-notes | 🛡 withheld 2 | 🔌 jev via openrouter
+    🧭 easy → haiku 4.5 · low | $0.0043 (112) | 🛡 withheld 2 | 🔌 jev-1.13 · openrouter
 
 Plain coloured text, three short lines: where you are, what the session has used (the bar is
 context used: green, yellow from 70%, red from 90%), and what jev decided this turn, read from the
 mod's own record of the session (its plugin store file, src/core/memory.ts): the lane, model and
-effort, the last skill suggested, how many injected parts were withheld, and the decision backend.
-Without the mod in the session line three shows the backend and the hook switches instead.
+effort, jev's cost and call count this session, how many injected parts were withheld (only when any
+were), and the decision model and backend, red with the reason while jev is failing. The lane is
+shown as difficulty (easy/normal/hard/critical); "kept" means jev changed nothing. Without the mod
+in the session line three is hidden.
 
 Side effects kept from the earlier script, both atomic and best-effort (a read-only disk never
 breaks or slows the line): ~/.claude/statusline-quota.json, a flat quota/context snapshot for
@@ -206,16 +208,6 @@ def line_usage(data: Dict[str, Any]) -> str:
 
 # ── line two: jev ───────────────────────────────────────────────────────────
 
-def jev_config_dir() -> Path:
-    if os.environ.get("JEV_HOME"):
-        return Path(os.environ["JEV_HOME"]).expanduser()
-    hermes = Path(os.environ.get("HERMES_HOME") or HOME / ".hermes")
-    if os.environ.get("HERMES_HOME") or hermes.is_dir():
-        root = hermes.parent.parent if hermes.parent.name == "profiles" else hermes
-        return root / "jev"
-    return Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "jev"
-
-
 def read_json(path: Path) -> Dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -224,17 +216,40 @@ def read_json(path: Path) -> Dict[str, Any]:
         return {}
 
 
-def backend_name() -> str:
+def jev_state_dir() -> Path:
+    if os.environ.get("JEV_HOME"):
+        return Path(os.environ["JEV_HOME"]).expanduser() / "logs"
+    return Path(os.environ.get("XDG_STATE_HOME") or HOME / ".local" / "state") / "jev" / "logs"
+
+
+def last_jev_model() -> Optional[str]:
+    """The model the newest ledger row was answered by, e.g. typesafe/jev-1.13-20260917 -> jev-1.13."""
+    try:
+        with open(jev_state_dir() / "jev-ledger.jsonl", "rb") as fh:
+            fh.seek(0, 2)
+            fh.seek(max(0, fh.tell() - 4096))
+            row = json.loads(fh.read().decode("utf-8", "replace").strip().splitlines()[-1])
+    except (OSError, ValueError, IndexError):
+        return None
+    model = str(row.get("jev_model") or "").split("/")[-1]
+    parts = model.split("-")
+    return "-".join(parts[:2]) if len(parts) > 2 and parts[-1].isdigit() else (model or None)
+
+
+def backend() -> str:
+    """'<decision model> · <where it is served>', e.g. jev-1.13 · openrouter or clef-flash · lais05."""
     xdg = Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "jev"
+    config = read_json(Path(os.environ.get("JEV_BACKENDS") or xdg / "backends.json"))
     pinned = os.environ.get("JEV_BACKEND", "").strip()
-    default = read_json(Path(os.environ.get("JEV_BACKENDS") or xdg / "backends.json")).get("default")
-    name = pinned if pinned and pinned not in ("default", "none") else (default if not pinned else None)
+    name = pinned if pinned and pinned not in ("default", "none") else (config.get("default") if not pinned else None)
     if name:
-        return name
+        entry = (config.get("backends") or {}).get(name) or {}
+        model = str(entry.get("model") or "").split("/")[-1]
+        return f"{model} · {name}" if model else name
     for provider in ("typesafe", "openrouter", "venice", "zen"):
         file = "credentials" if provider == "typesafe" else f"credentials-{provider}"
         if (xdg / file).is_file():
-            return f"jev via {provider}"
+            return f"{last_jev_model() or 'jev'} · {provider}"
     return "jev"
 
 
@@ -261,28 +276,44 @@ def short_model(model: Optional[str]) -> Optional[str]:
     return name
 
 
-def line_jev(data: Dict[str, Any]) -> str:
+DIFFICULTY = {"small": "easy", "medium": "normal", "high": "hard", "escalate": "critical"}
+
+
+def line_jev(data: Dict[str, Any]) -> Optional[str]:
+    """Hidden (None) when the mod is not running in this session."""
     record = mod_record(data.get("session_id"))
-    parts: List[str] = []
-    if record:
-        # jev-mod keeps one namespace per feature; the older jev-router record is flat.
-        features = record.get("features") or {}
-        routing = features.get("routing") or record
-        skills = features.get("skills") or record
-        screening = features.get("screening") or record
-        lane = routing.get("lane") or (routing.get("previous") or {}).get("lane")
-        decided = [x for x in (lane, short_model(routing.get("lastModel")), routing.get("effort")) if x]
-        parts.append("🧭 " + c("jev", CYAN) + (" " + " · ".join(decided) if decided else ""))
-        if skills.get("skill"):
-            parts.append(f"🎯 {skills['skill']}")
-        if screening.get("withheld"):
-            parts.append("🛡 " + c(f"withheld {screening['withheld']}", RED))
+    if not record:
+        return None
+    features = record.get("features") or {}
+    routing = features.get("routing") or record  # the older jev-router record is flat
+    calls = features.get("jev") or {}
+    screening = features.get("screening") or record
+
+    lane = routing.get("lane")
+    if lane in DIFFICULTY:
+        text = DIFFICULTY[lane]
+        if routing.get("changed", True):
+            changed = [x for x in (short_model(routing.get("lastModel")), routing.get("effort")) if x]
+            text += " → " + " · ".join(changed) if changed else ""
+        else:
+            text += c(" · kept", DIM)
     else:
-        state = read_json(jev_config_dir() / "state.json")
-        hooks = " · ".join(f"{name} {state.get('hook_' + name, 'off')}" for name in ("skills", "screen"))
-        parts.append("🧭 " + c("jev", CYAN) + c(" no mod in this session", DIM))
-        parts.append(f"hooks {hooks}")
-    parts.append(c(f"🔌 {backend_name()}", DIM))
+        text = c("not routed", DIM)
+    parts = ["🧭 " + text]
+
+    if calls.get("calls"):
+        parts.append(c(f"${calls.get('cost') or 0:.4f}", YELLOW) + c(f" ({calls['calls']})", DIM))
+    if screening.get("withheld"):
+        parts.append("🛡 " + c(f"withheld {screening['withheld']}", RED))
+
+    where = f"🔌 {backend()}"
+    error = calls.get("error")
+    if error:
+        left = ((calls.get("retryAt") or 0) / 1000) - time.time()
+        reason = f"✗ {error}" + (f", retry in {int(left // 60) + 1}m" if left > 0 else "")
+        parts.append(c(f"{where} {reason}", RED))
+    else:
+        parts.append(c(where, DIM))
     return SEP.join(parts)
 
 
@@ -297,9 +328,11 @@ def main() -> int:
     lines = []
     for build in (line_one, line_usage, line_jev):
         try:
-            lines.append(build(data))
+            line = build(data)
         except Exception:  # noqa: BLE001 - a status line never errors
-            lines.append("")
+            line = ""
+        if line is not None:
+            lines.append(line)
     sys.stdout.write("\n".join(lines) + "\n")
     return 0
 

@@ -21,7 +21,10 @@ const NO_EFFORT = /haiku/
 
 type Lane = { lane: string; model?: string; effort?: string }
 type Table = Record<string, { model?: string; effort?: string }>
-export type RoutingSpace = { previous?: Previous | null; lastModel?: string; lane?: string; effort?: string }
+export type RoutingSpace = {
+  previous?: Previous | null; lastModel?: string; lane?: string; effort?: string
+  changed?: boolean // the mod changed this turn's model or effort from what Claude Code sent
+}
 
 const prompts = new Map<string, string>()                // turnId -> the person's text
 const decisions = new Map<string, Lane | null>()         // turnId -> the lane (null: as is)
@@ -82,7 +85,7 @@ export async function step(
   const lane = decisions.get(e.turnId) ?? null
   if (!lane) {
     io.status('jev: as is')
-    Object.assign(mine, { lastModel: e.model, lane: 'as is', effort: e.effort === undefined ? undefined : String(e.effort) })
+    Object.assign(mine, { lastModel: e.model, lane: 'as is', changed: false, effort: e.effort === undefined ? undefined : String(e.effort) })
     if (first) await memory.save(io)
     return null
   }
@@ -90,7 +93,8 @@ export async function step(
   const { contextTokens } = await io.usage()
   const model = chooseModel(wanted, mine.lastModel ?? e.model, contextTokens, MODEL_SWITCH_MAX_TOKENS)
   const effort = NO_EFFORT.test(model) ? undefined : (lane.effort ?? e.effort)
-  Object.assign(mine, { lastModel: model, lane: lane.lane, effort: effort === undefined ? undefined : String(effort) })
+  const changed = model !== e.model || String(effort ?? '') !== String(e.effort ?? '')
+  Object.assign(mine, { lastModel: model, lane: lane.lane, changed, effort: effort === undefined ? undefined : String(effort) })
   if (first) await memory.save(io)
   io.status(`jev: ${lane.lane} · ${model.replace('claude-', '')}${effort ? ' · ' + effort : ''}`)
   return { model, effort }

@@ -1,0 +1,415 @@
+{
+ "answers": [
+  {
+   "answer": {
+    "noul": 0.7,
+    "type": "noul"
+   },
+   "question": {
+    "instructions": "Is it so?",
+    "type": "noul"
+   },
+   "result": {
+    "noul": 0.7,
+    "type": "noul"
+   }
+  },
+  {
+   "answer": {
+    "noul": 1.2,
+    "type": "noul"
+   },
+   "error": "malformed",
+   "invariant": null,
+   "question": {
+    "instructions": "Is it so?",
+    "type": "noul"
+   }
+  },
+  {
+   "answer": {
+    "type": "noul"
+   },
+   "error": "malformed",
+   "invariant": null,
+   "question": {
+    "instructions": "Is it so?",
+    "type": "noul"
+   }
+  },
+  {
+   "answer": {
+    "noul": 0.5,
+    "type": "choice"
+   },
+   "error": "malformed",
+   "invariant": null,
+   "question": {
+    "instructions": "Is it so?",
+    "type": "noul"
+   }
+  },
+  {
+   "answer": {
+    "choice": "a",
+    "confidence": 0.8,
+    "probabilities": {
+     "a": 0.8,
+     "b": 0.15,
+     "c": 0.05
+    },
+    "type": "choice"
+   },
+   "question": {
+    "criteria": {
+     "a": "first",
+     "b": "second",
+     "c": "third"
+    },
+    "instructions": "Which?",
+    "type": "choice"
+   },
+   "result": {
+    "choice": "a",
+    "confidence": 0.8,
+    "probabilities": {
+     "a": 0.8,
+     "b": 0.15,
+     "c": 0.05
+    },
+    "type": "choice"
+   }
+  },
+  {
+   "answer": {
+    "choice": "b",
+    "confidence": 0.8,
+    "probabilities": {
+     "a": 0.8,
+     "b": 0.15,
+     "c": 0.05
+    },
+    "type": "choice"
+   },
+   "error": "invalid_response",
+   "invariant": "choice_is_argmax",
+   "question": {
+    "criteria": {
+     "a": "first",
+     "b": "second",
+     "c": "third"
+    },
+    "instructions": "Which?",
+    "type": "choice"
+   }
+  },
+  {
+   "answer": {
+    "choice": "a",
+    "confidence": 0.8,
+    "probabilities": {
+     "a": 0.8,
+     "b": 0.2
+    },
+    "type": "choice"
+   },
+   "error": "invalid_response",
+   "invariant": "choice_probability_key_set",
+   "question": {
+    "criteria": {
+     "a": "first",
+     "b": "second",
+     "c": "third"
+    },
+    "instructions": "Which?",
+    "type": "choice"
+   }
+  },
+  {
+   "answer": {
+    "choice": "z",
+    "confidence": 0.8,
+    "probabilities": {
+     "a": 0.8,
+     "b": 0.15,
+     "c": 0.05
+    },
+    "type": "choice"
+   },
+   "error": "malformed",
+   "invariant": null,
+   "question": {
+    "criteria": {
+     "a": "first",
+     "b": "second",
+     "c": "third"
+    },
+    "instructions": "Which?",
+    "type": "choice"
+   }
+  },
+  {
+   "answer": {
+    "choice": "a",
+    "confidence": 0.8,
+    "probabilities": {
+     "a": 0.5,
+     "b": 0.3,
+     "c": 0.3
+    },
+    "type": "choice"
+   },
+   "error": "invalid_response",
+   "invariant": "choice_probability_key_set",
+   "question": {
+    "criteria": {
+     "a": "first",
+     "b": "second",
+     "c": "third"
+    },
+    "instructions": "Which?",
+    "type": "choice"
+   }
+  },
+  {
+   "answer": {
+    "confidence": 0.869,
+    "probabilities": {
+     "0": 0.0152,
+     "1": 0.1158,
+     "2": 0.869
+    },
+    "score": 1.8538,
+    "type": "score"
+   },
+   "question": {
+    "criteria": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "instructions": "How much?",
+    "type": "score"
+   },
+   "result": {
+    "confidence": 0.869,
+    "probabilities": {
+     "0": 0.0152,
+     "1": 0.1158,
+     "2": 0.869
+    },
+    "score": 1.8538,
+    "spread_reported": true,
+    "type": "score"
+   }
+  },
+  {
+   "answer": {
+    "confidence": 0.5,
+    "score": 1.2,
+    "type": "score"
+   },
+   "question": {
+    "criteria": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "instructions": "How much?",
+    "type": "score"
+   },
+   "result": {
+    "confidence": 0.5,
+    "probabilities": {},
+    "score": 1.2,
+    "spread_reported": false,
+    "type": "score"
+   }
+  },
+  {
+   "answer": {
+    "probabilities": {
+     "0": 0.2,
+     "1": 0.6,
+     "2": 0.2
+    },
+    "score": 0.3,
+    "type": "score"
+   },
+   "error": "invalid_response",
+   "invariant": "score_matches_its_distribution",
+   "question": {
+    "criteria": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "instructions": "How much?",
+    "type": "score"
+   }
+  },
+  {
+   "answer": {
+    "probabilities": {
+     "0": 0.1,
+     "1": 0.1,
+     "2": 0.8
+    },
+    "score": 3.0,
+    "type": "score"
+   },
+   "error": "malformed",
+   "invariant": null,
+   "question": {
+    "criteria": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "instructions": "How much?",
+    "type": "score"
+   }
+  },
+  {
+   "answer": {
+    "legend": {
+     "0": "low",
+     "1": "mid"
+    },
+    "probabilities": {
+     "0": 0.2,
+     "1": 0.6,
+     "2": 0.2
+    },
+    "score": 1.0,
+    "type": "score"
+   },
+   "question": {
+    "criteria": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "instructions": "How much?",
+    "type": "score"
+   },
+   "result": {
+    "confidence": 1.0,
+    "legend": {
+     "0": "low",
+     "1": "mid"
+    },
+    "probabilities": {
+     "0": 0.2,
+     "1": 0.6,
+     "2": 0.2
+    },
+    "score": 1.0,
+    "spread_reported": true,
+    "type": "score"
+   }
+  }
+ ],
+ "questions": [
+  {
+   "question": {
+    "instructions": "Is it so?",
+    "type": "noul"
+   },
+   "result": {
+    "instructions": "Is it so?",
+    "type": "noul"
+   }
+  },
+  {
+   "question": {
+    "criteria": {
+     "a": "first",
+     "b": "second",
+     "c": "third"
+    },
+    "instructions": "Which?",
+    "type": "choice"
+   },
+   "result": {
+    "criteria": {
+     "a": "first",
+     "b": "second",
+     "c": "third"
+    },
+    "instructions": "Which?",
+    "type": "choice"
+   }
+  },
+  {
+   "question": {
+    "criteria": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "instructions": "How much?",
+    "type": "score"
+   },
+   "result": {
+    "criteria": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "instructions": "How much?",
+    "type": "score"
+   }
+  },
+  {
+   "error": "question \"q\": criteria for a choice must be an object of 2 to 255 options, {\"option\": \"what it means\"}",
+   "question": {
+    "criteria": {
+     "only": "one"
+    },
+    "instructions": "x",
+    "type": "choice"
+   }
+  },
+  {
+   "error": "question \"q\" asks nothing: its instructions only repeat its own name. The id names the question, \"instructions\" asks it",
+   "question": {
+    "criteria": [
+     "a"
+    ],
+    "instructions": "q",
+    "type": "score"
+   }
+  },
+  {
+   "error": "question \"q\" has unknown type \"maybe\"; use one of choice, score, noul",
+   "question": {
+    "instructions": "q",
+    "type": "maybe"
+   }
+  },
+  {
+   "error": "question \"q\" asks nothing: its instructions only repeat its own name. The id names the question, \"instructions\" asks it",
+   "question": {
+    "instructions": "q",
+    "type": "noul"
+   }
+  },
+  {
+   "question": {
+    "criteria": {
+     "true": "y"
+    },
+    "instructions": "Is it so?",
+    "type": "noul"
+   },
+   "result": {
+    "criteria": {
+     "true": "y"
+    },
+    "instructions": "Is it so?",
+    "type": "noul"
+   }
+  }
+ ]
+}

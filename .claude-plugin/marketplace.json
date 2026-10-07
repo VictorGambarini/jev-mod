@@ -1,0 +1,6 @@
+{
+  "name": "jev-mod",
+  "description": "jev-mod: decisions by a cheap decision model inside Claude Code",
+  "owner": { "name": "Victor Gambarini" },
+  "plugins": [{ "name": "jev-mod", "source": "./" }]
+}

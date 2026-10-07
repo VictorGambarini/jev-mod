@@ -1,0 +1,11 @@
+jev-mod
+Copyright (c) 2026 Victor Gambarini
+
+jev-mod is licensed under the MIT License (see LICENSE).
+
+It is derived from Hermes Jev Skills (https://github.com/kerpopule/hermes-jev-skills),
+Copyright (c) 2026 Steve Darlow, used under the MIT License: the decision engine being ported
+to src/engine (request building and answer validation, backends, redaction, the injection
+screen, skill selection, lane policy, transcript selection), the lane rules and
+/compact-jev selection in src/features, the status line, and the parity fixtures in
+test/parity, which are that project's outputs. Its copyright notice is kept in LICENSE.

@@ -1,0 +1,16 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install -g @anthropic-ai/claude-code
+      - name: validate (what the mod hooks and reaches; anything the engine would refuse)
+        run: claude plugin validate .
+      - name: kit tests
+        run: claude plugin test .
+      - name: parity fixtures are valid JSON
+        run: for f in test/parity/fixtures/*.json; do python3 -m json.tool "$f" > /dev/null || exit 1; done

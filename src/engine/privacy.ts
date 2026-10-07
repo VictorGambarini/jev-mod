@@ -11,8 +11,16 @@
 // Python's \d, \w and \b are Unicode-aware and JavaScript's are ASCII, so the patterns are
 // written as Python wrote them and translated by `py` below; lengths are counted in code
 // points, as Python counts them, not UTF-16 units.
+//
+// Where this deliberately differs from privacy.py (leaks the Unicode fixtures exposed), the
+// rule says so, and test/parity/divergences.ts records each changed answer with its reason.
 
 const WORD = '[\\p{L}\\p{N}_]'
+// Secret patterns start and end at an ASCII boundary, not Python's Unicode \b: with \b an
+// accented letter in front glued the secret to it ("naïveSECRET_KEY=…", "éAKIA…"), there was
+// no boundary, and the value went out unmasked. Divergence from privacy.py.
+const START = '(?<![A-Za-z0-9_])'
+const END = '(?![A-Za-z0-9_])'
 
 /** Compile a Python `re` pattern: Unicode \d, \D, \w and \b, and the `u` flag. */
 function py(source: string, flags = ''): RegExp {
@@ -27,20 +35,22 @@ function py(source: string, flags = ''): RegExp {
 const SECRET_WORDS = py(
   'api[_ -]?key|access[_ -]?token|authorization\\s*:|bearer\\s+[a-z0-9._-]{8,}|password|passwd|' +
   'client[_ -]?secret|session[_ -]?cookie|credit[_ -]?card|card[_ -]?number|' +
-  '\\bcvv\\b|\\bssn\\b|private[_ -]?key|BEGIN [A-Z ]*PRIVATE KEY', 'i')
+  `${START}cvv${END}|${START}ssn${END}|private[_ -]?key|BEGIN [A-Z ]*PRIVATE KEY`, 'i')
 // An env-var name is how a secret usually appears in agent output: AWS_SECRET_ACCESS_KEY,
 // STRIPE_SECRET, DB_PASSWORD, GITHUB_TOKEN. Matching only `secret_key` missed every one of
 // them, because the revealing word sits in the middle of the name, not at its end.
 const SECRET_ASSIGNMENT_SOURCE =
-  '\\b[A-Z][A-Z0-9]*(?:[_-][A-Z0-9]+)*[_-]' +
-  '(?:SECRET|SECRET[_-]?\\w*KEY|API[_-]?KEY|KEY|TOKEN|PASSWORD|PASSWD|CREDENTIALS?|AUTH)\\b' +
+  `${START}[A-Z][A-Z0-9]*(?:[_-][A-Z0-9]+)*[_-]` +
+  `(?:SECRET|SECRET[_-]?\\w*KEY|API[_-]?KEY|KEY|TOKEN|PASSWORD|PASSWD|CREDENTIALS?|AUTH)${END}` +
   '\\s*[:=]\\s*\\S*'
-const SECRET_NAME = py('\\bsecret[_ -](?:access[_ -])?key\\b|\\bsecret[_ -]?key\\b', 'i')
+const SECRET_NAME = py(`${START}secret[_ -](?:access[_ -])?key${END}|${START}secret[_ -]?key${END}`, 'i')
 const TOKEN_SHAPES_SOURCE =
-  '\\b(sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|' +
-  'AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|apikey_[A-Za-z0-9_]{20,}|' +
-  'eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{5,})\\b'
-const EMAIL = py('\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b', 'g')
+  `${START}(sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|` +
+  `AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|apikey_[A-Za-z0-9_]{20,}|` +
+  `eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{5,})${END}`
+// Letters beyond ASCII on both sides of the @: privacy.py's ASCII-only local part let
+// "josé@example.com" and "Zoë.Smith@exämple.com" out whole. Divergence from privacy.py.
+const EMAIL = py('\\b[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}.-]+\\.\\p{L}{2,}\\b', 'g')
 const PHONE = py('(?<!\\d)(?:\\+?\\d{1,3}[\\s.-]?)?(?:\\(\\d{3}\\)|\\d{3})[\\s.-]?\\d{3}[\\s.-]?\\d{4}(?!\\d)', 'g')
 // The keyword rules above only fire on a label. A bank alert or an order receipt carries
 // the card number with no trigger word anywhere near it, and "4111 1111 1111 1111" went
@@ -58,7 +68,7 @@ const HIGH_ENTROPY = py('(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+/_-]{32,}={0,2}(?![A-Za
 // "x8505550134" through). Pure-digit carrier formats are already safe: PHONE's trailing
 // (?!\d) refuses to match a prefix of a longer run.
 const TRACKING = py('\\b1Z[0-9A-Z]{16}\\b', 'gi')
-const LONG_HEX = py('\\b[a-fA-F0-9]{32,}\\b', 'g')
+const LONG_HEX = py(`${START}[a-fA-F0-9]{32,}${END}`, 'g')
 
 const SECRET_ASSIGNMENT = py(SECRET_ASSIGNMENT_SOURCE, 'i')
 const SECRET_ASSIGNMENT_ALL = py(SECRET_ASSIGNMENT_SOURCE, 'gi')
@@ -69,12 +79,26 @@ const isUpper = (c: string) => c !== c.toLowerCase() && c === c.toUpperCase()
 const isLower = (c: string) => c !== c.toUpperCase() && c === c.toLowerCase()
 const isDigit = (c: string) => /^\p{Nd}$/u.test(c)
 
+/**
+ * A decimal digit's value in any script. Each script's digits are ten consecutive code points
+ * from its zero, so the value is how far back the run of digits goes, modulo ten (some
+ * scripts' runs sit back to back). privacy.py took code point - 48, right for ASCII only, so
+ * a card in Arabic-Indic digits never passed Luhn and went out whole. Divergence.
+ */
+function digitValue(char: string): number {
+  let cp = char.codePointAt(0)!
+  if (cp >= 48 && cp <= 57) return cp - 48
+  let steps = 0
+  while (steps < 40 && isDigit(String.fromCodePoint(cp - 1))) { cp--; steps++ }
+  return steps % 10
+}
+
 /** The check digit every payment card carries. An order number almost never passes it. */
 function luhn(digits: string): boolean {
   let total = 0
   let alternate = false
   for (const char of [...digits].reverse()) {
-    let value = char.codePointAt(0)! - 48
+    let value = digitValue(char)
     if (alternate) {
       value *= 2
       if (value > 9) value -= 9
@@ -94,6 +118,43 @@ function maskCard(match: string): string {
 function maskCredential(run: string): string {
   const chars = [...run]
   return chars.some(isUpper) && chars.some(isLower) && chars.some(isDigit) ? '[secret]' : run
+}
+
+// Letters that look like Latin ones but are not, which NFKC leaves alone: "раssword" with a
+// Cyrillic р and а passed every keyword rule. Divergence from privacy.py.
+const CONFUSABLE: Record<string, string> = {
+  'а': 'a', 'в': 'b', 'е': 'e', 'к': 'k', 'м': 'm', 'н': 'h', 'о': 'o', 'р': 'p', 'с': 'c', 'т': 't', 'у': 'y', 'х': 'x',
+  'ѕ': 's', 'і': 'i', 'ј': 'j', 'ԁ': 'd', 'һ': 'h', 'ӏ': 'l', 'ԛ': 'q', 'ԝ': 'w', 'ү': 'y', 'ɡ': 'g',
+  'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X',
+  'Ѕ': 'S', 'І': 'I', 'Ј': 'J', 'Ү': 'Y', 'Ԁ': 'D', 'Ԛ': 'Q', 'Ԝ': 'W',
+  'α': 'a', 'ο': 'o', 'ρ': 'p', 'ν': 'v', 'ι': 'i', 'κ': 'k', 'τ': 't', 'υ': 'u', 'χ': 'x',
+  'Α': 'A', 'Β': 'B', 'Ε': 'E', 'Ζ': 'Z', 'Η': 'H', 'Ι': 'I', 'Κ': 'K', 'Μ': 'M', 'Ν': 'N', 'Ο': 'O', 'Ρ': 'P',
+  'Τ': 'T', 'Υ': 'Y', 'Χ': 'X',
+}
+const WORDS = /[\p{L}\p{N}_]+/gu
+const ASCII_LETTER = /[A-Za-z]/
+
+// A secret's name on its own, for telling a disguised name from an ordinary word.
+const KEY_NAME = py(
+  '^[A-Z][A-Z0-9]*(?:[_-][A-Z0-9]+)*[_-](?:SECRET|SECRET[_-]?\\w*KEY|API[_-]?KEY|KEY|TOKEN|PASSWORD|PASSWD|CREDENTIALS?|AUTH)$',
+  'i')
+
+/**
+ * Fold look-alikes to Latin, but only inside a word that is a disguise: one that mixes them
+ * with ASCII letters ("раssword"), or is built from look-alikes alone and folds to a secret's
+ * keyword or name ("АРІ_КЕҮ"). Ordinary Russian or Greek text is untouched, including short
+ * words made only of look-alikes ("ο", "του", "сор").
+ */
+export function foldConfusables(text: string): string {
+  return text.replace(WORDS, word => {
+    const letters = [...word].filter(c => /\p{L}/u.test(c))
+    if (!letters.some(c => c in CONFUSABLE)) return word
+    const folded = [...word].map(c => CONFUSABLE[c] ?? c).join('')
+    if (letters.some(c => ASCII_LETTER.test(c))) return folded
+    const disguise = letters.every(c => c in CONFUSABLE)
+      && (SECRET_WORDS.test(folded) || SECRET_NAME.test(folded) || KEY_NAME.test(folded))
+    return disguise ? folded : word
+  })
 }
 
 /** Fold look-alike and invisible characters so a gate cannot be dodged with Unicode. */
@@ -145,13 +206,13 @@ function randomToken(match: string): boolean {
 }
 
 export function isSensitive(text: string): boolean {
-  const probe = normalize(text)
+  const probe = foldConfusables(normalize(text))
   return SECRET_WORDS.test(probe) || SECRET_NAME.test(probe) || SECRET_ASSIGNMENT.test(probe)
     || TOKEN_SHAPES.test(probe) || [...probe.matchAll(UNLABELLED)].some(m => randomToken(m[0]))
 }
 
 export function redact(text: string, limit = 4000): string {
-  let out = normalize(text)
+  let out = foldConfusables(normalize(text))
   // Hold tracking numbers aside so the phone rule cannot reach their digits, then put them
   // back before any truncation can cut a placeholder in half. normalize() removed every \0,
   // so the placeholders cannot collide with the text.

@@ -34,11 +34,15 @@ Translating a Python pattern: write it as Python wrote it and compile it with `p
 `engine/privacy.ts`, which makes `\d`, `\D`, `\w` and `\b` Unicode-aware as Python's are.
 Count lengths in code points (`[...text]`), never `.length`.
 
+A port may fix what the original got wrong, but only visibly: the fixture keeps Python's
+answer, `test/parity/divergences.ts` gives the new one and why, and the parity test fails if
+an entry stops differing.
+
 ## Order and status
 
 | Module | From | Used by | Status |
 |---|---|---|---|
-| `engine/privacy.ts` | `privacy.py` | everything that sends text | **done**: 890/890 cases; not wired in yet (the CLI still redacts) |
+| `engine/privacy.ts` | `privacy.py` | everything that sends text | **done**: 890 cases, 10 of them deliberately different (leak fixes, `test/parity/divergences.ts`); not wired in yet |
 | `engine/screen.ts` | `rerank.local_screen`, `webscreen.py` | screening | to do |
 | `engine/client.ts` | `client.py` (questions, answer validation, transports) | everything | to do |
 | `engine/backends.ts` | `backends.py`, `keystore.py` | client | to do: `systemone` and `openai` (logprobs) protocols |

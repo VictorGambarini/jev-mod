@@ -302,7 +302,9 @@ def line_jev(data: Dict[str, Any]) -> Optional[str]:
     parts = ["🧭 " + text]
 
     if calls.get("calls"):
-        parts.append(c(f"${calls.get('cost') or 0:.4f}", YELLOW) + c(f" ({calls['calls']})", DIM))
+        spent = calls.get("cost") or 0
+        money = f"${spent:.2f}" if spent >= 1 else f"${spent:.4f}" if spent >= 0.001 else f"${spent:.5f}"
+        parts.append(c(money, YELLOW) + c(f" ({calls['calls']})", DIM))
     if screening.get("withheld"):
         parts.append("🛡 " + c(f"withheld {screening['withheld']}", RED))
 

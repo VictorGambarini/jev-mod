@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""A two-line Claude Code status line: the session on top, what jev decided below.
+"""An optional Claude Code status line: the session and what it has used.
+
+jev-mod draws its own line above the prompt; set JEV_STATUSLINE_JEV=1 to also get it here, as below.
 
     [Opus 5.5 · medium] 📁 jev-mod | 🌿 main* | +120/-30
     ██░░░░░░░░ 25% · 84k/200k | 🔥 1h · 42m left · hit 99% | $1.23 | ⏱️ 1h 5m | 5h 23% · 7d 41%
@@ -339,7 +341,9 @@ def main() -> int:
         data = {}
     side_files(raw, data)
     lines = []
-    for build in (line_one, line_usage, line_jev):
+    # jev's own line is drawn by the mod above the prompt (0.5.0); JEV_STATUSLINE_JEV=1 keeps it here too.
+    builders = (line_one, line_usage) + ((line_jev,) if os.environ.get("JEV_STATUSLINE_JEV") == "1" else ())
+    for build in builders:
         try:
             line = build(data)
         except Exception:  # noqa: BLE001 - a status line never errors

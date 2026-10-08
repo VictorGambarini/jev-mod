@@ -1,6 +1,6 @@
 {
   "name": "jev-mod",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "A cheap decision model picks each turn's skill, model and effort, compacts on request, and withholds injected text",
   "author": {
     "name": "Victor Gambarini"
@@ -73,6 +73,17 @@
       "title": "Private",
       "default": false,
       "description": "Send nothing to the decision backend: no routing or skill suggestions, and fetched text is screened with local patterns only."
+    },
+    "band": {
+      "type": "string",
+      "title": "jev band",
+      "default": "on",
+      "options": [
+        "on",
+        "off"
+      ],
+      "description": "A line above the prompt: what jev decided this turn, its cost this session, what screening withheld, and the backend."
     }
-  }
+  },
+  "types": "./types/index.d.ts"
 }

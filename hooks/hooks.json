@@ -1,1 +1,1 @@
-{ "modules": ["../src/register.ts"] }
+{ "modules": ["../src/register.tsx"] }

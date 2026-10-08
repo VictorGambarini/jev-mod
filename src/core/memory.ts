@@ -35,6 +35,11 @@ export function space<T extends Record<string, unknown>>(feature: string): T {
   return features[feature] as T
 }
 
+/** A copy of this session's features, for drawing. */
+export function snapshot(): Record<string, Record<string, unknown>> {
+  return JSON.parse(JSON.stringify(features))
+}
+
 export function session(): string | null {
   return loadedFor
 }

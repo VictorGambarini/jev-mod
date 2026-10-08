@@ -1,4 +1,7 @@
+import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
+import type { BandFeatures } from '../types'
+import { line } from './features/band/line'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
 import * as compactJev from './features/compact-jev'
@@ -50,6 +53,16 @@ async function envOf($: any, name: string): Promise<string | undefined> {
       }
     }
   }
+}
+
+// Theme keys, so the band follows light and dark themes on every surface.
+const THEME = { yellow: 'warning', red: 'error', green: 'success' } as const
+
+const band = atom({ plugin: 'jev-mod', key: 'band' } as const, null as BandFeatures | null)
+
+/** Redraw the band from the session's record, after a hook that may have changed it. */
+async function refresh($: any): Promise<void> {
+  try { await update($, band, () => memory.snapshot()) } catch { /* the band is cosmetic */ }
 }
 
 /** The mod's settings (its manifest's userConfig), as Claude Code handed them to register. */
@@ -118,6 +131,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text)])
+    await refresh($)
     return next(suggestion ? { ...e, context: [...(e.context ?? []), suggestion] } : e)
   })
 
@@ -132,6 +146,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const routed = await routing.step(io, e)
+    await refresh($)
     if (!routed) return yield* next(e)
     return yield* next({ ...e, model: routed.model, effort: routed.effort as typeof e.effort })
   })
@@ -151,6 +166,21 @@ export const register: Register = (on, given) => {
     const ran: any = await next(e)
     if (ran.deny !== undefined || ran.isError || ran.result === undefined) return ran
     const result = await screening.filter(ioOf($), kind, e.tool, ran.result)
+    await refresh($)
     return result === null ? ran : { ...ran, result }
+  })
+
+  // The band above the prompt; next(e) (nothing of the mod's) until it has done something.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (options.band === 'off' || e.props.hasSurvey) return next(e)
+    const features = await read($, band)
+    const segments = features ? line(features, Date.now()) : null
+    if (!segments) return next(e)
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box>
+        {segments.map(s => <Text color={s.color ? THEME[s.color] : undefined} dimColor={s.dim}>{s.text}</Text>)}
+      </Box>
+    )
   })
 }

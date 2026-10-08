@@ -14,10 +14,20 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it; above 40k tokens the model only moves up. |
 | **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
+| **The jev band** | always | One line above the prompt: what jev decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
+| **`/jev-status`** | when you type it | The backend, where its key came from (never the key), a live check, the switches, today's spend. |
 | **`/compact-jev`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
 Every decision fails open: no answer means the turn runs exactly as plain Claude Code. After a
 failed call the mod stops asking for five minutes, so a backend that is down costs one timeout.
+
+## What you need
+
+- Claude Code (terminal or the desktop app's Code tab).
+- A key for a decision model: a TypeSafe key for Jev (https://console.typesafe.ai/settings/keys), or
+  Jev through OpenRouter, Venice or OpenCode Zen, or your own server (below).
+
+Nothing else: no Python, no other tool.
 
 ## Install
 
@@ -55,6 +65,7 @@ side by side.
 | Routing | on | each turn's model and effort from the decision model's lane |
 | Skill suggestions | default | `on`, `shadow` (ask and count, suggest nothing), `off`; `default` follows `jev switches`, else on |
 | Screening | default | the same, for withholding injected text |
+| jev band | on | the line above the prompt |
 | Private | off | send nothing: no routing or suggestions; fetched text is screened locally only |
 
 A `HOOK_SKILLS_OFF` or `HOOK_SCREEN_OFF` file in `~/.config/jev` still turns that feature off
@@ -75,24 +86,20 @@ Its key goes in the *named backend key* setting. Every threshold was measured on
 model's confidences are not the same numbers, so a backend can carry its own `tuning` and its
 own copy of a policy (`~/.config/jev/backends/<name>/policies/`).
 
-## Status line
+## What it looks like
 
-`statusline/statusline.py` draws three short lines: where you are, what the session has used, and
-what jev decided this turn. The bar is context used (green, yellow from 70%, red from 90%); 🔥
-counts down the prompt cache's time to live. On line three the lane reads as difficulty (easy,
-normal, hard, critical), followed by the model and effort the mod switched to, or "kept" when it
-changed nothing; then jev's cost and calls this session, 🛡 only when injected text was withheld,
-and the decision model and backend, red with the reason while jev is failing. Without the mod in
-the session line three is hidden:
+Above the prompt, after the first turn:
 
 ```text
-[Opus 5.5 · medium] 📁 jev-mod | 🌿 main* | +120/-30
-██░░░░░░░░ 25% · 84k/200k | 🔥 1h · 42m left · hit 99% | $1.23 | ⏱️ 1h 5m | 5h 23% · 7d 41%
-🧭 easy → haiku 4.5 · low | $0.0043 (112) | 🛡 withheld 2 | 🔌 jev-1.13 · openrouter
+🧭 easy → haiku 4.5 · low  $0.0043 (112)  🛡 withheld 2  🔌 jev-1.13 · typesafe
 ```
 
-`"statusLine": {"type": "command", "command": "<path>/statusline/statusline.py", "refreshInterval": 60}` in
-`~/.claude/settings.json`. A row the mod draws itself is planned.
+The lane reads as difficulty (easy, normal, hard, critical), then the model and effort the mod
+switched to, or "kept" when it changed nothing. Turn it off with the *jev band* setting.
+
+`statusline/statusline.py` is an optional status line for the rest (model, folder, branch,
+context, cache countdown, spend, rate limits): `"statusLine": {"type": "command", "command":
+"<path>/statusline/statusline.py", "refreshInterval": 60}` in `~/.claude/settings.json`.
 
 ## Develop
 

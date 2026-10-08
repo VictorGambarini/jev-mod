@@ -1,3 +1,4 @@
+import { costOf, type Asked } from '../engine/client'
 import type { IO } from './io'
 import * as memory from './memory'
 
@@ -61,6 +62,17 @@ export async function record(io: IO, call: { calls: number; cost: number; error:
   mine.retryAt = call.error === null ? undefined : now + COOL_OFF_MS
   if (call.error !== null) quietUntil = Math.max(quietUntil, now + COOL_OFF_MS)
   await memory.save(io)
+}
+
+// An outage starts the cool-off; a refusal (a bad key, a malformed reply) is the request's own fault.
+const OUTAGES = ['network', 'timeout', 'http_502', 'http_503', 'http_504']
+
+/** The requests an engine call made (and the error codes of those that failed), recorded as above. */
+export async function recordCalls(io: IO, calls: Asked[], errors: string[] = []): Promise<void> {
+  const failure = errors.find(code => OUTAGES.includes(code)) ?? null
+  if (!calls.length && !failure) return
+  await record(io, { calls: calls.length + errors.length, cost: calls.reduce((sum, c) => sum + costOf(c), 0),
+    error: failure, model: calls.find(c => c.jev_model)?.jev_model })
 }
 
 export function coolingOff(): boolean {

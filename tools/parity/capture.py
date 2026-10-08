@@ -469,14 +469,133 @@ LANE_ANSWERS = [{"lane": "small"}, {"lane": "medium"}, {"lane": "high"}, {"lane"
 save("lanes", [dict(task=t, **scripted_run(lambda **kw: lanes.classify(t, host="claude-code", **kw), v))
                for t in TASKS for v in LANE_ANSWERS])
 
-SKILLS = skillpick.discover([SOURCE / "skills"])
+# ── skill selection: the gate, the front matter, and pick end to end ─────────
+# The gate and the front-matter reader are pure, so every string jev-skills' skill tests use
+# goes through them, plus hand-written cases on where Python and JavaScript read text
+# differently (what is a letter, a digit, a word break, a lower-case form, a line end).
+def all_literals(*files: str) -> List[str]:
+    found: List[str] = []
+    for file in files:
+        path = SOURCE / "tests" / file
+        if path.is_file():
+            found += [node.value for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+                      if isinstance(node, ast.Constant) and isinstance(node.value, str)]
+    return found
+
+
+GATE_HAND = [
+    "", " ", "\n\t", "ok", "OK!", "ok.", "k", "thanks", "Thanks!!!", "thanks, that worked", "thank you", "thank-you",
+    "go ahead", "Go ahead.", "go ahead and deploy", "please do", "please do it", "do it", "go on", "carry on", "continue",
+    "yes please", "yes, go ahead", "no worries", "got it", "got it thanks", "it", "do all of them now", "stop", "stop it",
+    "wait", "wait for the build", "next", "next?", "next one?", "whats next?", "what's next?", "what’s next?",
+    "whatʼs next?", "and next？", "ok next؟", "¿next?", "all working?", "that done?", "done", "all done",
+    "ok ok ok ok ok ok", "ok ok ok ok ok ok ok", "thanks thanks thanks thanks thanks thanks thanks", "how are you doing today",
+    "how are you doing today ok", "good morning", "good morning team", "open settings", "\U0001f44d", "\U0001f44d\U0001f44d!", "...",
+    "?", "!!!", "--", "ok_thanks", "ok__thanks", "ok-thanks", "ok/thanks", "ok—thanks", "ok thanks", "ok　thanks",
+    "请审查这个拉取请求", "ok 请审查这个拉取请求",
+    "спасибо", "شكرا", "תודה", "ขอบคุณ",
+    "धन्यवाद", "café", "café", "é", "́", "ok ́", "²", "Ⅷ", "٣",
+    "1", "ok 1", "İ", "OK İ", "ẞ", "STRASSE", "THANKS", "THİS", "K", "Kay", "ｏｋ", "ＯＫ",
+    "ok​thanks", "​", "﻿ok", "ok thanks", "ok\u0085thanks", "\U0001d42c\U0001d42c", "ok \U00010400",
+    "that's it", "that’s it", "thats it", "its done", "it's done", "it’s working", "works", "worked!", "nvm",
+    "hmm", "lol", "haha ok", "sure, why not", "sure why", "perfect, ship it", "great work", "nice work", "well done",
+    "ok\n\nthanks", "ok\r\nthanks", "yes\tno", "a", "I", "no", "nope.", "yep!", "bye", "cya later",
+]
+GATE = list(dict.fromkeys(GATE_HAND + [s for s in all_literals("test_skillpick_gate.py", "test_backlog_regressions.py",
+                                                                 "test_skill_suggestion_reachable.py") if len(s) <= 400]))
+
+FRONT_HAND = [
+    "no front matter here", "---\nname: a\ndescription: b\n---\nbody", "---\nname: a\ndescription: b\n---", "---\r\nname: a\r\ndescription: b\r\n---\r\nbody",
+    "---  \nname: a\n---  \nbody", "---\n---\nbody", "---\n\n---\n", "---\nname: 'quoted'\ndescription: \"double\"\n---\n",
+    "---\nname: a:b\ndescription: url: http://x\n---\n", "---\n name: indented\nname2: x\n---\n", "---\n\tname: tab\n---\n",
+    "---\nkey without colon\nname: z\n---\n", "---\ndescription: >\n  first line\n  second line\n\n  after blank\nname: n\n---\n",
+    "---\ndescription: |\n  keep\n  lines\nother: x\n---\n", "---\ndescription: >-\n    deep\n      deeper\n    back\n---\n",
+    "---\ndescription: >2-\n  a\n  b\n---\n", "---\ndescription: |+2\n  a\n---\n", "---\ndescription: > # folded\n  a\n  b\n---\n",
+    "---\ndescription: >\nname: next\n---\n", "---\ndescription: >\n  only\n---\n", "---\ndescription: >x\n  a\n---\n",
+    "---\ndescription: >\n    four\n  two\nname: q\n---\n", "---\ndescription: >\n  a\n\n\n  b\n---\n",
+    "---\ndescription: été — café \U0001f600\nname: über\n---\n", "---\nname: a\nname: b\n---\n",
+    "---\ndescription:no-space\n---\n", "---\ndescription:   \n---\n", "---\ndescription: ''\n---\n", "---\ndescription: 'a\n---\n",
+    "---\nname: a\ndescription: b\n--- \nrest\n---\nname: c\n---\n", "x---\nname: a\n---\n", "\n---\nname: a\n---\n",
+    "---\nname: a b\ndescription: c\u0085d\n---\n", "---\ndescription: >\n  a   b\n---\n", "---\ndescription: >\n 　wide\n---\n",
+    "---\ndescription: >\n  nbsp\n---\n", "---\nname: a\n---\nbody\n---\nname: b\n---\n",
+]
+FRONT = list(dict.fromkeys(FRONT_HAND + [s for s in all_literals("test_jevkit.py", "test_skillpick_gate.py", "test_backlog_regressions.py")
+                                          if s.startswith("---")] + [p.read_text(encoding="utf-8")[:4000] for p in sorted((SOURCE / "skills").glob("*/SKILL.md"))]))
+save("skill_text", {"trivial": [{"turn": t, "trivial": skillpick.looks_trivial(t)} for t in GATE],
+                    "front_matter": [{"text": t, "fields": skillpick._front_matter(t)} for t in FRONT]})
+
+
+# pick end to end. Each run records every request with the reply it got: the batches go out
+# side by side, so the port's test answers a request by its body, not by its turn in line.
+class Recorded:
+    def __init__(self, values: Dict[str, Any], fail_when: Optional[str] = None, fail: Optional[str] = None) -> None:
+        self.inner = Scripted(values, fail=fail)
+        self.fail_when = fail_when
+        self.exchanges: List[Dict[str, Any]] = []
+
+    def __call__(self, body: bytes, headers: Dict[str, str], timeout: float) -> bytes:
+        text = body.decode("utf-8")
+        if self.fail_when and self.fail_when in text:
+            self.exchanges.append({"request": text, "fail": "network"})
+            raise client.JevError("network")
+        try:
+            reply = self.inner(body, headers, timeout)
+        except client.JevError as error:
+            self.exchanges.append({"request": text, "fail": error.code})
+            raise
+        self.exchanges.append({"request": text, "reply": reply.decode("utf-8")})
+        return reply
+
+
+def synthetic(count: int, seed: int, spread: int = 140) -> List[Dict[str, str]]:
+    words = ["deploy", "review", "browser", "mailbox", "chart", "invoice", "migration", "café", "日本", "\U0001f600"]
+    out = []
+    for i in range(count):
+        body = " ".join(words[(i * 7 + j * 3 + seed) % len(words)] for j in range(5 + (i * 13) % spread))
+        out.append({"name": f"skill-{seed}-{i:04d}", "description": f"Use when {body}.", "path": f"/skills/skill-{i:04d}/SKILL.md"})
+    return out
+
+
+SMALL = skillpick.discover([SOURCE / "skills"])
+MID = synthetic(130, 1)
+MID.insert(4, {"name": "using-superpowers", "description": "A meta skill the picker never offers.", "path": "/skills/m/SKILL.md"})
+BIG = synthetic(1000, 2, spread=36)  # around the 200-character cut; MID has the long ones
+CATALOGS = {"small": SMALL, "mid": MID, "big": BIG, "empty": [], "meta": [MID[4]]}
 TURNS = ["read this mailbox export and sort every message into a lane", "click through the checkout flow in the browser",
-         "what day is it today", "rename the column in the changelog table"]
-# Stage 2 asks needs_skill plus one noul per finalist (s<index>); the scripted backend says
-# 0.05 to anything unnamed, so each branch is named: picked, need too low, pick not verified, defaults.
-SKILL_ANSWERS = [{"needs_skill": 0.9, "s0": 0.88}, {"needs_skill": 0.2, "s0": 0.88}, {"needs_skill": 0.9, "s0": 0.3}, {}]
-save("skills", {"catalog": SKILLS, "runs": [dict(turn=t, **scripted_run(lambda **kw: skillpick.pick(t, SKILLS, top_k=1, **kw), v))
-                                            for t in TURNS for v in SKILL_ANSWERS]})
+         "what day is it today", "rename the column in the changelog table", "thanks!", "",
+         "deploy with password: hunter2 and token ghp_" + "a1B2" * 9, "email victor@example.com the café report \U0001f600",
+         "review this " + "diff line\n" * 400]
+# Stage 1 asks one choice per batch of 120 (pick:<start>), stage 2 needs_skill plus one noul per
+# finalist (s<index>); unnamed, a choice takes its first option and a noul says 0.05.
+RUNS = []
+
+
+def run(catalog: str, turn: str, values: Dict[str, Any], top_k: int = 1, **recorded: Any) -> None:
+    fake = Recorded(values, **recorded)
+    result = skillpick.pick(turn, CATALOGS[catalog], top_k=top_k, transport=fake)
+    RUNS.append({"catalog": catalog, "turn": turn, "top_k": top_k, "values": values, "exchanges": fake.exchanges, "result": result})
+
+
+for turn in TURNS:
+    for values in [{"needs_skill": 0.9, "s0": 0.88}, {"needs_skill": 0.2, "s0": 0.88}, {"needs_skill": 0.9, "s0": 0.3}, {}]:
+        run("small", turn, values)
+for values, top_k in [({}, 1), ({"pick:0": "S7", "pick:120": "S125", "needs_skill": 0.8, "s7": 0.7, "s125": 0.9}, 1),
+                      ({"pick:0": "S7", "pick:120": "S125", "needs_skill": 0.8, "s7": 0.7, "s125": 0.9}, 3),
+                      ({"pick:0": "none", "pick:120": "none"}, 1), ({"pick:0": "S5", "needs_skill": 0.5, "s5": 0.5}, 1),
+                      ({"pick:0": "S5", "needs_skill": 0.499, "s5": 0.9}, 1), ({"pick:120": "S129", "needs_skill": 0.9, "s129": 0.6, "s0": 0.61}, 2)]:
+    run("mid", TURNS[0], values, top_k=top_k)
+# Exact binary ties at three places, where Python's round() and JavaScript's Math.round part.
+run("mid", TURNS[0], {"pick:0": "S5", "needs_skill": 0.8125, "s5": 0.5625})
+run("mid", TURNS[0], {}, fail_when='"pick:120"')
+run("mid", TURNS[0], {"pick:0": "S7", "needs_skill": 0.9, "s7": 0.9}, fail_when='"needs_skill"')
+run("mid", TURNS[1], {}, fail="network")
+run("big", TURNS[0], {"pick:480": "S500", "pick:840": "S900", "needs_skill": 0.9, "s500": 0.8, "s900": 0.85}, top_k=2)
+run("big", TURNS[1], {})
+run("empty", TURNS[0], {})
+run("meta", TURNS[0], {})
+SKILL_RUNS = RUNS
+save("skill_catalogs", CATALOGS)
+save("skills", RUNS)
 
 MESSAGES = [{"role": "user" if i % 2 == 0 else "assistant", "content": CORPUS[i % len(CORPUS)]} for i in range(24)]
 save("compact", [scripted_run(lambda **kw: compact.select(MESSAGES, **kw), v) for v in ({}, {"fate": "keep"})])

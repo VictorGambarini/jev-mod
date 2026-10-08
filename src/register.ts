@@ -56,11 +56,34 @@ function ioOf($: any): IO {
     run: (argv, init) => $.process.run(argv, init),
     fetch: (url, init) => $.http.fetch(url, init),
     readFile: path => $.fs.read(path),
+    folders: async path => {
+      try {
+        const entries: { name: string; kind: string; isLink: boolean }[] = await $.fs.list(path)
+        const linked = await Promise.all(entries.map(async entry => entry.isLink
+          && (await $.fs.stat(`${path}/${entry.name}`).catch(() => undefined))?.kind === 'dir'))
+        return entries.filter((entry, i) => entry.kind === 'dir' || linked[i]).map(entry => entry.name)
+      } catch {
+        return []
+      }
+    },
     writeFile: (path, text) => $.fs.write(path, text),
     home: () => $.env.get('HOME'),
     env: name => envOf($, name),
     sleep: ms => $.clock.sleep(ms),
     sessionId: () => $.session.id(),
+    projectRoot: async () => {
+      try { return await $.session.root() } catch { return undefined }
+    },
+    // The listing the model reads, estimated locally ("summary" sends nothing anywhere).
+    skillNames: async () => {
+      try {
+        const { context } = await $.session.usage({ breakdown: 'summary' })
+        const listed = context.breakdown?.skills?.skillFrontmatter
+        return Array.isArray(listed) ? listed.map((skill: { name: string }) => skill.name) : null
+      } catch {
+        return null
+      }
+    },
     usage: async () => {
       const { context } = await $.session.usage()
       return { contextTokens: context.tokens ?? 0, contextWindow: context.window, contextPercent: context.percent }

@@ -15,6 +15,8 @@ export interface IO {
   run(argv: string[], init?: { stdin?: string; timeoutMs?: number }): Promise<RunResult>
   fetch(url: string, init?: FetchInit): Promise<FetchResponse>
   readFile(path: string): Promise<string>
+  /** The folders directly inside `path`, links to folders included; [] when it is not a folder. */
+  folders(path: string): Promise<string[]>
   writeFile(path: string, text: string): Promise<void>
   home(): Promise<string | undefined>
   /** An environment variable; the ones the engine reads by name are listed in register.ts. */
@@ -22,6 +24,10 @@ export interface IO {
   sleep(ms: number): Promise<void>
   // this session
   sessionId(): Promise<string | null>
+  /** The session's project root, absolute. */
+  projectRoot(): Promise<string | undefined>
+  /** The names of the skills the session lists for the model, or null when it cannot say. */
+  skillNames(): Promise<string[] | null>
   usage(): Promise<Usage>
   // the mod's own store (a JSON file Claude Code keeps per plugin)
   storeGet(key: string): Promise<unknown>

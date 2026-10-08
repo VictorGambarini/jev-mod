@@ -12,7 +12,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | Feature | When | What it decides |
 |---|---|---|
 | **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it; above 40k tokens the model only moves up. |
-| **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. |
+| **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
 | **`/compact-jev`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
@@ -25,10 +25,10 @@ failed call the mod stops asking for five minutes, so a backend that is down cos
 /plugin install jev-mod --marketplace VictorGambarini/jev-mod
 ```
 
-**For now routing, skill suggestions and /compact-jev also need the `jev` command** from
+**For now routing and /compact-jev also need the `jev` command** from
 [hermes-jev-skills](https://github.com/kerpopule/hermes-jev-skills) on your PATH, and the key
-is still set up with `jev setup-key`. Screening already runs inside the mod, with no Python:
-it reads the same keys and `backends.json` the `jev` command does. The rest of the engine is
+is still set up with `jev setup-key`. Screening and skill suggestions already run inside the
+mod, with no Python: they read the same keys, `backends.json` and switches the `jev` command does. The rest of the engine is
 being ported ([docs/PORTING.md](docs/PORTING.md)); once it is, jev-mod needs nothing else.
 
 ## Decision backends

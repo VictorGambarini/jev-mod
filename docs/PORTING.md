@@ -3,7 +3,7 @@
 Each engine module moves from jev-skills' Python into `src/engine/`, in TypeScript, reaching the
 outside world only through a `Host` (`core/host.ts` builds one from `IO`); when a module
 reproduces its parity fixtures exactly, the features switch to it and their call to the Python
-`jev` command (src/core/jev.ts) goes. Screening has switched; routing, skills and
+`jev` command (src/core/jev.ts) goes. Screening and skills have switched; routing and
 /compact-jev still call the command.
 
 ## Parity fixtures
@@ -27,7 +27,8 @@ record both the request sent and the decision reached:
 | `urls.json` | `backends.check_url` and the gateway rule on URL edge cases | 40 |
 | `webscreen_screen.json` | screening end to end against the scripted backend: requests, verdict, withheld text | 10 |
 | `lanes.json` | `lane classify`: request and decision, every lane | 49 |
-| `skills.json` | the catalog, `pick`: requests and picks, every branch | 16 |
+| `skill_text.json` | `looks_trivial` on every string the skill tests use plus Unicode, apostrophes, question marks in four scripts; `_front_matter` on block scalars, CRLF, Python's line ends and whitespace | 449 + 51 |
+| `skill_catalogs.json`, `skills.json` | `pick` end to end over 11, 130 and 1,000 skills: every request with the reply it got (the batches go out side by side, so the test answers by body), the result; every branch (trivial, sensitive, no skills, one batch lost, stage 2 lost, the cap, ties, `round()`'s ties) | 50 runs |
 | `compact.json` | `compact-select`: requests and fates | 2 |
 
 To regenerate (while a jev-skills checkout exists), then refresh the `.ts` copies the tests
@@ -57,6 +58,14 @@ Known differences that are not fixture answers, and why:
   name jev-mod rather than jev-skills. The parity test passes jev-skills' values in.
 - **A cool-off screens locally.** The CLI path skipped screening entirely while the backend was
   cooling off after a failure; the engine path screens with the local patterns meanwhile.
+- **Where skills are found.** skillpick.discover walked every folder under a root; a user's
+  skills folder holds whole repositories (gstack keeps test fixtures and an OpenClaw copy of
+  itself there), so it offered skills Claude Code never lists (`alpha`, `gstack-openclaw-*`).
+  `engine/skills.ts` reads Claude Code's layout, `<root>/<folder>/SKILL.md`, and the feature
+  then keeps only the skills the session itself lists (`$.session.usage` with a local
+  `summary` breakdown). Front matter, names and the rest of the pick are as Python had them.
+- **Already suggested** is remembered in the session record, not jev-skills'
+  `jev-hooks-sessions.json`, and the mod writes no `jev-hooks.jsonl` row per prompt.
 - **backends.json that cannot be read** (a permissions error, say) reads as no file at all,
   rather than as a misconfiguration; a file that is not JSON is still a misconfiguration.
 
@@ -72,7 +81,7 @@ an entry stops differing.
 | `engine/screen.ts` | `rerank.local_screen`, `webscreen.py`, `hooks.screen_text` | screening | **done and wired in** (five deliberate mutations each caught) |
 | `engine/client.ts` | `client.py`, `ledger.cost` | everything | **done** (six deliberate mutations each caught) |
 | `engine/backends.ts`, `engine/keys.ts` | `backends.py`, `tuning.check`, `keystore.py` (reading) | client | **done** for `systemone`; the `openai` (logprobs) protocol is still to do. Storing a key (`jev setup-key`) is not ported yet |
-| `engine/skills.ts` | `skillpick.py` | skills | to do |
+| `engine/skills.ts` | `skillpick.py`, `hooks.user_prompt` | skills | **done and wired in** (nine deliberate mutations caught; the tenth, `trim` for `strip` in the gate, cannot change an answer) |
 | `engine/lanes.ts` | `lanes.py`, `policy.py`, `decide.py` (what `lane` needs) | routing | to do |
 | `engine/compact.ts` | `compact.py` | /compact-jev | to do |
 | key setup | `key_setup.py` | first run | to do: no Python, the key never in the conversation |

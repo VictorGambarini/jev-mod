@@ -298,3 +298,20 @@ export function urlsplit(input: string): SplitURL {
     },
   }
 }
+
+/**
+ * Python's round(x, digits): the nearest decimal to the exact binary value, an exact tie to
+ * even. JavaScript's toFixed breaks the same tie upwards (0.0625 is 0.063 there, 0.062 here).
+ */
+export function pyRound(x: number, digits: number): number {
+  if (!Number.isFinite(x)) return x
+  // An exact tie at `digits` places is an odd multiple of 2^-(digits+1): (2n+1)/(2*10^d) is a
+  // binary fraction only when 5^d divides the numerator. Scaling by a power of two is exact,
+  // so this asks about the value itself, not a rounded product.
+  if (Number.isInteger(x * 2 ** (digits + 1)) && !Number.isInteger(x * 2 ** digits)) {
+    const scaled = x * 10 ** digits
+    const down = Math.floor(scaled)
+    return (down % 2 === 0 ? down : down + 1) / 10 ** digits
+  }
+  return Number(x.toFixed(digits))
+}

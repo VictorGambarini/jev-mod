@@ -116,7 +116,7 @@ test('every shipped feature declares a default it has, and help to show', () => 
   for (const f of FEATURES) {
     expect(f.modes.includes(f.default)).toBe(true)
     expect(f.help.length).toBeGreaterThan(20)
-    for (const knob of Object.values(f.knobs)) expect('problem' in checkKnob(f, Object.keys(f.knobs)[0], knob.default)).toBe(false)
+    for (const [name, knob] of Object.entries(f.knobs)) expect('problem' in checkKnob(f, name, knob.default)).toBe(false)
   }
 })
 

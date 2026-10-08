@@ -22,6 +22,7 @@ src/
     routing/           index.ts (glue) · rules.ts (pure) · rules.test.ts
     skills/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
+    tool-gate/         index.ts (glue, on tool.check) · rules.ts (pure: risk classifier, state, verdict) · rules.test.ts
     compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
 statusline/            the two-line status line (reads core/memory.ts's records)

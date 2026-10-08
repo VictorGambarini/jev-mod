@@ -14,6 +14,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it; above 40k tokens the model only moves up. |
 | **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
+| **Tool-call gate** (shadow by default) | before a consequential tool call Claude Code would allow: Bash that pushes, deletes, rewrites history, publishes, installs, deploys, migrates or writes outside the project; Write/Edit outside the project; MCP tools that send, create, change or delete | Whether you asked for it, whether it breaks a limit you stated ("don't push"), and whether it is hard to undo. A doubtful call is put to you in the permission dialog with the reason, instead of running unasked. It only tightens Claude Code's decision, never loosens it. |
 | **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
 | **`/jev-mod compact`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
@@ -96,7 +97,19 @@ in the mod's own store, for `/jev-mod dashboard`.
 | `routing` | on, off | on | each turn's model and effort from the decision model's lane |
 | `skills` | on, shadow, off | on | suggests the installed skill that matches a prompt |
 | `screening` | on, shadow, off | on | withholds instructions aimed at the model in fetched text |
+| `tool-gate` | on, shadow, off | shadow | asks you before a consequential tool call the decision model doubts; settings `minConfidence` (0.7), `scope` (`bash`, `bash+edits`, `all-risky`), `timeoutMs` (2000) |
 | `band` | on, off | on | the line above the prompt |
+
+**The tool-call gate** sits on Claude Code's permission decision (`tool.check`) after its own
+verdict. A call your rules refuse, or already ask you about, is left alone; one they would allow
+and the gate doubts becomes an ask, never a deny. Only consequential calls are sent (reads,
+builds, tests and edits inside the project never are), with your last few prompts (redacted) and
+any limits you stated; a call carrying a secret is not sent. Subagents' calls are gated too: a
+subagent is where text fetched from elsewhere most often steers a call. No answer within
+`timeoutMs`, private mode, the daily budget or a backend cool-off: the call goes on as Claude
+Code decided. In `bypassPermissions`, `auto` and `dontAsk` modes, and in `claude -p`, the mode
+settles the ask (headless, it is refused with the gate's reason). Try it in `shadow` first: it
+counts `would-ask`, `passed` and `skipped`; `on` counts `asked-person`.
 
 What wins, first to last: a kill file (`~/.config/jev-mod/OFF` for everything,
 `~/.config/jev-mod/<FEATURE>_OFF` for one, or jev-skills' `HOOK_SKILLS_OFF` / `HOOK_SCREEN_OFF`

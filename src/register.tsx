@@ -10,6 +10,7 @@ import * as compact from './features/compact'
 import * as routing from './features/routing'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
+import * as toolGate from './features/tool-gate'
 
 // jev-mod: a cheap decision model (Jev, or any decision backend) makes the small decisions
 // inside Claude Code, so the expensive model only does the work.
@@ -136,7 +137,7 @@ export const register: Register = (on, given) => {
     if (!text.trim() || text.trimStart().startsWith('/')) return next(e)
     const io = ioOf($)
     await memory.load(io)
-    const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text)])
+    const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text)])
     await refresh($)
     return next(suggestion ? { ...e, context: [...(e.context ?? []), suggestion] } : e)
   })
@@ -181,6 +182,22 @@ export const register: Register = (on, given) => {
     await refresh($)
     return result === null ? ran : { ...ran, result }
   })
+
+  // ── tool-call gate (features/tool-gate) ──
+  // At the permission decision, after Claude Code's own verdict: a consequential call it would
+  // allow may become an ask, with the reason in the dialog; nothing else changes. Its own hook,
+  // apart from tool.call's (screening, after the result), so the two never touch. A plugin's
+  // `$.tool.check` query (no tool_use_id) runs nothing and is not judged.
+  on('tool.check', async ($, e, next) => {
+    const verdict = await next(e)
+    if (verdict.decision !== 'allow' || e.tool_use_id === undefined) return verdict
+    const io = ioOf($)
+    await memory.load(io)
+    const gate = await toolGate.check(io, e)
+    await refresh($)
+    return gate ?? verdict
+  })
+  // ── end tool-call gate ──
 
   // The band above the prompt; next(e) (nothing of the mod's) until it has done something.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

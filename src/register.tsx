@@ -5,11 +5,11 @@ import { line } from './features/band/line'
 import { modeOf } from './core/config'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
-import * as compactJev from './features/compact-jev'
+import * as command from './features/command'
+import * as compact from './features/compact'
 import * as routing from './features/routing'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
-import * as status from './features/status'
 
 // jev-mod: a cheap decision model (Jev, or any decision backend) makes the small decisions
 // inside Claude Code, so the expensive model only does the work.
@@ -126,8 +126,7 @@ function ioOf($: any): IO {
 export const register: Register = (on, given) => {
   options = { ...(given ?? {}) }
   on('session.start', async ($, e, next) => {
-    await $.command.register(compactJev.command)
-    await $.command.register(status.command)
+    await $.command.register(command.command)
     return next(e)
   })
 
@@ -158,13 +157,19 @@ export const register: Register = (on, given) => {
     return yield* next({ ...e, model: routed.model, effort: routed.effort as typeof e.effort })
   })
 
-  on('command.run', { command: 'compact-jev' }, async $ => compactJev.run(ioOf($)))
-  on('command.run', { command: 'jev-status' }, async $ => status.run(ioOf($)))
+  on('command.run', { command: 'jev-mod' }, async ($, e) => command.run(ioOf($), e.args))
 
-  // Only the compaction /compact-jev queued; /compact and auto-compaction pass untouched.
+  // /jev-mod's subcommands, features and settings in the typeahead; nothing for any other prompt.
+  on('prompt.autocomplete', async ($, e, next) => {
+    const mine = command.suggest(e.text, e.cursor, e.token)
+    if (!mine.length) return next(e)
+    return { suggestions: [...(await next(e)).suggestions, ...mine] }
+  })
+
+  // Only the compaction /jev-mod compact queued; /compact and auto-compaction pass untouched.
   on('session.compact', async ($, e, next) => {
-    if (!compactJev.isOurs(e)) return next(e)
-    return compactJev.compact(ioOf($), e.messages)
+    if (!compact.isOurs(e)) return next(e)
+    return compact.compact(ioOf($), e.messages)
   })
 
   on('tool.call', async ($, e, next) => {

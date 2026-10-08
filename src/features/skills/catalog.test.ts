@@ -20,7 +20,7 @@ test('a skill is suggested once a session, and only the last few are remembered'
   expect(repeat(names, 's0')[0]).toBe(false)
 })
 
-test('the note reads as the jev-skills hook wrote it', () => {
-  expect(note('deploy', 0.88)).toBe('[Jev skill suggestion] The `deploy` skill looks like the right procedure for this request '
+test("the note reads as the jev-skills hook wrote it, under the mod's own tag", () => {
+  expect(note('deploy', 0.88)).toBe('[jev-mod skill suggestion] The `deploy` skill looks like the right procedure for this request '
     + '(match 0.88). Invoke it with the Skill tool before starting, unless it clearly does not apply.')
 })

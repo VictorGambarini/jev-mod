@@ -1,4 +1,4 @@
-// /compact-jev's selection: which messages survive a compaction with no summariser.
+// /jev-mod compact's selection: which messages survive a compaction with no summariser.
 
 export type Msg = {
   role: string
@@ -10,7 +10,7 @@ export type Msg = {
 export const ALWAYS_KEEP_LAST = 6
 
 /**
- * The messages `/compact-jev` keeps, in order: those Jev marked keep, the last
+ * The messages `/jev-mod compact` keeps, in order: those Jev marked keep, the last
  * ALWAYS_KEEP_LAST, and whatever completes a kept tool call (its result) or a kept result
  * (its call), since a request with one half of a pair is refused. `fates` is indexed by
  * position in `sent`, the messages that had text to send; a message without text (a tool

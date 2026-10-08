@@ -28,6 +28,6 @@ export function repeat(suggested: string[], name: string): [boolean, string[]] {
 }
 
 export function note(name: string, match: number): string {
-  return `[Jev skill suggestion] The \`${name}\` skill looks like the right procedure for this request (match ${match}). `
+  return `[jev-mod skill suggestion] The \`${name}\` skill looks like the right procedure for this request (match ${match}). `
     + 'Invoke it with the Skill tool before starting, unless it clearly does not apply.'
 }

@@ -1,4 +1,4 @@
-// The jev band above the prompt: what jev decided this turn, its cost this session, what
+// The jev-mod band above the prompt: what jev-mod decided this turn, its cost this session, what
 // screening withheld, and which backend answers (red, with the reason, while it is failing).
 // Pure: the session's record in, coloured segments out; register.tsx draws them.
 

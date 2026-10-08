@@ -14,9 +14,24 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it; above 40k tokens the model only moves up. |
 | **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
-| **The jev band** | always | One line above the prompt: what jev decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
-| **`/jev-status`** | when you type it | The backend, where its key came from (never the key), a live check, each feature's mode and where it came from, today's spend. |
-| **`/compact-jev`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
+| **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
+| **`/jev-mod compact`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
+
+One command manages the mod; the typeahead offers each word after it:
+
+| Command | What it does |
+|---|---|
+| `/jev-mod` (or `/jev-mod list`) | Every feature: its mode and where that came from, its settings, then anything in the config files that was passed over. |
+| `/jev-mod status` | The backend, where its key came from (never the key), a live check, each feature's mode, today's spend. |
+| `/jev-mod compact` | The compaction above. |
+| `/jev-mod dashboard` | What each feature did, and in shadow would have done (to come). |
+| `/jev-mod <feature>` | Its help, its modes, and each setting with its range, default and value now. |
+| `/jev-mod <feature> on\|off\|shadow` | Sets its mode in your config file (`--project`: the project's). |
+| `/jev-mod <feature> <setting> <value>` | Sets one of its settings. |
+| `/jev-mod <feature> reset` | Clears what the file sets for it. |
+
+After a change it shows the value that now holds, and warns when a kill file, `/config` or the
+project file still overrides what was just written.
 
 Every decision fails open: no answer means the turn runs exactly as plain Claude Code. After a
 failed call the mod stops asking for five minutes, so a backend that is down costs one timeout.
@@ -48,7 +63,7 @@ read -rs KEY && printf '{"api_key":"%s"}' "$KEY" | claude plugin configure jev-m
 
 An empty value keeps the key already set; set it to `none` to stop using it.
 
-Then check it with **`/jev-status`**: the backend, where its key came from (never the key), a live
+Then check it with **`/jev-mod status`**: the backend, where its key came from (never the key), a live
 check call, each feature's mode, and today's spend.
 
 Nothing else is needed: no Python. A key already in the environment (`TYPESAFE_API_KEY`, ...) or
@@ -59,7 +74,8 @@ side by side.
 ### Settings
 
 Each feature has a mode (`on`, `off`, and `shadow` where it means something: decide and count,
-change nothing) and, for some, settings of its own. They live in a JSON file:
+change nothing) and, for some, settings of its own. `/jev-mod <feature> ...` sets them (above);
+they live in a JSON file:
 
 - `~/.config/jev-mod/config.json` for you (`$XDG_CONFIG_HOME` respected), and
 - `.claude/jev-mod.json` in a project, which overrides it there.
@@ -68,9 +84,12 @@ change nothing) and, for some, settings of its own. They live in a JSON file:
 {"features": {"skills": {"mode": "shadow"}, "band": {"mode": "off"}}}
 ```
 
-A change holds from the next event; no restart. `/jev-status` shows each feature's mode, where
+A change holds from the next event; no restart. `/jev-mod` shows each feature's mode, where
 it came from, and anything in the files it passed over (an unknown feature, a mode a feature
 does not have): a typo never turns a feature off.
+
+What each feature did (and in shadow would have done) is counted by day for the last 30 days
+in the mod's own store, for `/jev-mod dashboard`.
 
 | Feature | Modes | Default | |
 |---|---|---|---|
@@ -87,7 +106,7 @@ default.
 
 `/config` keeps what has to live there: the keys, the provider, *jev-mod on* (untick it to turn
 everything off), and *Private* (send nothing: no routing or suggestions; fetched text is
-screened locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev band* fields
+screened locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev-mod band* fields
 still work when the files do not set that feature, and will go in a later release.
 
 ## Decision backends

@@ -1,4 +1,5 @@
 import { costOf, type Asked } from '../engine/client'
+import * as activity from './activity'
 import type { IO } from './io'
 import * as memory from './memory'
 
@@ -17,9 +18,11 @@ let quietUntil = 0
 /**
  * One or more backend calls, for the status line: their cost and count added to the session's
  * running total, the model that answered, and the last failure with when its cool-off ends. A
- * failure also starts the cool-off.
+ * failure also starts the cool-off. Named, the feature that asked has them counted as "asked"
+ * in its activity (core/activity.ts).
  */
-export async function record(io: IO, call: { calls: number; cost: number; error: string | null; model?: string | null; now?: number }): Promise<void> {
+export async function record(io: IO, call: { calls: number; cost: number; error: string | null; model?: string | null; now?: number },
+  feature?: string): Promise<void> {
   const now = call.now ?? Date.now()
   const mine = memory.space<JevSpace>('jev')
   mine.calls = (mine.calls ?? 0) + call.calls
@@ -28,18 +31,18 @@ export async function record(io: IO, call: { calls: number; cost: number; error:
   mine.error = call.error
   mine.retryAt = call.error === null ? undefined : now + COOL_OFF_MS
   if (call.error !== null) quietUntil = Math.max(quietUntil, now + COOL_OFF_MS)
-  await memory.save(io)
+  await Promise.all([memory.save(io), feature ? activity.count(io, feature, 'asked', call.calls, call.cost, now) : undefined])
 }
 
 // An outage starts the cool-off; a refusal (a bad key, a malformed reply) is the request's own fault.
 export const OUTAGES = ['network', 'timeout', 'http_502', 'http_503', 'http_504']
 
 /** The requests an engine call made (and the error codes of those that failed), recorded as above. */
-export async function recordCalls(io: IO, calls: Asked[], errors: string[] = []): Promise<void> {
+export async function recordCalls(io: IO, calls: Asked[], errors: string[] = [], feature?: string): Promise<void> {
   const failure = errors.find(code => OUTAGES.includes(code)) ?? null
   if (!calls.length && !failure) return
   await record(io, { calls: calls.length + errors.length, cost: calls.reduce((sum, c) => sum + costOf(c), 0),
-    error: failure, model: calls.find(c => c.jev_model)?.jev_model })
+    error: failure, model: calls.find(c => c.jev_model)?.jev_model }, feature)
 }
 
 export function coolingOff(): boolean {

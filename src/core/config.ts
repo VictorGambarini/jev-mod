@@ -102,6 +102,11 @@ function stateMode(f: Feature, state: unknown): Mode | undefined {
   return (f.modes as readonly string[]).includes(named) ? named as Mode : 'off'
 }
 
+/** The kill files present that turn this feature off. */
+export function killedBy(snap: Snapshot, f: Feature): string[] {
+  return killFiles(f, snap.mod, snap.jev).filter(path => snap.kills.includes(path))
+}
+
 /** One feature's mode and knobs from a snapshot. Pure. */
 export function resolve(snap: Snapshot, f: Feature): Resolved {
   const knobs: Resolved['knobs'] = Object.fromEntries(Object.entries(f.knobs).map(([name, k]) => [name, { value: k.default, source: 'default' as Source }]))
@@ -114,7 +119,7 @@ export function resolve(snap: Snapshot, f: Feature): Resolved {
     }
   }
   const at = (mode: Mode, source: Source): Resolved => ({ mode, source, knobs })
-  if (killFiles(f, snap.mod, snap.jev).some(path => snap.kills.includes(path))) return at('off', 'kill file')
+  if (killedBy(snap, f).length) return at('off', 'kill file')
   const enabled = snap.options.enabled
   if (enabled === false || enabled === 'false') return at('off', '/config')
   for (const scope of ['project', 'user'] as const) {
@@ -185,6 +190,22 @@ export async function write(io: IO, scope: Scope, id: string, key: string, value
     if ('problem' in result) return result
     checked = 'mode' in result ? result.mode : result.value
   }
+  return edit(io, scope, id, mine => {
+    if (checked === undefined) delete mine[key]
+    else mine[key] = checked
+  })
+}
+
+/** Clear everything one scope's file sets for a feature, the keys it does not know included. */
+export async function reset(io: IO, scope: Scope, id: string,
+  features: readonly Feature[] = FEATURES): Promise<{ ok: true; path: string } | { problem: string }> {
+  if (!feature(id, features)) return { problem: `no feature ${id} (there are ${features.map(x => x.id).join(', ')})` }
+  return edit(io, scope, id, mine => { for (const key of Object.keys(mine)) delete mine[key] })
+}
+
+/** Change one feature's section of a scope's file in place; an emptied section is removed. */
+async function edit(io: IO, scope: Scope, id: string, change: (mine: Record<string, unknown>) => void,
+): Promise<{ ok: true; path: string } | { problem: string }> {
   const path = (await paths(io))[scope]
   if (!path) return { problem: 'this session has no project folder to keep a project setting in' }
   const text = await hostOf(io).readFile(path)
@@ -200,8 +221,7 @@ export async function write(io: IO, scope: Scope, id: string, key: string, value
   }
   const sections = isObject(file.features) ? { ...file.features } : {}
   const mine = isObject(sections[id]) ? { ...(sections[id] as Record<string, unknown>) } : {}
-  if (checked === undefined) delete mine[key]
-  else mine[key] = checked
+  change(mine)
   if (Object.keys(mine).length) sections[id] = mine
   else delete sections[id]
   await io.writeFile(path, JSON.stringify({ ...file, features: sections }, null, 2) + '\n')

@@ -1,4 +1,5 @@
 import { hostOf } from '../../core/host'
+import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import * as memory from '../../core/memory'
@@ -49,14 +50,18 @@ export async function analyse(io: IO, text: string): Promise<string | null> {
   const mine = memory.space<SkillsSpace>('skills')
   mine.catalog = skills.length
   mine.listed = listed
-  await recordCalls(io, picked.calls ?? [], picked.errors ?? [])
+  await recordCalls(io, picked.calls ?? [], picked.errors ?? [], 'skills')
   await memory.save(io)
   const chosen = picked.skills[0]
-  if (!chosen || setting !== 'on') return null
+  if (!chosen) return null
+  if (setting !== 'on') {
+    await activity.count(io, 'skills', 'would-suggest')
+    return null
+  }
   const [again, suggested] = repeat(mine.suggested ?? [], chosen.name)
   if (again) return null
   mine.suggested = suggested
-  await memory.save(io)
-  io.toast(`jev: try the ${chosen.name} skill`.slice(0, 120))
+  await Promise.all([memory.save(io), activity.count(io, 'skills', 'suggested')])
+  io.toast(`jev-mod: try the ${chosen.name} skill`.slice(0, 120))
   return note(chosen.name, chosen.match)
 }

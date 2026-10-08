@@ -1,4 +1,4 @@
-// /jev-status: what the mod is connected to and whether it answers. Pure: the facts in, the
+// /jev-mod status: what the mod is connected to and whether it answers. Pure: the facts in, the
 // lines out. Nothing here ever holds a key; the facts say only where one was found.
 
 import type { KeySource } from '../../engine/keys'

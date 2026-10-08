@@ -11,13 +11,8 @@ import { limitConfig } from '../../engine/lanes'
 import { VERSION } from '../../version'
 import { report, scrub, type Facts } from './report'
 
-// /jev-status: which decision backend the mod uses, where its key came from (never the key),
+// /jev-mod status: which decision backend the mod uses, where its key came from (never the key),
 // one check call with jev-skills' own verification question, each feature's mode and today's spend.
-
-export const command = {
-  name: 'jev-status',
-  description: "Show jev-mod's decision backend, where its key comes from, a live check, and its switches",
-}
 
 async function readJson(io: IO, path: string): Promise<any> {
   try { return JSON.parse(await io.readFile(path)) } catch { return undefined }

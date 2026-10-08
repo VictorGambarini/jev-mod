@@ -2,9 +2,9 @@
 
 ```
 .claude-plugin/        plugin.json and marketplace.json: the repository is the plugin
-hooks/hooks.json       → ../src/register.ts
+hooks/hooks.json       → ../src/register.tsx
 src/
-  register.ts          the only file that holds `$`; builds the IO, wires hooks to features
+  register.tsx         the only file that holds `$`; builds the IO, wires hooks to features
   core/                what every feature needs from Claude Code, through IO
     io.ts              the IO interface: everything the mod may do to the outside world
     jev.ts             the session's tally of backend calls, and the cool-off after a failure
@@ -14,12 +14,15 @@ src/
     settings.ts        jev's folder and private mode
     limits.ts          the daily budget, shared with the `jev` command
     memory.ts          per-session memory, one namespace per feature, in the mod's store
+    activity.ts        what each feature did (or in shadow would have done), counted by day
   features/            one folder per feature
-    status/            /jev-status: index.ts · report.ts (pure) · report.test.ts
+    command/           /jev-mod: index.ts · parse.ts and format.ts (pure) with their tests
+    status/            /jev-mod status: index.ts · report.ts (pure) · report.test.ts
+    dashboard/         /jev-mod dashboard (to come)
     routing/           index.ts (glue) · rules.ts (pure) · rules.test.ts
     skills/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
-    compact-jev/       index.ts · keep.ts (pure) · keep.test.ts
+    compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
 statusline/            the two-line status line (reads core/memory.ts's records)
 test/parity/           fixtures captured from jev-skills; the engine port must match them
@@ -42,12 +45,12 @@ tools/parity/          the capture script
 These come from Claude Code's plugin validator and test kit (checked in the spike):
 
 - **`$` never crosses an import.** The validator follows the engine handle only into functions
-  declared in the same file. So `src/register.ts` is the one file with `$`: it builds an `IO`
+  declared in the same file. So `src/register.tsx` is the one file with `$`: it builds an `IO`
   (`ioOf($)`) and passes that everywhere. The validator still lists everything the mod reaches
   (`claude plugin validate .` shows each call "via ioOf").
 - **Environment variables are named by literal** (`$.env.get('HOME')`), so the variables a mod
   reads can be listed. The IO has `home()`, not `env(name)`.
-- **A command's own hook may not compact.** `/compact-jev` queues the built-in `/compact` with a
+- **A command's own hook may not compact.** `/jev-mod compact` queues the built-in `/compact` with a
   marker from a timer, and answers that compaction itself.
 - **The kit cannot raise `turn.step`, and does not route a mod's `$.process.run` to a test's
   stub.** It does stub `http.fetch`, `fs.read` and `env.get` (a stub answers `{ value: ... }`).
@@ -60,6 +63,11 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
 - **Per turn:** module variables in each feature (a turn's prompt, its lane).
 - **Per session:** `core/memory.ts`, `store["sessions"][id].features[<feature>]`. It survives
   `--continue`, `--resume` and restarts, and the status line reads it.
+- **Per day:** `core/activity.ts`, `store["activity"][day][<feature>]`: each outcome's count and
+  the backend's cost, for the last 30 local days. Counts gather in the process and are written
+  one after another, so features counting at once lose nothing.
+- **Settings:** `core/config.ts`, read from the layers on each use; `/jev-mod` writes the user
+  or project file through `config.write` and `config.reset`.
 - **Across sessions:** the decision backend's own config (keys, tuning), outside the mod.
 
 ## Failure

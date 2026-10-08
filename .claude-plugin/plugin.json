@@ -38,7 +38,7 @@
       "type": "boolean",
       "title": "jev-mod on",
       "default": true,
-      "description": "Untick to turn every feature off at once. Each feature's own mode and settings are in ~/.config/jev-mod/config.json (and a project's .claude/jev-mod.json); /jev-status shows them."
+      "description": "Untick to turn every feature off at once. Each feature's own mode and settings are in ~/.config/jev-mod/config.json (and a project's .claude/jev-mod.json); /jev-mod lists them and sets them."
     },
     "routing": {
       "type": "string",
@@ -82,13 +82,13 @@
     },
     "band": {
       "type": "string",
-      "title": "jev band",
+      "title": "jev-mod band",
       "default": "on",
       "options": [
         "on",
         "off"
       ],
-      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. A line above the prompt: what jev decided this turn, its cost this session, what screening withheld, and the backend."
+      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. A line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and the backend."
     }
   },
   "types": "./types/index.d.ts"

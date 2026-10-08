@@ -1,4 +1,5 @@
 import { hostOf } from '../../core/host'
+import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import * as memory from '../../core/memory'
@@ -29,17 +30,23 @@ async function screenText(io: IO, tool: string, text: string, raw: boolean) {
   if (setting === 'off') return null
   const send = !coolingOff() && !(await isPrivate(io, dir))
   const verdict = await screenResult(host, tool, text, { send, raw })
-  await recordCalls(io, verdict.calls ?? [], verdict.errors ?? [])
-  if (setting !== 'on') return null
+  await recordCalls(io, verdict.calls ?? [], verdict.errors ?? [], 'screening')
   const withheld = withholdText(tool, text, raw, verdict)
-  return withheld === null ? null : { text: withheld, flagged: verdict.flagged.length }
+  if (withheld === null) return null
+  // shadow: what it would have withheld is counted, and the text goes on as it came
+  if (setting !== 'on') {
+    await activity.count(io, 'screening', 'would-withhold', verdict.flagged.length)
+    return null
+  }
+  return { text: withheld, flagged: verdict.flagged.length }
 }
 
 function count(io: IO, withheld: number, what: string): void {
   const mine = memory.space<ScreeningSpace>('screening')
   mine.withheld = (mine.withheld ?? 0) + withheld
-  io.toast(`jev: withheld ${withheld} part(s) of ${what}`)
+  io.toast(`jev-mod: withheld ${withheld} part(s) of ${what}`)
   void memory.save(io)
+  void activity.count(io, 'screening', 'withheld', withheld)
 }
 
 /** The tool's result with injected text withheld, or null to leave it exactly as it was. */

@@ -2,7 +2,7 @@ import { test, expect } from 'claude-code/testing'
 import { keepOnly } from './keep'
 
 
-test('compact-jev keeps what Jev marks keep, the tail, and both halves of a tool call', () => {
+test('jev-mod compact keeps what Jev marks keep, the tail, and both halves of a tool call', () => {
   const m = (role: string, text: string, extra: object = {}) => ({ role, text, ...extra })
   const messages = [
     m('user', 'set up the project'),                                        // 0 keep
@@ -19,7 +19,7 @@ test('compact-jev keeps what Jev marks keep, the tail, and both halves of a tool
   expect(kept).toEqual([0, 4, 5, 6, 7, 8, 9, 10, 11])
 })
 
-test('compact-jev never keeps half a tool pair from the tail', () => {
+test('jev-mod compact never keeps half a tool pair from the tail', () => {
   const messages = [
     { role: 'user', text: 'go' },
     { role: 'assistant', text: '', toolUses: [{ tool_use_id: 'x' }] },

@@ -1,6 +1,6 @@
 // Compaction without a summary: the decision model marks each turn keep, summarize or drop.
 //
-// Ported from jev-skills' jevkit/compact.py `select`, the part /compact-jev uses. One request
+// Ported from jev-skills' jevkit/compact.py `select`, the part /jev-mod compact uses. One request
 // per batch of up to 40 turns, packed by encoded size; a long turn is judged on its first and
 // last 350 characters, redacted. Dropping is the only fate that cannot be undone, so it needs a
 // confident answer. The digest and handoff prompts are for jev-skills' handoff writer, which

@@ -1,4 +1,5 @@
 import { hostOf } from '../../core/host'
+import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
 import { coolingOff, OUTAGES, record } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
@@ -89,7 +90,7 @@ async function classify(io: IO, text: string): Promise<LaneName | null> {
   const decision = out.decision
   if (decision.sent_to_jev) {
     await record(io, { calls: 1, cost: decision.cost_usd, model: decision.jev_model,
-      error: decision.error && OUTAGES.includes(decision.error) ? decision.error : null })
+      error: decision.error && OUTAGES.includes(decision.error) ? decision.error : null }, 'routing')
   }
   if (!out.target || out.lane === 'keep_current') return null
   return out.lane as LaneName
@@ -133,9 +134,9 @@ export async function step(
   if (first) remember(decisions, e.turnId, await decide(io, prompts.get(e.turnId) ?? '', mine))
   const lane = decisions.get(e.turnId) ?? null
   if (!lane) {
-    io.status('jev: as is')
+    io.status('jev-mod: as is')
     Object.assign(mine, { lastModel: e.model, lane: 'as is', changed: false, effort: e.effort === undefined ? undefined : String(e.effort) })
-    if (first) await memory.save(io)
+    if (first) await Promise.all([memory.save(io), activity.count(io, 'routing', 'kept')])
     return null
   }
   const wanted = lane.model ? (MODEL_IDS[lane.model] ?? lane.model) : undefined
@@ -144,7 +145,8 @@ export async function step(
   const effort = NO_EFFORT.test(model) ? undefined : (lane.effort ?? e.effort)
   const changed = model !== e.model || String(effort ?? '') !== String(e.effort ?? '')
   Object.assign(mine, { lastModel: model, lane: lane.lane, changed, effort: effort === undefined ? undefined : String(effort) })
-  if (first) await memory.save(io)
-  io.status(`jev: ${lane.lane} · ${model.replace('claude-', '')}${effort ? ' · ' + effort : ''}`)
+  // What it did: the lane that changed the turn, or "kept" when the turn runs as it came.
+  if (first) await Promise.all([memory.save(io), activity.count(io, 'routing', changed ? lane.lane : 'kept')])
+  io.status(`jev-mod: ${lane.lane} · ${model.replace('claude-', '')}${effort ? ' · ' + effort : ''}`)
   return { model, effort }
 }

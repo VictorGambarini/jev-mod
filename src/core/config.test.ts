@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { problems, resolve, snapshot, write } from './config'
+import { problems, reset, resolve, snapshot, write } from './config'
 import type { IO } from './io'
 import { checkKnob, FEATURES, feature, type Feature } from './registry'
 import { isPrivate } from './settings'
@@ -100,6 +100,16 @@ test('a write checks first, keeps the rest of the file, and clears with undefine
   expect(await write(fake, 'user', 'nope', 'mode', 'on')).toEqual({ problem: `no feature nope (there are ${FEATURES.map(f => f.id).join(', ')})` })
   expect(await write(io({}, { [USER]: '{' }), 'user', 'skills', 'mode', 'on')).toEqual({ problem: `${USER} is not JSON; fix or remove it first` })
   expect(await write(io({}, {}, null), 'project', 'skills', 'mode', 'on')).toEqual({ problem: 'this session has no project folder to keep a project setting in' })
+})
+
+test('a reset clears every key a scope sets for a feature, unknown ones too, and nothing else', async () => {
+  const files: Record<string, string> = { [USER]: JSON.stringify({ note: 'mine', features: { skills: { mode: 'off', typo: 1 }, routing: { mode: 'off' } } }) }
+  const fake = io({}, files)
+  expect(await reset(fake, 'user', 'skills')).toEqual({ ok: true, path: USER })
+  expect(JSON.parse(files[USER])).toEqual({ note: 'mine', features: { routing: { mode: 'off' } } })
+  expect(await reset(fake, 'project', 'skills')).toEqual({ ok: true, path: PROJECT })
+  expect(JSON.parse(files[PROJECT])).toEqual({ features: {} })
+  expect(await reset(fake, 'user', 'nope')).toEqual({ problem: `no feature nope (there are ${FEATURES.map(f => f.id).join(', ')})` })
 })
 
 test('every shipped feature declares a default it has, and help to show', () => {

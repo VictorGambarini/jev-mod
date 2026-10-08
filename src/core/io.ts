@@ -2,7 +2,7 @@
 //
 // Claude Code's engine handle (`$`) never crosses a file boundary: the plugin validator follows
 // `$` only into functions declared in the same file, and wants environment variables named by
-// literal. So src/register.ts is the one file that holds `$`; it builds an IO from it and hands
+// literal. So src/register.tsx is the one file that holds `$`; it builds an IO from it and hands
 // that to every feature, the engine and the core. A test hands them a fake IO instead.
 
 export type FetchInit = { method?: string; headers?: Record<string, string>; body?: string }
@@ -21,7 +21,7 @@ export interface IO {
   folders(path: string): Promise<string[]>
   writeFile(path: string, text: string): Promise<void>
   home(): Promise<string | undefined>
-  /** An environment variable; the ones the engine reads by name are listed in register.ts. */
+  /** An environment variable; the ones the engine reads by name are listed in register.tsx. */
   env(name: string): Promise<string | undefined>
   sleep(ms: number): Promise<void>
   // this session

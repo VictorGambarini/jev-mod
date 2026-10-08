@@ -41,9 +41,9 @@ export function targets(tables: unknown[]): Record<string, Target> {
       if (!(lane in out) || !isObject(spec)) continue
       for (const [key, value] of Object.entries(spec)) {
         // isinstance(v, (str, int, float)): a bool is an int to Python, so it is taken too, as "True"
-        if (typeof value === 'string') out[lane][key] = value
-        else if (typeof value === 'number') out[lane][key] = String(value)
-        else if (typeof value === 'boolean') out[lane][key] = value ? 'True' : 'False'
+        if (typeof value === 'string') out[lane]![key] = value
+        else if (typeof value === 'number') out[lane]![key] = String(value)
+        else if (typeof value === 'boolean') out[lane]![key] = value ? 'True' : 'False'
       }
     }
   }

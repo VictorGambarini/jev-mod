@@ -11,9 +11,9 @@ const JEV = '/home/u/.config/jev'
 function io(options: Record<string, string | boolean>, files: Record<string, string>, root: string | null = '/p'): IO & { files: Record<string, string> } {
   return {
     files,
-    option: name => options[name],
-    readFile: async path => { if (path in files) return files[path]; throw new Error('ENOENT') },
-    writeFile: async (path, text) => { files[path] = text },
+    option: (name: string) => options[name],
+    readFile: async (path: string) => { if (path in files) return files[path]; throw new Error('ENOENT') },
+    writeFile: async (path: string, text: string) => { files[path] = text },
     env: async () => undefined, home: async () => '/home/u', projectRoot: async () => root ?? undefined,
     run: async () => ({ exitCode: 1, stdout: '', stderr: '' }),
   } as unknown as IO & { files: Record<string, string> }
@@ -92,11 +92,11 @@ test('a write checks first, keeps the rest of the file, and clears with undefine
   const fake = io({}, files)
   expect(await write(fake, 'user', 'stop-gate', 'maxNudges', '9', [gate])).toEqual({ problem: 'stop-gate.maxNudges must be a whole number from 0 to 5, not "9"' })
   expect(await write(fake, 'user', 'stop-gate', 'maxNudges', '3', [gate])).toEqual({ ok: true, path: USER })
-  expect(JSON.parse(files[USER])).toEqual({ note: 'mine', features: { routing: { mode: 'off' }, 'stop-gate': { maxNudges: 3 } } })
+  expect(JSON.parse(files[USER]!)).toEqual({ note: 'mine', features: { routing: { mode: 'off' }, 'stop-gate': { maxNudges: 3 } } })
   expect(await write(fake, 'project', 'skills', 'mode', 'Shadow')).toEqual({ ok: true, path: PROJECT })
-  expect(JSON.parse(files[PROJECT])).toEqual({ features: { skills: { mode: 'shadow' } } })
+  expect(JSON.parse(files[PROJECT]!)).toEqual({ features: { skills: { mode: 'shadow' } } })
   await write(fake, 'user', 'routing', 'mode', undefined)
-  expect(JSON.parse(files[USER])).toEqual({ note: 'mine', features: { 'stop-gate': { maxNudges: 3 } } })
+  expect(JSON.parse(files[USER]!)).toEqual({ note: 'mine', features: { 'stop-gate': { maxNudges: 3 } } })
   expect(await write(fake, 'user', 'nope', 'mode', 'on')).toEqual({ problem: `no feature nope (there are ${FEATURES.map(f => f.id).join(', ')})` })
   expect(await write(io({}, { [USER]: '{' }), 'user', 'skills', 'mode', 'on')).toEqual({ problem: `${USER} is not JSON; fix or remove it first` })
   expect(await write(io({}, {}, null), 'project', 'skills', 'mode', 'on')).toEqual({ problem: 'this session has no project folder to keep a project setting in' })
@@ -106,9 +106,9 @@ test('a reset clears every key a scope sets for a feature, unknown ones too, and
   const files: Record<string, string> = { [USER]: JSON.stringify({ note: 'mine', features: { skills: { mode: 'off', typo: 1 }, routing: { mode: 'off' } } }) }
   const fake = io({}, files)
   expect(await reset(fake, 'user', 'skills')).toEqual({ ok: true, path: USER })
-  expect(JSON.parse(files[USER])).toEqual({ note: 'mine', features: { routing: { mode: 'off' } } })
+  expect(JSON.parse(files[USER]!)).toEqual({ note: 'mine', features: { routing: { mode: 'off' } } })
   expect(await reset(fake, 'project', 'skills')).toEqual({ ok: true, path: PROJECT })
-  expect(JSON.parse(files[PROJECT])).toEqual({ features: {} })
+  expect(JSON.parse(files[PROJECT]!)).toEqual({ features: {} })
   expect(await reset(fake, 'user', 'nope')).toEqual({ problem: `no feature nope (there are ${FEATURES.map(f => f.id).join(', ')})` })
 })
 

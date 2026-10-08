@@ -23,7 +23,7 @@ test('claims are cut sentence by sentence, without code, markup or repeats, and 
   const text = 'I read the file. Fixed the parser.\n\n- **All 12 tests pass**\n```\nok done\n```\nFixed the parser.'
   expect(claims(text)).toEqual(['Fixed the parser.', 'All 12 tests pass'])
   expect(claims(Array.from({ length: 20 }, (_, i) => `Step ${i} done.`).join(' ')).length).toBe(8)
-  expect([...claims(`Done ${'x'.repeat(500)}`)[0]].length).toBe(200)
+  expect([...claims(`Done ${'x'.repeat(500)}`)[0]!].length).toBe(200)
 })
 
 test("the request is the person's latest message, never a tool result, a hook's text or the gate's own note", () => {
@@ -47,7 +47,7 @@ test('evidence starts at the request: edited files once each, checks with their 
   expect(ev.edited_files).toEqual(['/src/b.ts', '/src/a.ts'])
   expect(ev.other_tools).toEqual({ Read: 1 })
   expect(ev.commands.map(c => [c.command, c.check, c.failed])).toEqual([['npm test', true, false], ['ls', false, false]])
-  expect(ev.commands[0].output_tail).toBe('ran 12 tests\n12 passed')
+  expect(ev.commands[0]!.output_tail).toBe('ran 12 tests\n12 passed')
   expect(ev.ran_checks).toBe(true)
   expect(ev.checks_after_last_edit).toBe(true)
 })
@@ -63,9 +63,9 @@ test('the budget keeps the newest checks first, keeps output tails, and says how
   const long = 'line\n'.repeat(2000) + 'FAILED 1 of 40'
   const uses = [bash('echo one', 'one'), bash('cargo test', long, true), ...Array.from({ length: 30 }, (_, i) => bash(`cat f${i}`, 'z'.repeat(500)))]
   const ev = evidence([user('go'), said('', ...uses)], 1000)
-  expect(ev.commands[0].command).toBe('cargo test')
-  expect(ev.commands[0].failed).toBe(true)
-  expect(ev.commands[0].output_tail.endsWith('FAILED 1 of 40')).toBe(true)
+  expect(ev.commands[0]!.command).toBe('cargo test')
+  expect(ev.commands[0]!.failed).toBe(true)
+  expect(ev.commands[0]!.output_tail.endsWith('FAILED 1 of 40')).toBe(true)
   expect(ev.commands.length + ev.commands_left_out).toBe(32)
   expect(ev.commands_left_out).toBeGreaterThan(20)
   expect(JSON.stringify(ev).length).toBeLessThan(2000)
@@ -75,7 +75,7 @@ test('the questions are ones the API accepts, and the claims are the choice offe
   const found = ['Fixed it.', 'All tests pass.']
   const q = checkQuestions(questionsOf(found))
   expect(Object.keys(q)).toEqual(['claims_done', 'supported', 'unverified_checks', 'weakest'])
-  expect(q.weakest.criteria).toEqual({ claim_0: 'Fixed it.', claim_1: 'All tests pass.', none: 'every claim is supported by the evidence' })
+  expect(q.weakest!.criteria).toEqual({ claim_0: 'Fixed it.', claim_1: 'All tests pass.', none: 'every claim is supported by the evidence' })
   expect(Object.keys(questionsOf([]))).not.toContain('weakest')
 })
 

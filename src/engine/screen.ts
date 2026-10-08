@@ -336,7 +336,7 @@ function bisectLeft(sorted: number[], x: number): number {
   let hi = sorted.length
   while (lo < hi) {
     const mid = (lo + hi) >> 1
-    if (sorted[mid] < x) lo = mid + 1
+    if (sorted[mid]! < x) lo = mid + 1
     else hi = mid
   }
   return lo
@@ -348,7 +348,7 @@ function bisectLeft(sorted: number[], x: number): number {
  */
 export function unquote(text: string): string {
   if (!text.includes('%')) return text
-  const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true })
+  const decoder = new (TextDecoder as unknown as new (label: string, options: { fatal: boolean; ignoreBOM: boolean }) => InstanceType<typeof TextDecoder>)('utf-8', { fatal: false, ignoreBOM: true }) // the kit's declaration omits the options argument
   return text.replace(/[\x00-\x7f]+/g, run => {
     if (!run.includes('%')) return run
     const bytes: number[] = []
@@ -389,9 +389,9 @@ function* urlSpans(t: Text): Generator<[number, number, boolean]> {
         end = stop !== -1 ? stop : ceiling
         const tail = t.slice(start, end)
         const count = (c: string) => tail.split(c).length - 1
-        const opener = ['<', '{', '['].find(c => count(c) > count(CLOSERS[c]))
+        const opener = ['<', '{', '['].find(c => count(c) > count(CLOSERS[c]!))
         if (opener === undefined || end >= ceiling) break
-        const close = t.find(CLOSERS[opener], end)
+        const close = t.find(CLOSERS[opener]!, end)
         if (close === -1 || close - end > 120 || t.slice(end, close).includes('\n')) break
         end = close + 1
       }
@@ -465,7 +465,7 @@ function credentialOrder(t: Text, unvetted: boolean): boolean {
     if (!directed) {
       cues ??= modelCues(t)
       const nearest = bisectLeft(cues, start - 200)
-      directed = nearest < cues.length && cues[nearest] <= end + 160
+      directed = nearest < cues.length && cues[nearest]! <= end + 160
     }
     if (directed) return true
     // "Show password" and "Send credentials to server" are a button and a method summary.
@@ -721,7 +721,7 @@ export function pack(entries: [number, string][], budget: number): [[number, str
   let current: [number, string][] = []
   let used = 0
   for (let position = 0; position < entries.length; position++) {
-    const [index, text] = entries[position]
+    const [index, text] = entries[position]!
     const cost = encode(text).length + 16
     if (current.length && (current.length >= BATCH || used + cost > budget)) {
       batches.push(current)
@@ -790,7 +790,7 @@ export async function screenResult(host: Host, tool: string, result: string,
     const overflow: number[] = []
     for (const group of [plain, raised]) {
       if (!group.length) continue
-      const [packed, left] = pack(group.map(i => [i, redact(texts[i], CHUNK_CHARS)]), budget)
+      const [packed, left] = pack(group.map(i => [i, redact(texts[i]!, CHUNK_CHARS)]), budget)
       batches.push(...packed)
       overflow.push(...left)
     }
@@ -805,7 +805,7 @@ export async function screenResult(host: Host, tool: string, result: string,
       }
     }))
     batches.forEach((batch, n) => {
-      const outcome = outcomes[n]
+      const outcome = outcomes[n]!
       if (typeof outcome === 'string') { errors.push(outcome); return }
       calls.push(outcome)
       latency = Math.max(latency ?? 0, outcome.latency_ms ?? 0)

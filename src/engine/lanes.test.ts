@@ -86,7 +86,7 @@ function replay(run: Run, sent: string[]): Host {
       const exchange = run.exchanges.find(e => e.request === body)
       if (!exchange) throw new Error('unrecorded request')
       if (exchange.fail === 'timeout') { clock += 60_000; throw new Error('timeout') }
-      if (exchange.fail && FAILURES[exchange.fail]) return { status: FAILURES[exchange.fail], text: '', headers: {} }
+      if (exchange.fail && FAILURES[exchange.fail]) return { status: FAILURES[exchange.fail]!, text: '', headers: {} }
       if (exchange.fail) throw new Error(exchange.fail)
       return { status: 200, text: exchange.reply as string, headers: {} }
     },
@@ -110,10 +110,11 @@ test('classify sends the requests and reaches the lanes lanes.classify did', asy
     const { latency_ms: _l, ...decision } = got.decision
     const diverges = LANE_DIVERGENCES[run.task]
     if (diverges) {
+      const { sent_with: sentWith, not } = diverges.port === 'refused' ? { sent_with: '', not: '' } : diverges.port // closures lose the narrowing
       if (diverges.port === 'refused') {
         // Python sent it; the port must refuse it before anything leaves.
         if (sent.length || decision.error !== 'sensitive_not_sent' || got.lane !== 'keep_current') wrong.push({ n, what: 'divergence', got, sent })
-      } else if (!sent.length || sent.some(body => !body.includes(diverges.port.sent_with) || body.includes(diverges.port.not))) {
+      } else if (!sent.length || sent.some(body => !body.includes(sentWith) || body.includes(not))) {
         // Sent masked. Python's reply was for the unmasked body, so here it goes unanswered (and is retried).
         wrong.push({ n, what: 'divergence', sent })
       }

@@ -100,7 +100,7 @@ export function bashRisk(command: string, root?: string, home?: string): string 
   for (const [pattern, why] of BASH_RISKS) if (pattern.test(command)) return why
   for (const re of [REDIRECT, TEE]) {
     for (const m of command.matchAll(re)) {
-      const target = m[1]
+      const target = m[1]! // both patterns capture group 1 unconditionally
       if (target.startsWith('&') || target.startsWith('$(')) continue
       if (outsideProject(target, root, home)) return 'writes outside the project'
     }

@@ -118,27 +118,27 @@ export function fold(lines: readonly string[]): Row[] {
   const rows: Row[] = []
   let i = 0
   while (i < n) {
-    if (pinned(i)) { rows.push(row('line', lines[i], i + 1, i + 1, true)); i++; continue }
+    if (pinned(i)) { rows.push(row('line', lines[i]!, i + 1, i + 1, true)); i++; continue }
     // a run of identical lines, protected or not
     let j = i
     while (j + 1 < n && !pinned(j + 1) && lines[j + 1] === lines[i]) j++
     if (j > i) {
-      rows.push(lines[i].trim() === '' ? row('line', lines[i], i + 1, j + 1, false) : row('repeat', lines[i], i + 1, j + 1, keep[i]))
+      rows.push(lines[i]!.trim() === '' ? row('line', lines[i]!, i + 1, j + 1, false) : row('repeat', lines[i]!, i + 1, j + 1, keep[i]!))
       i = j + 1
       continue
     }
     // a run of lines of one shape; a protected line is never folded into a marker
-    if (!keep[i] && lines[i].trim() !== '') {
+    if (!keep[i]! && lines[i]!.trim() !== '') {
       while (j + 1 < n && !pinned(j + 1) && !keep[j + 1] && shapes[j + 1] === shapes[i]) j++
       if (j - i + 1 >= MIN_SIMILAR_RUN) {
-        rows.push(row('line', lines[i], i + 1, i + 1, false))
+        rows.push(row('line', lines[i]!, i + 1, i + 1, false))
         rows.push(row('similar', '', i + 2, j, false))
-        rows.push(row('line', lines[j], j + 1, j + 1, false))
+        rows.push(row('line', lines[j]!, j + 1, j + 1, false))
         i = j + 1
         continue
       }
     }
-    rows.push(row('line', lines[i], i + 1, i + 1, keep[i]))
+    rows.push(row('line', lines[i]!, i + 1, i + 1, keep[i]!))
     i++
   }
   return rows
@@ -158,21 +158,21 @@ export type Chunk = { start: number; end: number; keep: boolean }
  */
 export function chunk(rows: readonly Row[]): Chunk[] {
   if (!rows.length) return []
-  const total = rows[rows.length - 1].to
+  const total = rows[rows.length - 1]!.to
   const pinned = (r: Row) => r.from <= HEAD_LINES || r.to > total - TAIL_LINES
   const segments: { s: number; e: number; pinned: boolean }[] = []
   let start = 0
   rows.forEach((r, i) => {
     if (i === start) return
     const blank = r.kind === 'line' && r.text.trim() === ''
-    if (blank || SECTION.test(r.text) || pinned(r) !== pinned(rows[i - 1])) {
-      segments.push({ s: start, e: i - 1, pinned: pinned(rows[start]) })
+    if (blank || SECTION.test(r.text) || pinned(r) !== pinned(rows[i - 1]!)) {
+      segments.push({ s: start, e: i - 1, pinned: pinned(rows[start]!) })
       start = i
     }
   })
-  segments.push({ s: start, e: rows.length - 1, pinned: pinned(rows[start]) })
+  segments.push({ s: start, e: rows.length - 1, pinned: pinned(rows[start]!) })
   const chunks: Chunk[] = []
-  let open: { s: number; e: number; pinned: boolean } | null = null
+  let open = null as { s: number; e: number; pinned: boolean } | null
   const close = () => {
     if (!open) return
     for (let s = open.s; s <= open.e; s += CHUNK_LINES) {
@@ -183,7 +183,7 @@ export function chunk(rows: readonly Row[]): Chunk[] {
   }
   for (const seg of segments) {
     // a chunk is big enough when it stands for MIN_CHUNK_LINES original lines: a folded run is a unit of its own
-    if (open && (open.pinned || seg.pinned || rows[open.e].to - rows[open.s].from + 1 >= MIN_CHUNK_LINES)) close()
+    if (open && (open.pinned || seg.pinned || rows[open.e]!.to - rows[open.s]!.from + 1 >= MIN_CHUNK_LINES)) close()
     open = open ? { ...open, e: seg.e } : { ...seg }
   }
   close()
@@ -252,8 +252,8 @@ export function drop(rows: readonly Row[], chunks: readonly Chunk[], need: Reado
     const p = need.get(id)
     const cut = !c.keep && p !== undefined && p < threshold
     if (cut) {
-      const from = rows[c.start].from
-      const to = rows[c.end].to
+      const from = rows[c.start]!.from
+      const to = rows[c.end]!.to
       omitted = omitted ? { ...omitted, to, count: to - omitted.from + 1 } : row('omitted', '', from, to, false)
       return
     }

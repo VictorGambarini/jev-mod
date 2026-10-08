@@ -199,7 +199,7 @@ function distribution(name: string, raw: unknown, keyList: string[], invariant: 
   }
   const values: Record<string, number> = {}
   for (const key of keyList) values[key] = unit(raw[key], `${name}.p[${key}]`)
-  const total = keyList.reduce((sum, key) => sum + values[key], 0)
+  const total = keyList.reduce((sum, key) => sum + values[key]!, 0)
   if (Math.abs(total - 1) > PROBABILITY_SUM_TOLERANCE) throw invalid(name, invariant, `mass sums to ${total}`)
   return values
 }
@@ -233,7 +233,7 @@ export function checkAnswer(name: string, question: Question, answer: unknown): 
     }
     const probabilities = distribution(name, answer.probabilities, options, 'choice_probability_key_set')
     const top = Math.max(...Object.values(probabilities))
-    if (probabilities[picked] < top - ARGMAX_TOLERANCE) {
+    if (probabilities[picked]! < top - ARGMAX_TOLERANCE) {
       // A choice that is not the maximum means the ranking callers read and the label they
       // act on are two different answers.
       throw invalid(name, 'choice_is_argmax', `chose ${picked} at ${probabilities[picked]} against a maximum of ${top}`)
@@ -257,7 +257,7 @@ export function checkAnswer(name: string, question: Question, answer: unknown): 
     }
     keyList.sort((a, b) => level(a)! - level(b)!)
     const mass = distribution(name, raw, keyList, 'score_distribution_mass')
-    for (const key of keyList) spread[level(key)!] = mass[key]
+    for (const key of keyList) spread[level(key)!] = mass[key]!
     const mean = Object.entries(spread).reduce((sum, [l, p]) => sum + Number(l) * p, 0)
     if (Math.abs(mean - value) > scoreMeanTolerance(levels)) {
       // The incident: a flat 0.2-each spread that averaged to 2.73 was filed at level 4 of 5.

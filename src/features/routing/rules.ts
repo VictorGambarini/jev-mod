@@ -44,14 +44,14 @@ export function sessionLane(
   const prev = index(previous.lane)
   const floor = correction ? Math.min(prev + (corrections >= 2 ? 1 : 0), LANES.length - 1) : Math.max(prev - 1, 0)
   if (classified !== null && index(classified) >= floor) return { lane: classified, corrections, why: 'classified' }
-  return { lane: LANES[floor], corrections, why: correction ? 'correction' : 'follow-up' }
+  return { lane: LANES[floor]!, corrections, why: correction ? 'correction' : 'follow-up' }
 }
 
 const RANK: Record<string, number> = { haiku: 0, sonnet: 1, opus: 2 }
 
 export function modelRank(model: string): number {
   const family = Object.keys(RANK).find(name => model.includes(name))
-  return family === undefined ? RANK.opus : RANK[family]
+  return family === undefined ? RANK.opus! : RANK[family]!
 }
 
 /**

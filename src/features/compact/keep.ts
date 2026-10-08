@@ -30,7 +30,7 @@ export function keepOnly<M extends Msg>(messages: readonly M[], sent: readonly n
   while (grew) {
     grew = false
     for (const i of [...keep]) {
-      const m = messages[i]
+      const m = messages[i]!
       const partners = [
         ...(m.toolUses ?? []).map(u => resultAt.get(u.tool_use_id)),
         ...(m.toolResults ?? []).map(r => callAt.get(r.tool_use_id)),

@@ -82,7 +82,7 @@ function formatG(x: number): string {
 /** Python's sorted() of strings: by code point. */
 const sortedStrings = (xs: string[]) => [...xs].sort((a, b) => {
   const pa = Array.from(a, c => c.codePointAt(0)!), pb = Array.from(b, c => c.codePointAt(0)!)
-  for (let i = 0; i < Math.min(pa.length, pb.length); i++) if (pa[i] !== pb[i]) return pa[i] - pb[i]
+  for (let i = 0; i < Math.min(pa.length, pb.length); i++) if (pa[i] !== pb[i]) return pa[i]! - pb[i]!
   return pa.length - pb.length
 })
 
@@ -156,7 +156,7 @@ function conditionProblems(condition: PyValue, questions: Map<string, PyValue>, 
   if (isMap(condition)) {
     const keys = [...condition.keys()].filter(k => k === 'all' || k === 'any')
     if (keys.length !== 1 || condition.size !== 1) return [`${where}: a nested condition is {"all": [...]} or {"any": [...]}`]
-    const items = condition.get(keys[0])
+    const items = condition.get(keys[0]!)
     if (!isList(items) || !items.length) return [`${where}: an empty all/any`]
     return items.flatMap((item, i) => conditionProblems(item, questions, `${where}.${i}`, factsOnly))
   }
@@ -165,7 +165,7 @@ function conditionProblems(condition: PyValue, questions: Map<string, PyValue>, 
   if (factsOnly && !(isStr(operand) && operand.startsWith('fact.'))) {
     return [`${where}: a pre-rule runs before Jev is asked, so it can only read fact.<key>, not ${pyRepr(operand)}`]
   }
-  const problem = operandProblem(operand, questions)
+  const problem = operandProblem(operand as PyValue, questions)
   if (problem) return [`${where}: ${problem}`]
   if (!isStr(op) || !OPS.includes(op)) return [`${where}: unknown op ${pyRepr(op)}; use one of ${OPS.join(', ')}`]
   const name = (operand as string)
@@ -189,7 +189,7 @@ function conditionProblems(condition: PyValue, questions: Map<string, PyValue>, 
     if ((op === 'in' || op === 'not_in') && !isList(args[0])) return [`${where}: ${op} takes a list of options`]
     const wanted = op === 'in' || op === 'not_in' ? (args[0] as PyValue[]) : [args[0]]
     const unknown = wanted.filter(w => options.length && !options.some(o => o === w))
-    if (unknown.length) return [`${where}: ${pyRepr(unknown)} are not options of ${qname}`]
+    if (unknown.length) return [`${where}: ${pyRepr(unknown as PyValue[])} are not options of ${qname}`]
     return []
   }
   if (boolean) {
@@ -215,7 +215,7 @@ function ruleProblems(rule: PyValue, questions: Map<string, PyValue>, where: str
   const problems: string[] = []
   const then = rule.get('then')
   if (needsThen && (!isStr(then) || !then)) problems.push(`${where}: no "then" action`)
-  const items = rule.get(joiners[0])
+  const items = rule.get(joiners[0]!)
   if (!isList(items) || !items.length) return [...problems, `${where}: an empty ${joiners[0]}`]
   items.forEach((item, i) => problems.push(...conditionProblems(item, questions, `${where}.${joiners[0]}.${i}`, factsOnly)))
   return problems
@@ -357,7 +357,7 @@ export type Reading =
 export function margin(probabilities: Record<string, number>): number {
   const values = Object.values(probabilities).map(Number).sort((a, b) => b - a)
   if (!values.length) return 0.0
-  return pyRound(values[0] - (values.length > 1 ? values[1] : 0.0), 6)
+  return pyRound(values[0]! - (values.length > 1 ? values[1]! : 0.0), 6)
 }
 
 /** Every validated answer reduced to the numbers a rule can name. No text survives this. */
@@ -473,10 +473,10 @@ export type Applied = { action: string; matched_rule: number | null; fired_rules
 /** The first matching rule wins; every rule that matched is reported too. */
 export function apply(policy: Policy, values: Record<string, Reading>, facts?: Facts): Applied {
   const fired = policy.rules.flatMap((rule, i) => (ruleHolds(rule, values, facts) ? [i] : []))
-  const action = fired.length ? policy.rules[fired[0]].then : policy.otherwise
+  const action = fired.length ? policy.rules[fired[0]!]!.then : policy.otherwise
   const annotations = (policy.annotations ?? []).filter(item => ruleHolds(item, values, facts)).map(item => String(item.add))
   const unsure = sortedStrings(Object.entries(values).filter(([, r]) => r.kind === 'noul' && r.unsure).map(([name]) => name))
-  return { action, matched_rule: fired.length ? fired[0] : null, fired_rules: fired, annotations, unsure }
+  return { action, matched_rule: fired.length ? fired[0]! : null, fired_rules: fired, annotations, unsure }
 }
 
 // ── drift ────────────────────────────────────────────────────────────────────

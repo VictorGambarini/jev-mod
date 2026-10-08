@@ -36,7 +36,7 @@ test('every divergence is a captured input whose Python answer really differs', 
   const stale = Object.keys(DIVERGENCES).filter(text => {
     const python = captured.find(c => c.text === text)
     if (!python) return true
-    const { why: _, ...fields } = DIVERGENCES[text]
+    const { why: _, ...fields } = DIVERGENCES[text]!
     return Object.entries(fields).every(([k, v]) => (python as any)[k] === v)
   })
   expect(stale).toEqual([])

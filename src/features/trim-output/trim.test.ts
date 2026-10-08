@@ -31,12 +31,12 @@ function vitestLog(): { text: string; required: string[] } {
     ' Test Files  1 failed | 30 passed (31)',
     '      Tests  1 failed | 362 passed (363)',
   ]
-  out.push(required[0], required[1], '')
+  out.push(required[0]!, required[1]!, '')
   out.push('⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯', '')
-  out.push(' FAIL  src/parser.test.ts > parser > parses nested arrays', required[2], '', required[3], required[4], '')
+  out.push(' FAIL  src/parser.test.ts > parser > parses nested arrays', required[2]!, '', required[3]!, required[4]!, '')
   out.push('  [', '    1,', '    [', '      2,', '-     3,', '    ],', '  ]', '')
-  out.push(required[5], '     40|   it("parses nested arrays", () => {', '     41|     const got = parse("[1,[2,3]]")', required[6], '')
-  out.push(required[7], required[8], '   Start at  10:42:01', '   Duration  4.21s (transform 310ms, setup 0ms, collect 1.2s, tests 2.9s)')
+  out.push(required[5]!, '     40|   it("parses nested arrays", () => {', '     41|     const got = parse("[1,[2,3]]")', required[6]!, '')
+  out.push(required[7]!, required[8]!, '   Start at  10:42:01', '   Duration  4.21s (transform 310ms, setup 0ms, collect 1.2s, tests 2.9s)')
   return { text: out.join('\n') + '\n', required }
 }
 
@@ -55,9 +55,9 @@ function pytestLog(): { text: string; required: string[] } {
     'FAILED tests/test_db.py::test_migrate - assert 6 == 7',
     '=================== 1 failed, 811 passed, 3 warnings in 12.34s ===================',
   ]
-  out.push(required[0], '', '=================================== FAILURES ===================================',
-    '________________________________ test_migrate _________________________________', '', required[1], required[2], required[3], '',
-    required[4], '=========================== short test summary info ============================', required[5], required[6])
+  out.push(required[0]!, '', '=================================== FAILURES ===================================',
+    '________________________________ test_migrate _________________________________', '', required[1]!, required[2]!, required[3]!, '',
+    required[4]!, '=========================== short test summary info ============================', required[5]!, required[6]!)
   return { text: out.join('\n') + '\n', required }
 }
 
@@ -95,9 +95,9 @@ test('fold: identical runs repeat, similar runs keep their ends, protected and p
     `[jev-mod: 8 similar lines folded — ${PATH} lines 9–16]`, 'line 9',
     'ERROR: one 1', 'ERROR: one 2', 'ERROR: one 3', '', 'x', 'y', 'z', 'w', 'tail'])
   // every original line is accounted for, in order
-  expect(rows[0].from).toBe(1)
-  expect(rows[rows.length - 1].to).toBe(lines.length)
-  for (let i = 1; i < rows.length; i++) expect(rows[i].from).toBe(rows[i - 1].to + 1)
+  expect(rows[0]!.from).toBe(1)
+  expect(rows[rows.length - 1]!.to).toBe(lines.length)
+  for (let i = 1; i < rows.length; i++) expect(rows[i]!.from).toBe(rows[i - 1]!.to + 1)
   expect(changed(rows)).toBe(true)
   expect(changed(fold(['a', 'b', 'c']))).toBe(false)
 })
@@ -137,15 +137,15 @@ test('chunks: cut at blank lines and headers, packed to a size, protected chunks
   const rows = fold(linesOf(text))
   const chunks = chunk(rows)
   // contiguous, complete
-  expect(chunks[0].start).toBe(0)
-  expect(chunks[chunks.length - 1].end).toBe(rows.length - 1)
-  for (let i = 1; i < chunks.length; i++) expect(chunks[i].start).toBe(chunks[i - 1].end + 1)
+  expect(chunks[0]!.start).toBe(0)
+  expect(chunks[chunks.length - 1]!.end).toBe(rows.length - 1)
+  for (let i = 1; i < chunks.length; i++) expect(chunks[i]!.start).toBe(chunks[i - 1]!.end + 1)
   for (const c of chunks) {
     expect(c.end - c.start + 1).toBeLessThanOrEqual(CHUNK_LINES)
     expect(c.keep).toBe(rows.slice(c.start, c.end + 1).some(r => r.keep))
   }
   // all but the pinned first and last, and the one closed early by the last, stand for the minimum of original lines
-  expect(chunks.slice(1, -2).every(c => rows[c.end].to - rows[c.start].from + 1 >= MIN_CHUNK_LINES)).toBe(true)
+  expect(chunks.slice(1, -2).every(c => rows[c.end]!.to - rows[c.start]!.from + 1 >= MIN_CHUNK_LINES)).toBe(true)
   // every row holding a required line is in a kept chunk
   const failing = rows.findIndex(r => r.text.startsWith('AssertionError'))
   expect(chunks.find(c => c.start <= failing && failing <= c.end)!.keep).toBe(true)
@@ -175,7 +175,7 @@ test('a dropped run swallows folded rows and reports original line numbers; the 
   const rows = fold(lines)
   const chunks = chunk(rows)
   expect(chunks[0]).toEqual({ start: 0, end: 1, keep: true })            // the first lines, alone
-  expect(chunks[chunks.length - 1].keep).toBe(true)                       // the last lines, alone
+  expect(chunks[chunks.length - 1]!.keep).toBe(true)                       // the last lines, alone
   const need = new Map(chunks.map((c, id) => [id, rows.slice(c.start, c.end + 1).some(r => r.text.startsWith('progress')) ? 0 : 1]))
   const text = show(drop(rows, chunks, need, 0.35))
   expect(text).toContain(`[jev-mod: 50 lines omitted — full output: ${PATH} lines 3–52]`)
@@ -197,12 +197,12 @@ test('requests: packed by encoded size, every chunk asked by its own id with the
   expect(batches.flat()).toEqual([...texts.keys()])
   expect(batches.length).toBeGreaterThan(2)
   expect(batches.every(b => b.length <= 40)).toBe(true)
-  const { state, questions } = request('fix the parser test', 'npx vitest run', texts, batches[0])
-  expect(Object.keys(questions)).toEqual(batches[0].map(id => `c${id}`))
-  expect(Object.keys(state.chunks as object)).toEqual(batches[0].map(id => `C${id}`))
+  const { state, questions } = request('fix the parser test', 'npx vitest run', texts, batches[0]!)
+  expect(Object.keys(questions)).toEqual(batches[0]!.map(id => `c${id}`))
+  expect(Object.keys(state.chunks as object)).toEqual(batches[0]!.map(id => `C${id}`))
   expect(state.goal).toBe('fix the parser test')
-  expect(questions.c0.type).toBe('noul')
-  expect(String(questions.c2.instructions)).toContain('C2')
+  expect(questions.c0!.type).toBe('noul')
+  expect(String(questions.c2!.instructions)).toContain('C2')
   expect(request('', 'ls', texts, [0]).state.goal).toBe('(not known)')
 })
 

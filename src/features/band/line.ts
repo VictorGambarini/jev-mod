@@ -24,7 +24,7 @@ export function money(usd: number): string {
 function backend(model: string | undefined): string {
   if (!model) return 'jev'
   const [owner, id] = model.includes('/') ? model.split('/', 2) : ['', model]
-  const short = id.replace(/^(jev-\d+\.\d+).*$/, '$1')
+  const short = id!.replace(/^(jev-\d+\.\d+).*$/, '$1')
   return owner ? `${short} · ${owner}` : short
 }
 

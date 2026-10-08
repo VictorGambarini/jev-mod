@@ -49,7 +49,7 @@ export function claims(text: string): string[] {
   for (const piece of pieces) {
     const probe = piece.replace(/\u0000\d+\u0000/g, ' ')
     if (!CLAIM.test(probe) || HEDGED.test(probe)) continue
-    const shown = piece.replace(/\u0000(\d+)\u0000/g, (_, i) => held[Number(i)].replace(/`/g, ''))
+    const shown = piece.replace(/\u0000(\d+)\u0000/g, (_, i) => held[Number(i)]!.replace(/`/g, ''))
     const short = [...shown].length > CLAIM_CHARS ? [...shown].slice(0, CLAIM_CHARS - 1).join('') + '\u2026' : shown
     if (!found.includes(short)) found.push(short)
     if (found.length >= MAX_CLAIMS) break
@@ -96,7 +96,7 @@ export function isRequest(m: Message): boolean {
 
 /** Where the person's latest request is, or -1. */
 export function requestIndex(messages: readonly Message[]): number {
-  for (let i = messages.length - 1; i >= 0; i--) if (isRequest(messages[i])) return i
+  for (let i = messages.length - 1; i >= 0; i--) if (isRequest(messages[i]!)) return i
   return -1
 }
 
@@ -236,7 +236,7 @@ export function decide(a: Answers, found: readonly string[], minConfidence: numb
   const unsupported = 1 - a.supported
   const confidence = Math.max(unsupported, a.unverified_checks)
   if (confidence < minConfidence) return { nudge: false, why: 'supported' }
-  const claim = a.weakest !== null && a.weakest >= 0 && a.weakest < found.length ? found[a.weakest] : null
+  const claim = a.weakest !== null && a.weakest >= 0 && a.weakest < found.length ? found[a.weakest]! : null
   return { nudge: true, claim, checks: a.unverified_checks >= minConfidence, confidence }
 }
 

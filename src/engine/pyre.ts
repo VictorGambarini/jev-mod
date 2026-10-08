@@ -47,7 +47,7 @@ export function py(source: string, extraFlags = ''): RegExp {
         else if (e === 'w') out += W
         else if (e === 's') out += WS
         else if (e === 'D' || e === 'W' || e === 'S') throw new Error(`py: \\${e} inside a class is not supported`)
-        else out += escaped(e)
+        else out += escaped(e!)
       } else if (e === 'b') out += BOUNDARY
       else if (e === 'B') out += NOT_BOUNDARY
       else if (e === 'd') out += '\\p{Nd}'
@@ -58,7 +58,7 @@ export function py(source: string, extraFlags = ''): RegExp {
       else if (e === 'S') out += `[^${WS}]`
       else if (e === 'A') out += '(?<![\\s\\S])'
       else if (e === 'Z') out += '(?![\\s\\S])'
-      else out += escaped(e)
+      else out += escaped(e!)
       continue
     }
     if (inClass) {
@@ -167,13 +167,13 @@ export class Text {
 
   /** The code point offset of a UTF-16 offset (a RegExp's `index`). */
   cp(unit: number): number {
-    return this.points ? this.points[unit] : unit
+    return this.points ? this.points[unit]! : unit
   }
 
   /** The UTF-16 offset of a code point offset, clamped as a Python slice clamps. */
   unit(cp: number): number {
     const at = Math.max(0, Math.min(cp, this.length))
-    return this.units ? this.units[at] : at
+    return this.units ? this.units[at]! : at
   }
 
   /** Python's text[start:end] for start, end >= 0. */
@@ -246,7 +246,7 @@ export function urlsplit(input: string): SplitURL {
   let query = ''
   let fragment = ''
   const colon = url.indexOf(':')
-  if (colon > 0 && /^[A-Za-z]$/.test(url[0]) && /^[A-Za-z0-9+\-.]+$/.test(url.slice(0, colon))) {
+  if (colon > 0 && /^[A-Za-z]$/.test(url[0]!) && /^[A-Za-z0-9+\-.]+$/.test(url.slice(0, colon))) {
     scheme = url.slice(0, colon).toLowerCase()
     url = url.slice(colon + 1)
   }

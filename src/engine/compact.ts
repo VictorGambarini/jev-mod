@@ -45,7 +45,7 @@ export function pack(messages: readonly Message[], judged: number[]): number[][]
   let current: number[] = []
   let used = 0
   for (const index of judged) {
-    const cost = encode(redact(textOf(messages[index]), TURN_CHARS), { ensureAscii: true }).length + PER_TURN_OVERHEAD
+    const cost = encode(redact(textOf(messages[index]!), TURN_CHARS), { ensureAscii: true }).length + PER_TURN_OVERHEAD
     if (current.length && (current.length >= BATCH || used + cost > STATE_BUDGET)) {
       batches.push(current)
       current = []
@@ -77,17 +77,17 @@ export async function select(host: Host, messages: readonly Message[], opts: { k
   const fates = new Map<number, Fate>()
   for (let i = Math.max(0, total - keepLast); i < total; i++) fates.set(i, 'keep')
   let judged = [...Array(total).keys()].filter(i => !fates.has(i))
-  for (const i of judged) fates.set(i, messages[i].role === 'system' ? 'keep' : 'summarize') // nothing is dropped unless the model says so
-  judged = judged.filter(i => fates.get(i) !== 'keep' && strip(textOf(messages[i])) !== '')
+  for (const i of judged) fates.set(i, messages[i]!.role === 'system' ? 'keep' : 'summarize') // nothing is dropped unless the model says so
+  judged = judged.filter(i => fates.get(i) !== 'keep' && strip(textOf(messages[i]!)) !== '')
 
   const calls: Asked[] = []
   const errors: string[] = []
   const answered = new Set<number>()
   let latency = 0
   for (const group of pack(messages, judged)) {
-    const sendable = group.filter(i => !isSensitive(textOf(messages[i])))
+    const sendable = group.filter(i => !isSensitive(textOf(messages[i]!)))
     if (!sendable.length) continue
-    const state = { turns: Object.fromEntries(sendable.map(i => [`T${i}`, `${messages[i].role ?? 'user'}: ${redact(textOf(messages[i]), TURN_CHARS)}`])) }
+    const state = { turns: Object.fromEntries(sendable.map(i => [`T${i}`, `${messages[i]!.role ?? 'user'}: ${redact(textOf(messages[i]!), TURN_CHARS)}`])) }
     const questions = Object.fromEntries(sendable.map(i => [`t${i}`, choice(`For continuing this work later, what should happen to turn T${i}?`, FATE)]))
     let reply: Asked
     try {

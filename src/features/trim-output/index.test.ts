@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import type { IO } from '../../core/io'
+import type { FetchInit, IO } from '../../core/io'
 import { noteGoal, trim } from './index'
 
 const USER = '/home/u/.config/jev-mod/config.json'
@@ -16,19 +16,19 @@ function io(settings: Record<string, unknown>, need?: (chunk: string) => number)
   return {
     files, store, asked,
     option: () => undefined,
-    readFile: async path => { if (path in files) return files[path]; throw new Error('ENOENT') },
-    writeFile: async (path, text) => { files[path] = text },
+    readFile: async (path: string) => { if (path in files) return files[path]; throw new Error('ENOENT') },
+    writeFile: async (path: string, text: string) => { files[path] = text },
     folders: async () => [],
-    env: async name => env[name],
+    env: async (name: string) => env[name],
     home: async () => '/home/u',
     projectRoot: async () => undefined,
     run: async () => ({ exitCode: 1, stdout: '', stderr: '' }),
     sleep: () => new Promise<void>(() => {}),
     sessionId: async () => 's1',
-    storeGet: async key => store[key],
-    storeSet: async (key, value) => { store[key] = value },
+    storeGet: async (key: string) => store[key],
+    storeSet: async (key: string, value: unknown) => { store[key] = value },
     status: () => {}, toast: () => {},
-    fetch: async (_url, init) => {
+    fetch: async (_url: string, init?: FetchInit) => {
       if (!need) return { status: 503, ok: false, text: '' }
       const body = JSON.parse(init!.body!)
       asked.push(body)
@@ -100,8 +100,8 @@ test('with the decision model: unneeded chunks are omitted, failures and the goa
   const fake = io({ mode: 'on', minLines: 50 }, chunk => (chunk.includes('✓') ? 0.05 : 0.9))
   const out = await trim(fake, { command: 'npx vitest run', subagent: false }, bash(text)) as { stdout: string }
   expect(fake.asked.length).toBeGreaterThan(0)
-  expect(fake.asked[0].state.goal).toBe('fix the failing parser test')
-  expect(fake.asked[0].state.command).toBe('npx vitest run')
+  expect(fake.asked[0]!.state.goal).toBe('fix the failing parser test')
+  expect(fake.asked[0]!.state.command).toBe('npx vitest run')
   // nothing protected was ever sent
   for (const body of fake.asked) for (const t of Object.values(body.state.chunks as Record<string, string>)) expect(t).not.toContain('AssertionError')
   for (const line of failure) expect(out.stdout).toContain(line)

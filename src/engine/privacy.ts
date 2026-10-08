@@ -183,7 +183,7 @@ function charClass(char: string): number {
 /** Average length of the stretches of one character class: words are long, noise is short. */
 function meanRun(run: string[]): number {
   let changes = 0
-  for (let i = 1; i < run.length; i++) if (charClass(run[i - 1]) !== charClass(run[i])) changes++
+  for (let i = 1; i < run.length; i++) if (charClass(run[i - 1]!) !== charClass(run[i]!)) changes++
   return run.length / (changes + 1)
 }
 
@@ -211,7 +211,7 @@ export function redact(text: string, limit = 4000): string {
   out = out.replace(TRACKING, m => { held.push(m); return `\0TRK${held.length - 1}\0` })
   out = out.replace(TOKEN_SHAPES_ALL, '[secret]')
   // Keep the variable's NAME (it is often the useful signal) and mask only its value.
-  out = out.replace(SECRET_ASSIGNMENT_ALL, m => m.split(/[:=]/)[0].trimEnd() + '=[secret]')
+  out = out.replace(SECRET_ASSIGNMENT_ALL, m => m.split(/[:=]/)[0]!.trimEnd() + '=[secret]')
   out = out.replace(LONG_HEX, '[hex]')
   // After [hex], so a digest stays a digest, and before the phone rules, so a spaced card
   // number is not shredded into a "phone" and a remainder.

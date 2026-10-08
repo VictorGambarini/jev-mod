@@ -57,10 +57,10 @@ export function frontMatter(text: string): Record<string, string> {
   const fields: Record<string, string> = {}
   const match = FENCE.exec(text)
   if (!match || match.index !== 0) return fields
-  const lines = splitlines(match[1])
+  const lines = splitlines(match[1]!)
   let index = 0
   while (index < lines.length) {
-    const line = lines[index]
+    const line = lines[index]!
     const colon = line.indexOf(':')
     const key = colon < 0 ? line : line.slice(0, colon)
     const value = colon < 0 ? '' : line.slice(colon + 1)
@@ -77,7 +77,7 @@ export function frontMatter(text: string): Record<string, string> {
     const body: string[] = []
     let indent: number | null = null
     while (index < lines.length) {
-      const next = lines[index]
+      const next = lines[index]!
       if (!strip(next)) {
         body.push('')
         index += 1
@@ -190,7 +190,7 @@ export function looksTrivial(turn: string): boolean {
         continue outer
       }
     }
-    if (!ACK_WORDS.has(found[position])) return false
+    if (!ACK_WORDS.has(found[position]!)) return false
     position += 1
   }
   return true
@@ -287,7 +287,7 @@ async function rank(host: Host, turnText: string, catalog: Skill[], opts: RankOp
   const latency = Math.max(...replies.map(reply => reply.latency_ms))
   const ranked: [number, number][] = []
   replies.forEach((reply, n) => {
-    const answer = reply.answers[pickName(starts[n])] as { probabilities: Record<string, number> }
+    const answer = reply.answers[pickName(starts[n]!)] as { probabilities: Record<string, number> }
     for (const [option, probability] of Object.entries(answer.probabilities)) {
       if (option !== 'none') ranked.push([probability, Number(option.slice(1))])
     }
@@ -299,7 +299,7 @@ async function rank(host: Host, turnText: string, catalog: Skill[], opts: RankOp
 
   // Stage 2: the finalists read properly, each judged on its own, "none of them" allowed.
   const listed: Record<string, string> = {}
-  for (const i of finalists) listed[`S${i}`] = `${catalog[i].name}: ${codePoints(catalog[i].description, STAGE_TWO_CHARS)}`
+  for (const i of finalists) listed[`S${i}`] = `${catalog[i]!.name}: ${codePoints(catalog[i]!.description, STAGE_TWO_CHARS)}`
   const questions: Record<string, unknown> = {
     needs_skill: noul('Doing this turn well requires the specialised instructions of one of these skills') }
   for (const i of finalists) questions[`s${i}`] = noul(`Skill S${i} is the right specialised procedure for this turn`)
@@ -310,9 +310,9 @@ async function rank(host: Host, turnText: string, catalog: Skill[], opts: RankOp
     return { status: 'fail_open', reason: `Jev unavailable (${codeOf(error)})`, skills: [], calls, errors }
   }
   const nouls = reply.answers as Record<string, { noul: number }>
-  const need = nouls.needs_skill.noul
-  const verified = finalists.map(i => [nouls[`s${i}`].noul, i] as [number, number]).sort((a, b) => b[0] - a[0] || b[1] - a[1])
+  const need = nouls.needs_skill!.noul
+  const verified = finalists.map(i => [nouls[`s${i}`]!.noul, i] as [number, number]).sort((a, b) => b[0] - a[0] || b[1] - a[1])
   const chosen = need < opts.needThreshold ? [] : verified.slice(0, opts.topK).filter(([p]) => p >= opts.matchThreshold)
-    .map(([p, i]) => ({ name: catalog[i].name, path: catalog[i].path, match: pyRound(p, 3) }))
+    .map(([p, i]) => ({ name: catalog[i]!.name, path: catalog[i]!.path, match: pyRound(p, 3) }))
   return { status: 'ok', needs_skill: pyRound(need, 3), skills: chosen, latency_ms: latency + reply.latency_ms, calls, errors }
 }

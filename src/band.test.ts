@@ -5,7 +5,7 @@ import { test, expect } from 'claude-code/testing'
 for (const surface of ['terminal', 'desktop'] as const) {
   test(`with nothing recorded the band leaves the engine's own (${surface})`, async ($, on) => {
     on('ui.render', () => ({ type: 'Text', props: {}, children: ['engine band'] }))
-    const mounted = await $.ui.mount({ plugin: 'jev-mod', surface, component: 'AbovePrompt', props: { hasSurvey: false } })
+    const mounted = await $.ui.mount({ plugin: 'jev-mod', surface, component: 'AbovePrompt', props: { hasSurvey: false } as never }) // the host fills in the rest of the band's props
     expect(JSON.stringify(await mounted.drawn())).toContain('engine band')
   })
 }

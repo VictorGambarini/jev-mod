@@ -22,7 +22,7 @@ function replay(run: Run, sent: string[]): Host {
       sent.push(body)
       const exchange = run.exchanges.find(e => e.request === body)
       if (!exchange) throw new Error('unrecorded request')
-      if (exchange.fail && FAILURES[exchange.fail]) return { status: FAILURES[exchange.fail], text: '', headers: {} }
+      if (exchange.fail && FAILURES[exchange.fail]) return { status: FAILURES[exchange.fail]!, text: '', headers: {} }
       if (exchange.fail) throw new Error(exchange.fail)
       return { status: 200, text: exchange.reply as string, headers: {} }
     },
@@ -34,7 +34,7 @@ test('select sends the requests and reaches the fates compact.select did', async
   for (const [n, run] of (runs as unknown as Run[]).entries()) {
     const sent: string[] = []
     const messages = (convos as unknown as Record<string, Message[]>)[run.convo]
-    const { latency_ms: _l, calls: _c, ...got } = await select(replay(run, sent), messages, { keepLast: run.keep_last })
+    const { latency_ms: _l, calls: _c, ...got } = await select(replay(run, sent), messages!, { keepLast: run.keep_last })
     const { latency_ms: _w, ...want } = run.result
     if (sorted(got) !== sorted(want)) wrong.push({ n, convo: run.convo, got, want })
     // In order: batches go one after another, as Python sent them.

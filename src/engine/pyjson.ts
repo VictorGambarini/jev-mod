@@ -36,7 +36,7 @@ export function loads(text: string): PyValue {
       if (c === '\\') {
         const e = text[at + 1]
         const simple: Record<string, string> = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' }
-        if (e in simple) { out += simple[e]; at += 2; continue }
+        if (e! in simple) { out += simple[e!]; at += 2; continue }
         if (e !== 'u') fail('Invalid \\escape')
         const hex = text.slice(at + 2, at + 6)
         if (!/^[0-9a-fA-F]{4}$/.test(hex)) fail('Invalid \\uXXXX escape')
@@ -54,7 +54,7 @@ export function loads(text: string): PyValue {
         out += String.fromCodePoint(code)
         continue
       }
-      if (c < ' ') fail('Invalid control character')
+      if (c! < ' ') fail('Invalid control character')
       out += c
       at++
     }
@@ -122,7 +122,7 @@ export function floatRepr(x: number): string {
   const sign = x < 0 ? '-' : ''
   // toExponential() with no argument gives the shortest digits that round-trip, as repr does.
   const [mantissa, exp] = Math.abs(x).toExponential().split('e')
-  const digits = mantissa.replace('.', '')
+  const digits = mantissa!.replace('.', '')
   const n = Number(exp)
   if (n < -4 || n >= 16) {
     const body = digits.length > 1 ? `${digits[0]}.${digits.slice(1)}` : digits

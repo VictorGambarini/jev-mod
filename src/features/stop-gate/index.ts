@@ -43,7 +43,7 @@ export async function check(io: IO, e: { promptId?: string; last?: string }): Pr
 
     const messages = await io.messages()
     const at = requestIndex(messages)
-    const request = at >= 0 ? messages[at].text : ''
+    const request = at >= 0 ? messages[at]!.text : ''
     const ev = evidence(messages, knob('evidenceChars', 6000))
     const raw = [request, final, ...ev.edited_files, ...ev.commands.flatMap(c => [c.command, c.output_tail])].join('\n')
     if (isSensitive(raw)) { await outcome('skipped'); return null } // redaction is a backstop, not a licence

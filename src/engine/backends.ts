@@ -64,7 +64,7 @@ export function checkTuning(raw: Record<string, unknown>): Record<string, number
   for (const [key, value] of Object.entries(raw)) {
     if (!(key in KNOBS)) throw new Error(`unknown tuning key ${repr(key)}; known: ${Object.keys(KNOBS).sort().join(', ')}`)
     if (typeof value !== 'number') throw new Error(`tuning ${key} must be a number`)
-    const [, low, high] = KNOBS[key]
+    const [, low, high] = KNOBS[key]!
     if (!(Number(low) <= value && value <= Number(high))) throw new Error(`tuning ${key} must be between ${low} and ${high}`)
     out[key] = value
   }
@@ -73,7 +73,7 @@ export function checkTuning(raw: Record<string, unknown>): Record<string, number
 
 /** A backend's value for a threshold, else the Jev default. */
 export function tuned(backend: Backend | null, key: string): number {
-  return backend?.tuning[key] ?? KNOBS[key][0]
+  return backend?.tuning[key] ?? KNOBS[key]![0]
 }
 
 // ── URLs ─────────────────────────────────────────────────────────────────────

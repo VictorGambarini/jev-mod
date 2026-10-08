@@ -44,7 +44,7 @@ function hostFor(c: Case): Host {
     post: async () => {
       const next = replies.shift()!
       if (next.raised === 'network') throw new Error('network')
-      if (next.raised) return { status: STATUS_OF[next.raised], text: '', headers: {} }
+      if (next.raised) return { status: STATUS_OF[next.raised]!, text: '', headers: {} }
       return { status: 200, text: next.reply!, headers: {} }
     },
   }

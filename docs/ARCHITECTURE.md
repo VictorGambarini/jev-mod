@@ -9,7 +9,9 @@ src/
     io.ts              the IO interface: everything the mod may do to the outside world
     jev.ts             the session's tally of backend calls, and the cool-off after a failure
     host.ts            the engine's Host, built from IO
-    settings.ts        the switches and private mode: /config first, then jev-skills' files
+    registry.ts        every feature, declared once: modes, default, knobs, help text
+    config.ts          which features are on and how: kill files, /config, the project and user files, older switches
+    settings.ts        jev's folder and private mode
     limits.ts          the daily budget, shared with the `jev` command
     memory.ts          per-session memory, one namespace per feature, in the mod's store
   features/            one folder per feature

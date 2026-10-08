@@ -2,7 +2,8 @@ import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import * as memory from '../../core/memory'
-import { isPrivate, jevDir, mode } from '../../core/settings'
+import { modeOf } from '../../core/config'
+import { isPrivate, jevDir } from '../../core/settings'
 import { screenResult, withholdText } from '../../engine/screen'
 import { kindOf, screenValue, SCREEN_MAX_TEXTS, SCREEN_MIN_CHARS, type Kind } from './targets'
 
@@ -24,7 +25,7 @@ async function screenText(io: IO, tool: string, text: string, raw: boolean) {
   if (text.length < SCREEN_MIN_CHARS) return null
   const host = hostOf(io)
   const dir = await jevDir(io)
-  const setting = await mode(io, dir, 'hook_screen')
+  const setting = await modeOf(io, 'screening')
   if (setting === 'off') return null
   const send = !coolingOff() && !(await isPrivate(io, dir))
   const verdict = await screenResult(host, tool, text, { send, raw })

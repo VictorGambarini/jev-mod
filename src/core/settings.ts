@@ -1,42 +1,14 @@
-import type { IO } from './io'
 import { hostOf } from './host'
+import type { IO } from './io'
 import { configDir } from '../engine/keys'
 
-// jev's switches. The mod's own settings (/config) come first; left at "default", the files
-// jev-skills' `jev switches` writes decide, so an existing setting holds: <config>/state.json,
-// and a <SWITCH>_OFF file beside it that turns the switch off whatever anything else says.
-// With neither, a switch is on: the mod is installed to do these things.
+// Where jev's files are, and whether this profile is private. Which features are on, and how
+// they are set, is config.ts's.
 
 /** jev's config folder: JEV_HOME, else the platform's (keys.configDir). */
 export async function jevDir(io: IO): Promise<string> {
   const host = hostOf(io)
   return (await host.env('JEV_HOME')) || await configDir(host)
-}
-
-const OPTION = { hook_screen: 'screening', hook_skills: 'skills' } as const
-const MODES = ['off', 'shadow', 'on']
-
-/** A switch's mode: "off", "shadow" (judge and count, change nothing) or "on". */
-export async function mode(io: IO, dir: string, name: 'hook_screen' | 'hook_skills'): Promise<string> {
-  const host = hostOf(io)
-  if (await host.readFile(`${dir}/${name.toUpperCase()}_OFF`) !== undefined) return 'off'
-  const chosen = io.option(OPTION[name])
-  if (typeof chosen === 'string' && MODES.includes(chosen)) return chosen
-  const text = await host.readFile(`${dir}/state.json`)
-  if (text === undefined) return 'on'
-  try {
-    const value = JSON.parse(text)[name]
-    if (value === undefined || value === null) return 'on'
-    // A setting jev-skills would read as off (unknown, misspelt) stays off here too.
-    return MODES.includes(String(value).toLowerCase()) ? String(value).toLowerCase() : 'off'
-  } catch {
-    return 'off'
-  }
-}
-
-/** Whether routing changes turns: the mod's setting, on unless set off. */
-export function routingOn(io: IO): boolean {
-  return io.option('routing') !== 'off'
 }
 
 /** Private sends nothing: the mod's setting, or the profile listed in routing.json's private_profiles (or one we cannot read). */

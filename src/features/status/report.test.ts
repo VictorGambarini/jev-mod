@@ -4,7 +4,9 @@ import { report, scrub, type Facts } from './report'
 const base: Facts = {
   version: '0.4.0', backend: null, provider: 'typesafe', keySource: 'settings', gateway: null, misconfigured: null,
   check: { ok: true, model: 'jev-1.13.0', ms: 412, cost: 0.000021 },
-  switches: { routing: true, skills: 'on', screening: 'on', private: false }, budget: { spent: 0.0017, daily: 1 },
+  features: [{ id: 'routing', mode: 'on', source: 'default' }, { id: 'skills', mode: 'on', source: 'default' },
+    { id: 'screening', mode: 'on', source: 'default' }],
+  private: false, problems: [], budget: { spent: 0.0017, daily: 1 },
 }
 
 test('a working setup reads as one line each: backend, key source, check, switches, budget', () => {
@@ -13,7 +15,7 @@ test('a working setup reads as one line each: backend, key source, check, switch
     'backend: Jev through TypeSafe',
     "key: from this mod's settings (Claude Code's credential store)",
     'check: ok, answered by jev-1.13.0 in 412 ms ($0.00002)',
-    'switches: routing on · skills on · screening on',
+    'features: routing on · skills on · screening on',
     'today: $0.0017 of the $1.00 daily budget',
   ].join('\n'))
 })
@@ -26,8 +28,11 @@ test('a failure says what to do, for a provider and for a named backend', () => 
     keySource: 'file', check: { ok: false, error: 'auth_failed', said: 'HTTP 401: bad key' } })
   expect(refused).toContain('backend: lais05 · clef-flash at https://x/v1/systemone')
   expect(refused).toContain('check: failed (auth_failed): HTTP 401: bad key. The server refused the key: set the named backend key')
-  expect(report({ ...base, switches: { routing: false, skills: 'shadow', screening: 'off', private: true } }))
-    .toContain('switches: routing off · skills shadow · screening off · private (nothing is sent)')
+  const set = report({ ...base, private: true, problems: ['user config: no feature skils (there are routing, skills)'],
+    features: [{ id: 'routing', mode: 'off', source: '/config' }, { id: 'skills', mode: 'shadow', source: 'project' },
+      { id: 'screening', mode: 'off', source: 'kill file' }] })
+  expect(set).toContain('features: routing off (/config) · skills shadow (project) · screening off (kill file) · private (nothing is sent)')
+  expect(set).toContain('config: user config: no feature skils (there are routing, skills)')
 })
 
 test('a key echoed back by a server never reaches the screen', () => {

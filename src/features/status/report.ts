@@ -12,7 +12,11 @@ export type Facts = {
   gateway: string | null // TYPESAFE_BASE_URL when it points elsewhere
   misconfigured: string | null // why backends.json could not be read
   check: { ok: true; model: string | null; ms: number; cost: number } | { ok: false; error: string; said: string } | null
-  switches: { routing: boolean; skills: string; screening: string; private: boolean }
+  /** Each feature's mode, and where it came from when that is not the default. */
+  features: { id: string; mode: string; source: string }[]
+  private: boolean
+  /** Config settings that were passed over, and why. */
+  problems: string[]
   budget: { spent: number; daily: number } | null
 }
 
@@ -45,8 +49,9 @@ export function report(f: Facts): string {
   if (f.check === null) lines.push('check: not run')
   else if (f.check.ok) lines.push(`check: ok, answered by ${f.check.model ?? 'an unnamed model'} in ${f.check.ms} ms ($${f.check.cost.toFixed(5)})`)
   else lines.push(`check: failed (${f.check.error})${f.check.said ? `: ${f.check.said}` : ''}. ${advice(f.check.error, f)}`)
-  const s = f.switches
-  lines.push(`switches: routing ${s.routing ? 'on' : 'off'} · skills ${s.skills} · screening ${s.screening}${s.private ? ' · private (nothing is sent)' : ''}`)
+  const modes = f.features.map(x => `${x.id} ${x.mode}${x.source === 'default' ? '' : ` (${x.source})`}`)
+  lines.push(`features: ${modes.join(' · ')}${f.private ? ' · private (nothing is sent)' : ''}`)
+  for (const problem of f.problems) lines.push(`config: ${problem}`)
   if (f.budget) lines.push(`today: $${f.budget.spent.toFixed(4)} of the $${f.budget.daily.toFixed(2)} daily budget`)
   return lines.join('\n')
 }

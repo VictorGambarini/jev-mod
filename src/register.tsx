@@ -2,6 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 import type { BandFeatures } from '../types'
 import { line } from './features/band/line'
+import { modeOf } from './core/config'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
 import * as compactJev from './features/compact-jev'
@@ -60,9 +61,15 @@ const THEME = { yellow: 'warning', red: 'error', green: 'success' } as const
 
 const band = atom({ plugin: 'jev-mod', key: 'band' } as const, null as BandFeatures | null)
 
+/** Whether the band is drawn: read from the config when an event comes, not on every draw. */
+let bandOn = true
+
 /** Redraw the band from the session's record, after a hook that may have changed it. */
 async function refresh($: any): Promise<void> {
-  try { await update($, band, () => memory.snapshot()) } catch { /* the band is cosmetic */ }
+  try {
+    bandOn = await modeOf(ioOf($), 'band') !== 'off'
+    await update($, band, () => memory.snapshot())
+  } catch { /* the band is cosmetic */ }
 }
 
 /** The mod's settings (its manifest's userConfig), as Claude Code handed them to register. */
@@ -172,7 +179,7 @@ export const register: Register = (on, given) => {
 
   // The band above the prompt; next(e) (nothing of the mod's) until it has done something.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (options.band === 'off' || e.props.hasSurvey) return next(e)
+    if (!bandOn || e.props.hasSurvey) return next(e)
     const features = await read($, band)
     const segments = features ? line(features, Date.now()) : null
     if (!segments) return next(e)

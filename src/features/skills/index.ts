@@ -2,7 +2,8 @@ import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import * as memory from '../../core/memory'
-import { isPrivate, jevDir, mode } from '../../core/settings'
+import { modeOf } from '../../core/config'
+import { isPrivate, jevDir } from '../../core/settings'
 import { discover, pick, type Skill } from '../../engine/skills'
 import { listedOnly, note, repeat } from './catalog'
 
@@ -41,7 +42,7 @@ async function catalog(io: IO): Promise<{ skills: Skill[]; listed: boolean }> {
 export async function analyse(io: IO, text: string): Promise<string | null> {
   if (coolingOff()) return null
   const dir = await jevDir(io)
-  const setting = await mode(io, dir, 'hook_skills')
+  const setting = await modeOf(io, 'skills')
   if (setting === 'off' || await isPrivate(io, dir)) return null
   const { skills, listed } = await catalog(io)
   const picked = await pick(hostOf(io), text, skills, { topK: 1 })

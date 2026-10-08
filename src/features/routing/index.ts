@@ -3,7 +3,8 @@ import type { IO } from '../../core/io'
 import { coolingOff, OUTAGES, record } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
 import * as memory from '../../core/memory'
-import { isPrivate, jevDir, routingOn } from '../../core/settings'
+import { modeOf } from '../../core/config'
+import { isPrivate, jevDir } from '../../core/settings'
 import { activeBackend } from '../../engine/client'
 import { LANE_POLICY_TEXT } from '../../engine/lane-policy'
 import { classify as classifyLane, targets, type Target } from '../../engine/lanes'
@@ -80,7 +81,7 @@ async function loadConfig(io: IO): Promise<{ policy: Policy | null; tables: unkn
 }
 
 async function classify(io: IO, text: string): Promise<LaneName | null> {
-  if (!text.trim() || text.trimStart().startsWith('/') || coolingOff() || !routingOn(io)) return null
+  if (!text.trim() || text.trimStart().startsWith('/') || coolingOff() || await modeOf(io, 'routing') === 'off') return null
   if (await isPrivate(io, await jevDir(io))) return null
   const { policy, tables } = await loadConfig(io)
   if (!policy) return null
@@ -108,7 +109,7 @@ export function turnStarted(turnId: string, text: string): void {
 }
 
 async function decide(io: IO, text: string, mine: RoutingSpace): Promise<Lane | null> {
-  if (!routingOn(io)) return null
+  if (await modeOf(io, 'routing') === 'off') return null
   const now = Date.now()
   const previous = mine.previous ?? null
   const recent = previous !== null && now - previous.at <= FOLLOW_UP_MS

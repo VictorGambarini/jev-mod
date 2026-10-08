@@ -1,7 +1,9 @@
 import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
 import { recordCalls } from '../../core/jev'
-import { isPrivate, jevDir, mode, routingOn } from '../../core/settings'
+import { problems, resolve, snapshot } from '../../core/config'
+import { FEATURES } from '../../core/registry'
+import { isPrivate, jevDir } from '../../core/settings'
 import { BackendError } from '../../engine/backends'
 import { activeBackend, ask, costOf, JevError, noul, type Asked } from '../../engine/client'
 import { backendKey, backendKeySource, keySource, provider, providerKey } from '../../engine/keys'
@@ -10,7 +12,7 @@ import { VERSION } from '../../version'
 import { report, scrub, type Facts } from './report'
 
 // /jev-status: which decision backend the mod uses, where its key came from (never the key),
-// one check call with jev-skills' own verification question, the switches and today's spend.
+// one check call with jev-skills' own verification question, each feature's mode and today's spend.
 
 export const command = {
   name: 'jev-status',
@@ -32,6 +34,7 @@ export async function run(io: IO): Promise<{ text: string }> {
     misconfigured = error instanceof BackendError ? error.message : String(error)
   }
   const chosen = await provider(host)
+  const snap = await snapshot(io)
   const gateway = ((await io.env('TYPESAFE_BASE_URL')) ?? '').trim().replace(/\/+$/, '')
   const facts: Facts = {
     version: VERSION,
@@ -41,11 +44,12 @@ export async function run(io: IO): Promise<{ text: string }> {
     gateway: gateway && gateway !== 'https://api.typesafe.ai' ? gateway : null,
     misconfigured,
     check: null,
-    switches: { routing: routingOn(io), skills: await mode(io, dir, 'hook_skills'), screening: await mode(io, dir, 'hook_screen'),
-      private: await isPrivate(io, dir) },
+    features: FEATURES.map(f => ({ id: f.id, ...resolve(snap, f) })),
+    private: await isPrivate(io, dir),
+    problems: problems(snap),
     budget: null,
   }
-  if (!facts.switches.private) {
+  if (!facts.private) {
     const started = Date.now()
     try {
       const reply: Asked = await ask(host, 'The build finished and all tests passed.',

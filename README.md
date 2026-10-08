@@ -15,7 +15,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
 | **The jev band** | always | One line above the prompt: what jev decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
-| **`/jev-status`** | when you type it | The backend, where its key came from (never the key), a live check, the switches, today's spend. |
+| **`/jev-status`** | when you type it | The backend, where its key came from (never the key), a live check, each feature's mode and where it came from, today's spend. |
 | **`/compact-jev`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
 Every decision fails open: no answer means the turn runs exactly as plain Claude Code. After a
@@ -49,7 +49,7 @@ read -rs KEY && printf '{"api_key":"%s"}' "$KEY" | claude plugin configure jev-m
 An empty value keeps the key already set; set it to `none` to stop using it.
 
 Then check it with **`/jev-status`**: the backend, where its key came from (never the key), a live
-check call, the switches, and today's spend.
+check call, each feature's mode, and today's spend.
 
 Nothing else is needed: no Python. A key already in the environment (`TYPESAFE_API_KEY`, ...) or
 stored by jev-skills' `jev setup-key` is found too, and the mod reads jev-skills' switches,
@@ -58,18 +58,37 @@ side by side.
 
 ### Settings
 
-`/config` lists the rest, under jev-mod:
+Each feature has a mode (`on`, `off`, and `shadow` where it means something: decide and count,
+change nothing) and, for some, settings of its own. They live in a JSON file:
 
-| Setting | Default | |
-|---|---|---|
-| Routing | on | each turn's model and effort from the decision model's lane |
-| Skill suggestions | default | `on`, `shadow` (ask and count, suggest nothing), `off`; `default` follows `jev switches`, else on |
-| Screening | default | the same, for withholding injected text |
-| jev band | on | the line above the prompt |
-| Private | off | send nothing: no routing or suggestions; fetched text is screened locally only |
+- `~/.config/jev-mod/config.json` for you (`$XDG_CONFIG_HOME` respected), and
+- `.claude/jev-mod.json` in a project, which overrides it there.
 
-A `HOOK_SKILLS_OFF` or `HOOK_SCREEN_OFF` file in `~/.config/jev` still turns that feature off
-whatever the setting says.
+```json
+{"features": {"skills": {"mode": "shadow"}, "band": {"mode": "off"}}}
+```
+
+A change holds from the next event; no restart. `/jev-status` shows each feature's mode, where
+it came from, and anything in the files it passed over (an unknown feature, a mode a feature
+does not have): a typo never turns a feature off.
+
+| Feature | Modes | Default | |
+|---|---|---|---|
+| `routing` | on, off | on | each turn's model and effort from the decision model's lane |
+| `skills` | on, shadow, off | on | suggests the installed skill that matches a prompt |
+| `screening` | on, shadow, off | on | withholds instructions aimed at the model in fetched text |
+| `band` | on, off | on | the line above the prompt |
+
+What wins, first to last: a kill file (`~/.config/jev-mod/OFF` for everything,
+`~/.config/jev-mod/<FEATURE>_OFF` for one, or jev-skills' `HOOK_SKILLS_OFF` / `HOOK_SCREEN_OFF`
+in `~/.config/jev`), then *jev-mod on* unticked in `/config`, then the project file, then yours,
+then the older switches (the `/config` fields below, then jev-skills' `jev switches`), then the
+default.
+
+`/config` keeps what has to live there: the keys, the provider, *jev-mod on* (untick it to turn
+everything off), and *Private* (send nothing: no routing or suggestions; fetched text is
+screened locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev band* fields
+still work when the files do not set that feature, and will go in a later release.
 
 ## Decision backends
 
@@ -95,7 +114,7 @@ Above the prompt, after the first turn:
 ```
 
 The lane reads as difficulty (easy, normal, hard, critical), then the model and effort the mod
-switched to, or "kept" when it changed nothing. Turn it off with the *jev band* setting.
+switched to, or "kept" when it changed nothing. Turn it off with `"band": {"mode": "off"}` in your config file.
 
 `statusline/statusline.py` is an optional status line for the rest (model, folder, branch,
 context, cache countdown, spend, rate limits): `"statusLine": {"type": "command", "command":

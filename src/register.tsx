@@ -11,6 +11,7 @@ import * as routing from './features/routing'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
 import * as toolGate from './features/tool-gate'
+import * as stopGate from './features/stop-gate'
 
 // jev-mod: a cheap decision model (Jev, or any decision backend) makes the small decisions
 // inside Claude Code, so the expensive model only does the work.
@@ -117,6 +118,7 @@ function ioOf($: any): IO {
       const { context } = await $.session.usage()
       return { contextTokens: context.tokens ?? 0, contextWindow: context.window, contextPercent: context.percent }
     },
+    messages: () => $.session.messages(),
     storeGet: key => $.store.get(key),
     storeSet: (key, value) => $.store.set(key, value),
     status: text => $.ui.status(text),
@@ -147,7 +149,17 @@ export const register: Register = (on, given) => {
 
   on('turn.start', async ($, e, next) => {
     routing.turnStarted(e.turnId, e.text)
+    stopGate.turnStarted(e.text)
     return next(e)
+  })
+
+  // The main agent ending a turn normally: the completion gate may send it back to verify a claim
+  // (Stop's block). Settings Stop hooks beneath decide first; one that blocks is left to stand.
+  on('classic.Stop', async ($, e, next) => {
+    const ran = await next(e)
+    if (e.agent_id || ran.block !== undefined || ran.preventContinuation) return ran
+    const note = await stopGate.check(ioOf($), { promptId: e.prompt_id, last: e.last_assistant_message })
+    return note ? { ...ran, block: note } : ran
   })
 
   on('turn.step', async function* ($, e, next) {

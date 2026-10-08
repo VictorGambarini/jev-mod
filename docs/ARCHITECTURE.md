@@ -25,6 +25,7 @@ src/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
     tool-gate/         index.ts (glue, on tool.check) · rules.ts (pure: risk classifier, state, verdict) · rules.test.ts
     compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
+    stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
 statusline/            the two-line status line (reads core/memory.ts's records)
 test/parity/           fixtures captured from jev-skills; the engine port must match them
@@ -59,6 +60,17 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
   So decisions live in pure files with kit tests, the engine reaches the network through
   `io.fetch` (stubbable), and the live behaviour is checked headless (`claude -p`, and
   stream-json sessions for anything that needs the session to stay open).
+
+## Sending the agent back
+
+`turn.complete` can only add text beneath an answer, and `turn.step`'s result never reaches the
+engine, so neither can keep a turn going. The settings `Stop` event can: the mod hooks it as
+`classic.Stop`, and a `block` re-prompts the main agent with that text (Claude Code shows it as
+"Stop hook feedback"). Stop fires only when the main agent ends a turn normally: not on an
+interrupt, an API error (StopFailure) or a subagent (SubagentStop). The completion gate lets the
+settings Stop hooks beneath it answer first, and leaves a block of theirs as it is. Its own cap
+(maxNudges per prompt, keyed by the event's `prompt_id`) bounds the loop. `src/stop-gate.test.ts`
+raises Stop through the kit; the path that asks the backend is checked live.
 
 ## State
 

@@ -29,6 +29,8 @@
    - A say in whether a tool call may run? A `tool.check` hook (as the tool gate): `next(e)` is
      Claude Code's verdict and runs nothing; answer `{ decision: 'ask', reason }` to put the call
      to the person. Only tighten what `next(e)` returned, never loosen it.
+   - Something to check before the main agent stops? Beside the completion gate in the `classic.Stop`
+     hook: a `block` text sends the agent back with it (docs/ARCHITECTURE.md, *Sending the agent back*).
    - A command of its own? Prefer a word under `/jev-mod` (`features/command/parse.ts`'s
      `WORDS`, and a case in `features/command/index.ts`). A separate command is registered in
      `session.start` and answered by a `command.run` hook whose matcher names it by literal.

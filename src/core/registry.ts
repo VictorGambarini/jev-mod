@@ -62,6 +62,26 @@ export const FEATURES: readonly Feature[] = [
     legacy: { option: 'screening', unset: 'default', state: 'hook_screen' },
   },
   {
+    id: 'trim-output',
+    title: 'Output trimming',
+    summary: 'Cuts long Bash output down to what the current goal needs; the full output is kept in a file',
+    help: 'on: a Bash output of minLines lines or more is trimmed before the model reads it. Runs of repeated or near-identical '
+      + 'lines are folded locally; then the decision model judges each remaining chunk against your latest request, and '
+      + 'chunks it scores under keepThreshold are replaced by a marker naming their lines. Errors, warnings, failures, stack '
+      + 'traces, summaries and the first and last lines are always kept. The full output is saved under '
+      + '~/.cache/jev-mod/outputs/ (the last 50) and the trimmed output names the file. '
+      + 'shadow: what would be cut is computed and counted, nothing is changed. '
+      + 'Subagents, private profiles and localOnly get the local folding only.',
+    modes: ['off', 'shadow', 'on'], default: 'shadow',
+    knobs: {
+      minLines: { type: 'int', title: 'Minimum lines', help: 'Outputs shorter than this are left alone.', default: 200, min: 20, max: 100_000 },
+      keepThreshold: { type: 'number', title: 'Keep threshold',
+        help: "A chunk is dropped when the decision model's probability that the goal needs it is under this.", default: 0.35, min: 0, max: 1 },
+      localOnly: { type: 'boolean', title: 'Local only',
+        help: 'true: fold repeats only, and never send output to the decision model.', default: false },
+    },
+  },
+  {
     id: 'band',
     title: 'jev-mod band',
     summary: 'A line above the prompt: what jev-mod decided, its cost, what screening withheld',

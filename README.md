@@ -14,6 +14,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it; above 40k tokens the model only moves up. |
 | **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
+| **Output trimming** | after a Bash command prints 200 lines or more (shadow by default) | Runs of repeated and near-identical lines are folded locally; then each remaining chunk the current goal (your latest request and the command) no longer needs is replaced by a marker naming its lines. Errors, warnings, failures, stack traces, summaries and the first and last lines always stay. The full output is kept in `~/.cache/jev-mod/outputs/` (the last 50), and the trimmed output's first line names the file. Bash output that screening looked at is trimmed after screening, so only screened text reaches the model. |
 | **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
 | **`/jev-mod compact`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
@@ -96,6 +97,7 @@ in the mod's own store, for `/jev-mod dashboard`.
 | `routing` | on, off | on | each turn's model and effort from the decision model's lane |
 | `skills` | on, shadow, off | on | suggests the installed skill that matches a prompt |
 | `screening` | on, shadow, off | on | withholds instructions aimed at the model in fetched text |
+| `trim-output` | on, shadow, off | shadow | cuts long Bash output down to what the current goal needs; `minLines` (200), `keepThreshold` (0.35), `localOnly` (false) |
 | `band` | on, off | on | the line above the prompt |
 
 What wins, first to last: a kill file (`~/.config/jev-mod/OFF` for everything,
@@ -106,7 +108,7 @@ default.
 
 `/config` keeps what has to live there: the keys, the provider, *jev-mod on* (untick it to turn
 everything off), and *Private* (send nothing: no routing or suggestions; fetched text is
-screened locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev-mod band* fields
+screened locally only; long output is folded locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev-mod band* fields
 still work when the files do not set that feature, and will go in a later release.
 
 ## Decision backends

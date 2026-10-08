@@ -10,6 +10,7 @@ import * as compact from './features/compact'
 import * as routing from './features/routing'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
+import * as trimOutput from './features/trim-output'
 
 // jev-mod: a cheap decision model (Jev, or any decision backend) makes the small decisions
 // inside Claude Code, so the expensive model only does the work.
@@ -32,6 +33,7 @@ async function envOf($: any, name: string): Promise<string | undefined> {
   switch (name) {
     case 'HOME': return read(await $.env.get('HOME'))
     case 'XDG_CONFIG_HOME': return read(await $.env.get('XDG_CONFIG_HOME'))
+    case 'XDG_CACHE_HOME': return read(await $.env.get('XDG_CACHE_HOME'))
     case 'JEV_HOME': return read(await $.env.get('JEV_HOME'))
     case 'JEV_BACKEND': return read(await $.env.get('JEV_BACKEND'))
     case 'JEV_BACKENDS': return read(await $.env.get('JEV_BACKENDS'))
@@ -143,6 +145,7 @@ export const register: Register = (on, given) => {
 
   on('turn.start', async ($, e, next) => {
     routing.turnStarted(e.turnId, e.text)
+    trimOutput.noteGoal(e.text)
     return next(e)
   })
 
@@ -172,14 +175,25 @@ export const register: Register = (on, given) => {
     return compact.compact(ioOf($), e.messages)
   })
 
+  // Screening first, on what the tool returned; then output trimming, on what screening left.
   on('tool.call', async ($, e, next) => {
     const kind = screening.kindOf(e.tool, e as unknown as Record<string, unknown>)
-    if (!kind) return next(e)
-    const ran: any = await next(e)
-    if (ran.deny !== undefined || ran.isError || ran.result === undefined) return ran
-    const result = await screening.filter(ioOf($), kind, e.tool, ran.result)
+    const trims = trimOutput.wants(e.tool)
+    if (!kind && !trims) return next(e)
+    let ran: any = await next(e)
+    if (ran.deny !== undefined || ran.result === undefined) return ran
+    if (kind && !ran.isError) {
+      const result = await screening.filter(ioOf($), kind, e.tool, ran.result)
+      if (result !== null) ran = { ...ran, result }
+    }
+    // trim-output: a long Bash output (a failed command's included), after screening
+    if (trims) {
+      const command = String((e as { command?: unknown }).command ?? '')
+      const result = await trimOutput.trim(ioOf($), { command, subagent: Boolean(e.agentId) }, ran.result)
+      if (result !== null) ran = { ...ran, result }
+    }
     await refresh($)
-    return result === null ? ran : { ...ran, result }
+    return ran
   })
 
   // The band above the prompt; next(e) (nothing of the mod's) until it has done something.

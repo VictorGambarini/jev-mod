@@ -22,6 +22,7 @@ src/
     routing/           index.ts (glue) · rules.ts (pure) · rules.test.ts
     skills/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
+    trim-output/       index.ts (glue, archive) · trim.ts (fold, chunk, drop: pure) · their tests
     compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
 statusline/            the two-line status line (reads core/memory.ts's records)
@@ -69,6 +70,14 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
 - **Settings:** `core/config.ts`, read from the layers on each use; `/jev-mod` writes the user
   or project file through `config.write` and `config.reset`.
 - **Across sessions:** the decision backend's own config (keys, tuning), outside the mod.
+
+## Tool results
+
+One `tool.call` hook changes what a tool returned, in a fixed order: screening first (WebFetch,
+WebSearch, MCP tools, Bash that fetches), then output trimming (every Bash output, a failed
+command's included), on the text screening left. Each step is self-contained in the hook and
+returns its own result or null; a step that returns null leaves the result as the step before it
+made it, and a hook that changed nothing hands core the very object `next(e)` gave it.
 
 ## Failure
 

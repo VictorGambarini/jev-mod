@@ -37,11 +37,10 @@ export function line(features: Features, now: number): Segment[] | null {
   const out: Segment[] = []
   const lane = routing.lane as string | undefined
   if (lane && DIFFICULTY[lane]) {
-    if (routing.changed === false) out.push({ text: `🧭 ${DIFFICULTY[lane]}` }, { text: ' · kept', dim: true })
-    else {
-      const to = [shortModel(routing.lastModel), routing.effort].filter(Boolean).join(' · ')
-      out.push({ text: `🧭 ${DIFFICULTY[lane]}${to ? ` → ${to}` : ''}` })
-    }
+    // The model and effort the turn runs on, named whether the mod changed them or kept them.
+    const on = [shortModel(routing.lastModel), routing.effort].filter(Boolean).join(' · ')
+    if (routing.changed === false) out.push({ text: `🧭 ${DIFFICULTY[lane]}${on ? ` · ${on}` : ''}` }, { text: ' · kept', dim: true })
+    else out.push({ text: `🧭 ${DIFFICULTY[lane]}${on ? ` → ${on}` : ''}` })
   } else out.push({ text: '🧭 not routed', dim: true })
   if (calls.calls) out.push({ text: '  ' }, { text: money(Number(calls.cost ?? 0)), color: 'yellow' }, { text: ` (${calls.calls})`, dim: true })
   if (screening.withheld) out.push({ text: '  ' }, { text: `🛡 withheld ${screening.withheld}`, color: 'red' })

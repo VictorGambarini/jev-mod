@@ -38,6 +38,7 @@ export type RoutingSpace = {
 
 const prompts = new Map<string, string>()                // turnId -> the person's text
 const decisions = new Map<string, Lane | null>()         // turnId -> the lane (null: as is)
+const changedTurns = new Map<string, boolean>()          // turnId -> whether any step of it was changed
 const preclassified = new Map<string, LaneName | null>() // prompt text -> Jev's lane, read at submit
 let config: { at: number; policy: Policy | null; tables: unknown[] } | null = null
 
@@ -143,7 +144,10 @@ export async function step(
   const { contextTokens } = await io.usage()
   const model = chooseModel(wanted, mine.lastModel ?? e.model, contextTokens, MODEL_SWITCH_MAX_TOKENS)
   const effort = NO_EFFORT.test(model) ? undefined : (lane.effort ?? e.effort)
-  const changed = model !== e.model || String(effort ?? '') !== String(e.effort ?? '')
+  // Per turn, not per step: a turn's later steps can arrive already on the model an earlier
+  // step was routed to, and the band would then read "kept" for a turn the mod did route.
+  const changed = (changedTurns.get(e.turnId) ?? false) || model !== e.model || String(effort ?? '') !== String(e.effort ?? '')
+  remember(changedTurns, e.turnId, changed)
   Object.assign(mine, { lastModel: model, lane: lane.lane, changed, effort: effort === undefined ? undefined : String(effort) })
   // What it did: the lane that changed the turn, or "kept" when the turn runs as it came.
   if (first) await Promise.all([memory.save(io), activity.count(io, 'routing', changed ? lane.lane : 'kept')])

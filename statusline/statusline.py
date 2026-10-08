@@ -305,11 +305,12 @@ def line_jev(data: Dict[str, Any]) -> Optional[str]:
     lane = routing.get("lane")
     if lane in DIFFICULTY:
         text = DIFFICULTY[lane]
+        # The model and effort the turn runs on, named whether the mod changed them or kept them.
+        on = " · ".join(x for x in (short_model(routing.get("lastModel")), routing.get("effort")) if x)
         if routing.get("changed", True):
-            changed = [x for x in (short_model(routing.get("lastModel")), routing.get("effort")) if x]
-            text += " → " + " · ".join(changed) if changed else ""
+            text += " → " + on if on else ""
         else:
-            text += c(" · kept", DIM)
+            text += (" · " + on if on else "") + c(" · kept", DIM)
     else:
         text = c("not routed", DIM)
     parts = ["🧭 " + text]

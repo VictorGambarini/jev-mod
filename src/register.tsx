@@ -181,6 +181,7 @@ export const register: Register = (on, given) => {
     const ran = await next(e)
     if (e.agent_id || ran.block !== undefined || ran.preventContinuation) return ran
     const note = await stopGate.check(ioOf($), { promptId: e.prompt_id, last: e.last_assistant_message })
+    await refresh($) // the gate's call is on the band's tally
     return note ? { ...ran, block: note } : ran
   }).catch(($, e, next) => next(e))
 
@@ -197,7 +198,12 @@ export const register: Register = (on, given) => {
     return yield* next(e)
   })
 
-  on('command.run', { command: 'jev-mod' }, async ($, e) => command.run(ioOf($), e.args))
+  // A setting changed here (the band itself switched on or off) shows at once.
+  on('command.run', { command: 'jev-mod' }, async ($, e) => {
+    const answer = await command.run(ioOf($), e.args)
+    await refresh($)
+    return answer
+  })
     .catch(() => ({ text: 'jev-mod: the command failed before it finished; /jev-mod shows the settings as they are now.' }))
 
   // /jev-mod's subcommands, features and settings in the typeahead; nothing for any other prompt.
@@ -210,7 +216,9 @@ export const register: Register = (on, given) => {
   // Only the compaction /jev-mod compact queued; /compact and auto-compaction pass untouched.
   on('session.compact', async ($, e, next) => {
     if (!compact.isOurs(e)) return next(e)
-    return compact.compact(ioOf($), e.messages)
+    const compacted = await compact.compact(ioOf($), e.messages)
+    await refresh($)
+    return compacted
   }).catch(($, e, next) => next(e))
 
   // Screening first, on what the tool returned; then output trimming, on what screening left.
@@ -258,8 +266,10 @@ export const register: Register = (on, given) => {
 
   // The band above the prompt; next(e) (nothing of the mod's) until it has done something.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (!bandOn || e.props.hasSurvey) return next(e)
+    // Read first, even when the band yields: the read subscribes this instance, so the next
+    // write (the band switched on, a survey gone) draws it again.
     const features = await read($, band)
+    if (!bandOn || e.props.hasSurvey) return next(e)
     const segments = line(features ?? {}, Date.now())
     if (!segments) return next(e)
     const { Box, Text } = $.ui.resolve(e)

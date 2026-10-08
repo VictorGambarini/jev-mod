@@ -5,7 +5,7 @@ import { FEATURES, type Feature } from '../../core/registry'
 import { activityView, build, embed, lastDays, lines, pageWith, readLine, remember, type Facts } from './state'
 
 const gate: Feature = {
-  id: 'stop-gate', title: 'Completion gate', summary: 'Nudges an unfinished turn', help: 'on: nudges.', modes: ['off', 'shadow', 'on'], default: 'shadow',
+  id: 'later-feature', title: 'Completion gate', summary: 'Nudges an unfinished turn', help: 'on: nudges.', modes: ['off', 'shadow', 'on'], default: 'shadow',
   knobs: {
     maxNudges: { type: 'int', title: 'Most nudges', help: 'How many.', default: 2, min: 0, max: 5 },
     tone: { type: 'choice', title: 'Tone', help: '', default: 'brief', options: ['brief', 'full'] },
@@ -32,7 +32,7 @@ function facts(over: Partial<Facts> = {}): Facts {
 test('every registry feature is in the state, a later one with its knobs, nothing written for it', () => {
   const s = build(facts())
   expect(s.features.map(f => f.id)).toEqual(features.map(f => f.id))
-  const g = s.features.find(f => f.id === 'stop-gate')
+  const g = s.features.find(f => f.id === 'later-feature')
   expect(g?.resolved.mode).toBe('shadow')
   expect(g?.resolved.source).toBe('default')
   expect(g?.knobs).toEqual([
@@ -44,17 +44,17 @@ test('every registry feature is in the state, a later one with its knobs, nothin
 
 test('what each scope file says, what holds, and a kill file over both', () => {
   const files = {
-    user: { features: { 'stop-gate': { mode: 'on', maxNudges: 4 } } },
-    project: { features: { 'stop-gate': { mode: 'off' } } },
+    user: { features: { 'later-feature': { mode: 'on', maxNudges: 4 } } },
+    project: { features: { 'later-feature': { mode: 'off' } } },
   }
-  let g = build(facts({ snap: snap({ files }) })).features.find(f => f.id === 'stop-gate')
+  let g = build(facts({ snap: snap({ files }) })).features.find(f => f.id === 'later-feature')
   expect(g?.files).toEqual({ user: { mode: 'on', maxNudges: 4 }, project: { mode: 'off' } })
   expect(g?.resolved.mode).toBe('off')
   expect(g?.resolved.source).toBe('project')
   expect(g?.resolved.knobs.maxNudges).toEqual({ value: 4, source: 'user' })
-  g = build(facts({ snap: snap({ files, kills: ['/c/jev-mod/STOP_GATE_OFF'] }) })).features.find(f => f.id === 'stop-gate')
+  g = build(facts({ snap: snap({ files, kills: ['/c/jev-mod/LATER_FEATURE_OFF'] }) })).features.find(f => f.id === 'later-feature')
   expect(g?.resolved.source).toBe('kill file')
-  expect(g?.killedBy).toEqual(['/c/jev-mod/STOP_GATE_OFF'])
+  expect(g?.killedBy).toEqual(['/c/jev-mod/LATER_FEATURE_OFF'])
   expect(build(facts({ snap: snap({ options: { enabled: false } }) })).disabled).toBe(true)
 })
 
@@ -92,10 +92,10 @@ test('server lines: ready, refresh, ops checked against the registry, noise drop
   expect(readLine('[1]', features)).toBe(null)
   expect(readLine('{"id":"op-1","op":"set","scope":"user","feature":"skills","key":"mode","value":"shadow"}', features))
     .toEqual({ kind: 'op', op: { id: 'op-1', op: 'set', scope: 'user', feature: 'skills', key: 'mode', value: 'shadow' } })
-  expect(readLine('{"id":"op-2","op":"set","scope":"project","feature":"stop-gate","key":"maxNudges","value":3}', features))
-    .toEqual({ kind: 'op', op: { id: 'op-2', op: 'set', scope: 'project', feature: 'stop-gate', key: 'maxNudges', value: 3 } })
-  expect(readLine('{"id":"op-3","op":"set","scope":"user","feature":"stop-gate","key":"maxNudges","value":null}', features))
-    .toEqual({ kind: 'op', op: { id: 'op-3', op: 'set', scope: 'user', feature: 'stop-gate', key: 'maxNudges', value: null } })
+  expect(readLine('{"id":"op-2","op":"set","scope":"project","feature":"later-feature","key":"maxNudges","value":3}', features))
+    .toEqual({ kind: 'op', op: { id: 'op-2', op: 'set', scope: 'project', feature: 'later-feature', key: 'maxNudges', value: 3 } })
+  expect(readLine('{"id":"op-3","op":"set","scope":"user","feature":"later-feature","key":"maxNudges","value":null}', features))
+    .toEqual({ kind: 'op', op: { id: 'op-3', op: 'set', scope: 'user', feature: 'later-feature', key: 'maxNudges', value: null } })
   expect(readLine('{"id":"op-4","op":"reset","scope":"user","feature":"band"}', features))
     .toEqual({ kind: 'op', op: { id: 'op-4', op: 'reset', scope: 'user', feature: 'band' } })
   expect(readLine('{"id":"op-5","op":"set","scope":"global","feature":"skills","key":"mode","value":"on"}', features))

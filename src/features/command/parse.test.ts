@@ -9,7 +9,7 @@ const gate: Feature = {
     tone: { type: 'choice', title: 'Tone', help: '', default: 'brief', options: ['brief', 'full'] },
   },
 }
-const features = [...FEATURES, gate]
+const features = [...FEATURES.filter(f => f.id !== gate.id), gate] // the fixture stands in for the shipped one
 
 test('the words, a feature, its modes, settings and reset; --project anywhere', () => {
   expect(parse('', features)).toEqual({ kind: 'list' })

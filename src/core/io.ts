@@ -8,6 +8,12 @@
 export type FetchInit = { method?: string; headers?: Record<string, string>; body?: string }
 export type FetchResponse = { status: number; ok: boolean; text: string; headers?: Record<string, string> }
 export type RunResult = { exitCode: number; stdout: string; stderr: string }
+/** One transcript message, as `$.session.messages()` gives it: only what features read. */
+export type TranscriptMessage = {
+  role: 'user' | 'assistant'
+  text: string
+  toolUses?: readonly { tool: string; input?: Record<string, unknown>; text?: string; isError?: true }[]
+}
 export type Usage = { contextTokens: number; contextWindow?: number; contextPercent?: number }
 
 export interface IO {
@@ -31,6 +37,8 @@ export interface IO {
   /** The names of the skills the session lists for the model, or null when it cannot say. */
   skillNames(): Promise<string[] | null>
   usage(): Promise<Usage>
+  /** The main conversation so far (the newest 4096 messages). */
+  messages(): Promise<TranscriptMessage[]>
   // the mod's own store (a JSON file Claude Code keeps per plugin)
   storeGet(key: string): Promise<unknown>
   storeSet(key: string, value: unknown): Promise<void>

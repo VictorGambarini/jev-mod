@@ -25,6 +25,8 @@
    - Something to say about each prompt? Add `<name>.analyse(io, text)` to the `Promise.all` in
      `prompt.submit`; return a string to add beside the prompt.
    - A tool result to change? Extend the `tool.call` hook, or add one with a matcher.
+   - Something to check before the main agent stops? Beside the completion gate in the `classic.Stop`
+     hook: a `block` text sends the agent back with it (docs/ARCHITECTURE.md, *Sending the agent back*).
    - A command of its own? Prefer a word under `/jev-mod` (`features/command/parse.ts`'s
      `WORDS`, and a case in `features/command/index.ts`). A separate command is registered in
      `session.start` and answered by a `command.run` hook whose matcher names it by literal.

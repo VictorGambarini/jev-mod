@@ -62,6 +62,22 @@ export const FEATURES: readonly Feature[] = [
     legacy: { option: 'screening', unset: 'default', state: 'hook_screen' },
   },
   {
+    id: 'stop-gate',
+    title: 'Completion gate',
+    summary: 'Checks that a turn claiming the work is done has the evidence to show it',
+    help: 'When the main agent ends a turn saying the work is done or that checks pass, the decision model reads the request, '
+      + 'that final message and what the turn ran (edited files, commands and the tail of their output) and judges whether the '
+      + 'claims are shown. on: when it is sure enough they are not, the agent is told which claim is unshown and asked to verify '
+      + 'it or say plainly what is unverified, never to take a destructive step; at most maxNudges times per prompt. '
+      + 'shadow: the same judgement, counted as would-nudge or passed; the agent is never stopped. off: nothing is read or sent.',
+    modes: ['off', 'shadow', 'on'], default: 'shadow',
+    knobs: {
+      maxNudges: { type: 'int', title: 'Nudges per prompt', help: 'How many times one prompt\'s turn may be sent back to verify; 0 never sends it back.', default: 2, min: 0, max: 5 },
+      minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown before the agent is sent back.', default: 0.7, min: 0, max: 1 },
+      evidenceChars: { type: 'int', title: 'Evidence sent', help: 'About how many characters of commands and output are sent with each judgement: more sees more, and costs more.', default: 6000, min: 1000, max: 20000 },
+    },
+  },
+  {
     id: 'band',
     title: 'jev-mod band',
     summary: 'A line above the prompt: what jev-mod decided, its cost, what screening withheld',

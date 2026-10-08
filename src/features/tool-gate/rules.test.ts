@@ -56,6 +56,39 @@ test('consequential Bash commands are flagged, each with a reason', () => {
     ['cat notes | tee /etc/motd', 'outside the project'],
     ['rsync -a . host:/srv', 'another machine'],
     ['FOO=1 git push', 'pushes'],
+    // a command inside a shell's -c, or eval
+    ['bash -c "rm -rf ~"', 'deletes files'],
+    ["sh -c 'git push -f'", 'pushes'],
+    ['eval "rm -rf x"', 'deletes files'],
+    ['bash -lc "cd x && git push"', 'pushes'],
+    // a full path, and the wrappers in front
+    ['/bin/rm -rf x', 'deletes files'],
+    ['/usr/bin/git push -f', 'pushes'],
+    ['sudo -u root rm -rf /x', 'deletes files'],
+    ['sudo -E -u root /usr/bin/git push', 'pushes'],
+    ['timeout 10 rm -rf x', 'deletes files'],
+    ['nice -n 5 git push', 'pushes'],
+    ['env -i PATH=/bin rm x', 'deletes files'],
+    ['find . | xargs -n 1 rm', 'deletes files'],
+    ['find . -print0 | xargs -0 -I{} rm {}', 'deletes files'],
+    // writes outside the project
+    ['cp id.pub ~/.ssh/authorized_keys', 'outside the project'],
+    ['cp x ~/.bashrc', 'outside the project'],
+    ['ln -sf ./mine ~/.bashrc', 'outside the project'],
+    ['install -m 755 tool /usr/local/bin/tool', 'outside the project'],
+    ['cp -t /etc/ a.conf', 'outside the project'],
+    ['echo 1.2.3.4 x | sudo tee -a /etc/hosts', 'outside the project'],
+    ['dd if=img of=/usr/lib/x', 'moves or overwrites'],
+    ["sed -i 's/a/b/' ~/.bashrc", 'outside the project'],
+    ["sed -i.bak -e 's/a/b/' /etc/hosts", 'outside the project'],
+    ["perl -pi -e 's/a/b/' /etc/hosts", 'outside the project'],
+    ['truncate -s 0 /etc/motd', 'moves or overwrites'],
+    ['echo x > $XDG_CONFIG_HOME/x', 'outside the project'],
+    ['echo x >> $HOME/.profile', 'outside the project'],
+    ['echo x > "${HOME}/.zshrc"', 'outside the project'],
+    ['echo x > $SOMEWHERE/y', 'outside the project'],
+    ['cat img > /dev/sda', 'outside the project'],
+    ['bash -c "echo x > ~/.bashrc"', 'outside the project'],
   ]
   for (const [command, why] of risky) {
     const got = bashRisk(command, ROOT, HOME)
@@ -71,6 +104,10 @@ test('read-only and everyday commands pass unasked', () => {
     'gh pr view 3', 'gh api repos/a/b', 'echo hi > out.txt', 'node x.js > build/out.log 2>&1', 'echo x > /tmp/scratch',
     'cmd 2>/dev/null', 'kubectl get pods', 'terraform plan', 'aws s3 ls', 'docker build .', 'pip list', 'npm ls',
     'find . -name "*.ts"', 'sed -n 1,20p a.ts', 'wc -l src/*.ts', 'git format-patch -1', 'remove_me_not=1 ls',
+    'cp a.ts b.ts', 'cp -r src /tmp/copy', 'ln -s ../lib lib', "sed -i 's/a/b/' src/a.ts", "perl -pi -e 's/a/b/' src/a.ts",
+    'echo x > /dev/stderr', 'cmd > /dev/tty', 'cmd 2>/dev/fd/3', 'bash -c "npm test"', "sh -c 'ls -la'", 'eval "$(direnv export bash)"',
+    'sudo -u me ls', '/usr/bin/git status', 'xargs -n 1 echo', 'timeout 5 npm test', 'echo x > $PWD/out.txt',
+    'echo x > $TMPDIR/x', 'tee build/log.txt', 'cat a | tee -a out.log',
   ]) {
     const got = bashRisk(command, ROOT, HOME)
     if (got !== null) throw new Error(`${command} was flagged: ${got}`)
@@ -89,6 +126,10 @@ test('paths are resolved before they are judged inside or outside the project', 
   expect(outsideProject('/home/u/.claude/settings.json', ROOT, HOME)).toBe(true)
   expect(outsideProject('/etc/hosts', undefined, HOME)).toBe(true)
   expect(outsideProject('relative.txt', undefined, HOME)).toBe(false) // nothing to judge it by
+  expect(outsideProject('/dev/null', ROOT, HOME)).toBe(false)
+  expect(outsideProject('/dev/sda', ROOT, HOME)).toBe(true) // only the devices that print or discard are harmless
+  expect(outsideProject('$XDG_CONFIG_HOME/x', ROOT, HOME)).toBe(true)
+  expect(outsideProject('$PWD/a', ROOT, HOME)).toBe(false)
 })
 
 test('MCP tools are flagged by the verbs in their names', () => {

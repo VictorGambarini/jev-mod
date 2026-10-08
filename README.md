@@ -16,7 +16,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
 | **Tool-call gate** (shadow by default) | before a consequential tool call Claude Code would allow: Bash that pushes, deletes, rewrites history, publishes, installs, deploys, migrates or writes outside the project; Write/Edit outside the project; MCP tools that send, create, change or delete | Whether you asked for it, whether it breaks a limit you stated ("don't push"), and whether it is hard to undo. A doubtful call is put to you in the permission dialog with the reason, instead of running unasked. It only tightens Claude Code's decision, never loosens it. |
 | **Completion gate** (`stop-gate`, shadow by default) | when the main agent ends a turn claiming the work is done or checks pass | Whether the turn's evidence (edited files, the commands it ran and the tail of their output) shows each claim. In `on`, an unshown claim sends the agent back once more, naming it and asking it to verify or say plainly what is unverified, never to take a hard-to-undo step; at most twice per prompt. |
-| **Output trimming** | after a Bash command prints 200 lines or more (shadow by default) | Runs of repeated and near-identical lines are folded locally; then each remaining chunk the current goal (your latest request and the command) no longer needs is replaced by a marker naming its lines. Errors, warnings, failures, stack traces, summaries and the first and last lines always stay. The full output is kept in `~/.cache/jev-mod/outputs/` (the last 50), and the trimmed output's first line names the file. Bash output that screening looked at is trimmed after screening, so only screened text reaches the model. |
+| **Output trimming** | after a Bash command prints 200 lines or more (shadow by default) | Runs of repeated and near-identical lines are folded locally; then each remaining chunk the current goal (your latest request and the command) no longer needs is replaced by a marker naming its lines. Errors, warnings, failures, stack traces, summaries and the first and last lines always stay. The full output is kept in `~/.cache/jev-mod/outputs/` (the last 50), and the trimmed output's first line names the file. Bash output that screening looked at is trimmed after screening, so only screened text reaches the model: a large output Claude Code kept in a file is screened whole before any of it is inlined, and left as Claude Code's preview when it cannot be. A failed command's trimmed output still reaches the model as an error. |
 | **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
 | **`/jev-mod compact`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
@@ -77,11 +77,17 @@ side by side.
 ### Settings
 
 Each feature has a mode (`on`, `off`, and `shadow` where it means something: decide and count,
-change nothing) and, for some, settings of its own. `/jev-mod <feature> ...` sets them (above);
+change nothing) and, for some, settings of its own. Shadow never adds latency: the decision runs
+in the background and only its outcome is counted, so nothing waits for it. `/jev-mod <feature> ...` sets them (above);
 they live in a JSON file:
 
 - `~/.config/jev-mod/config.json` for you (`$XDG_CONFIG_HOME` respected), and
-- `.claude/jev-mod.json` in a project, which overrides it there.
+- `.claude/jev-mod.json` in a project, which overrides it there. A project's file comes with the
+  repository, so for the features that guard you (`screening`, `tool-gate`, `stop-gate`) it may
+  only make the mode stricter (off < shadow < on) than your own file, an older switch or the
+  default give, and their settings come from your file alone. A looser mode or a setting there is
+  passed over and shown by `/jev-mod` ("project config may not lower screening"), and
+  `/jev-mod <feature> ... --project` and the dashboard refuse to write one.
 
 ```json
 {"features": {"skills": {"mode": "shadow"}, "band": {"mode": "off"}}}
@@ -99,7 +105,8 @@ in the mod's own store, for `/jev-mod dashboard`.
 `/jev-mod dashboard` opens a local page in your browser: every feature with an off / shadow / on
 switch, its settings as inputs with their ranges, a `?` for its help, and where each value comes
 from (default, user, project, a kill file, `/config`), with a note when a higher layer overrides
-what you edit. A *User / This project* switch picks which file an edit goes to. Its other tabs are
+what you edit. A *User / This project* switch picks which file an edit goes to. In *This project*, a guarding feature's
+looser modes and its settings cannot be chosen (above). Its other tabs are
 the last 14 days of activity (what each feature did, and in shadow would have done), today's spend
 against the daily budget, and the backend with where its key came from (never the key).
 
@@ -128,12 +135,14 @@ subagent is where text fetched from elsewhere most often steers a call. No answe
 `timeoutMs`, private mode, the daily budget or a backend cool-off: the call goes on as Claude
 Code decided. In `bypassPermissions`, `auto` and `dontAsk` modes, and in `claude -p`, the mode
 settles the ask (headless, it is refused with the gate's reason). Try it in `shadow` first: it
-counts `would-ask`, `passed` and `skipped`; `on` counts `asked-person`.
+counts `would-ask`, `passed` and `skipped`, in the background, so no call waits for it; `on`
+counts `asked-person`.
 
 What wins, first to last: a kill file (`~/.config/jev-mod/OFF` for everything,
 `~/.config/jev-mod/<FEATURE>_OFF` for one, or jev-skills' `HOOK_SKILLS_OFF` / `HOOK_SCREEN_OFF`
-in `~/.config/jev`), then *jev-mod on* unticked in `/config`, then the project file, then yours,
-then the older switches (the `/config` fields below, then jev-skills' `jev switches`), then the
+in `~/.config/jev`), then *jev-mod on* unticked in `/config`, then the project file (for
+`screening`, `tool-gate` and `stop-gate` only when it is stricter), then yours, then the older
+switches (the `/config` fields below, then jev-skills' `jev switches`), then the
 default.
 
 `/config` keeps what has to live there: the keys, the provider, *jev-mod on* (untick it to turn

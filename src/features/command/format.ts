@@ -58,6 +58,7 @@ export function show({ feature: f, resolved: r }: Shown): string {
     f.summary,
     f.help,
     `modes: ${f.modes.join(', ')} (default ${f.default})`,
+    ...(f.protective ? ['It guards you: a project file may only make its mode stricter (off < shadow < on), and its settings come from your own file alone.'] : []),
   ]
   const knobs = Object.entries(f.knobs)
   if (!knobs.length) lines.push('settings: none')

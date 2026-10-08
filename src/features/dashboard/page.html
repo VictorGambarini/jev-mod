@@ -301,10 +301,15 @@ function overrideNote(source, what) {
   return `<div class="override" role="note"><span aria-hidden="true">▲</span><span>${h(what)} here comes from above the ${scope} file: ${why}, so an edit to the ${scope} file will not show until that changes.</span></div>`
 }
 
+/** A protective feature in the project scope: the project may tighten its mode, never loosen it or set its knobs. */
+const guarded = f => scope === 'project' && f.projectFloor != null
+const MODE_ORDER = ['off', 'shadow', 'on']
+const belowFloor = (f, m) => guarded(f) && MODE_ORDER.indexOf(m) < MODE_ORDER.indexOf(f.projectFloor)
+
 function knobField(f, k) {
   const now = f.resolved.knobs[k.name] || { value: k.default, source: 'default' }
   const id = `k-${f.id}-${k.name}`
-  const dis = LIVE ? '' : ' disabled'
+  const dis = LIVE && !guarded(f) ? '' : ' disabled'
   const data = `data-feature="${h(f.id)}" data-knob="${h(k.name)}" data-type="${k.type}" id="${id}" data-k="${id}"`
   if (k.type === 'boolean') return `<input type="checkbox" ${data}${now.value ? ' checked' : ''}${dis}>`
   if (k.type === 'choice') return `<select ${data}${dis}>${k.options.map(o => `<option${o === now.value ? ' selected' : ''}>${h(o)}</option>`).join('')}</select>`
@@ -333,7 +338,7 @@ function featureCard(f) {
   const hid = `help-${f.id}`
   const shown = open.has(hid)
   const mine = f.files[scope] || {}
-  const modes = f.modes.map(m => `<button type="button" data-mode="${m}" data-feature="${h(f.id)}" data-k="mode-${h(f.id)}-${m}" aria-pressed="${r.mode === m}"${LIVE ? '' : ' disabled'}>${m}</button>`).join('')
+  const modes = f.modes.map(m => `<button type="button" data-mode="${m}" data-feature="${h(f.id)}" data-k="mode-${h(f.id)}-${m}" aria-pressed="${r.mode === m}"${LIVE && !belowFloor(f, m) ? '' : ' disabled'}${belowFloor(f, m) ? ` title="The project file may not lower ${h(f.id)}"` : ''}>${m}</button>`).join('')
   const sets = Object.keys(mine)
   return `<article class="card" aria-labelledby="t-${h(f.id)}">
     <div class="card-head">
@@ -349,6 +354,7 @@ function featureCard(f) {
     </div>
     ${shown ? `<div class="help" id="${hid}">${h(f.help)}<div class="src" style="margin-top:6px">Modes: ${f.modes.join(', ')} · default ${f.default}${f.killedBy.length ? ` · kill file: <code>${f.killedBy.map(h).join(', ')}</code>` : ''}</div></div>` : ''}
     ${overrideNote(r.source, 'Its mode')}
+    ${guarded(f) ? `<div class="override" role="note"><span aria-hidden="true">▲</span><span>It guards you, so the project file may only set its mode to ${h(f.projectFloor)} or stricter, and its settings come from your own file alone.</span></div>` : ''}
     ${f.knobs.length ? `<div class="knobs">${f.knobs.map(k => knobRow(f, k)).join('')}</div>` : ''}
     ${LIVE ? `<div class="foot"><span class="src">${sets.length ? `The ${scope} file sets ${sets.map(k => `<code>${h(k)}</code>`).join(', ')}.` : `The ${scope} file sets nothing for it.`}</span>
       <button type="button" class="link" data-reset="${h(f.id)}" data-k="reset-${h(f.id)}"${sets.length ? '' : ' disabled'}>Reset in the ${scope} file</button></div>` : ''}

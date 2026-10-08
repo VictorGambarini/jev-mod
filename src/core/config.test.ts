@@ -126,3 +126,49 @@ test('private follows the setting, or routing.json', async () => {
   expect(await isPrivate(io({}, {}), '/c')).toBe(false)
   expect(await isPrivate(io({}, { '/c/routing.json': JSON.stringify({ private_profiles: ['default'] }) }), '/c')).toBe(true)
 })
+
+test('a project file may only tighten a protective feature: a looser mode and its knobs are passed over and reported', async () => {
+  const screening = feature('screening') as Feature
+  const toolGate = feature('tool-gate') as Feature
+  const stopGate = feature('stop-gate') as Feature
+  expect([screening, toolGate, stopGate].every(f => f.protective)).toBe(true)
+  expect(feature('skills')?.protective).toBe(undefined)
+  // a cloned repo that turns safety off
+  const cloned = { [PROJECT]: conf({ screening: { mode: 'off' }, 'tool-gate': { mode: 'off', minConfidence: 0, scope: 'bash' }, 'stop-gate': { mode: 'shadow' } }) }
+  expect(await at({}, cloned, screening)).toBe('on default')
+  expect(await at({}, cloned, toolGate)).toBe('shadow default')
+  expect(await at({}, cloned, stopGate)).toBe('shadow project') // the same mode is no looser
+  const snap = await snapshot(io({}, cloned))
+  expect(resolve(snap, toolGate).knobs.minConfidence).toEqual({ value: 0.7, source: 'default' })
+  expect(resolve(snap, toolGate).knobs.scope).toEqual({ value: 'all-risky', source: 'default' })
+  expect(problems(snap)).toEqual([
+    'project config may not lower screening: off is looser than on (default), and a project may only make it stricter; it is passed over',
+    'project config may not lower tool-gate: off is looser than shadow (default), and a project may only make it stricter; it is passed over',
+    'project config may not set tool-gate.minConfidence: tool-gate guards you, so only your own file sets its settings; it is passed over',
+    'project config may not set tool-gate.scope: tool-gate guards you, so only your own file sets its settings; it is passed over',
+  ])
+  // stricter holds; the floor is what the user's file (or an older switch) gives
+  expect(await at({}, { [PROJECT]: conf({ 'tool-gate': { mode: 'on' } }) }, toolGate)).toBe('on project')
+  expect(await at({}, { [USER]: conf({ 'tool-gate': { mode: 'off' } }), [PROJECT]: conf({ 'tool-gate': { mode: 'shadow' } }) }, toolGate)).toBe('shadow project')
+  expect(await at({}, { [USER]: conf({ screening: { mode: 'shadow' } }), [PROJECT]: conf({ screening: { mode: 'off' } }) }, screening)).toBe('shadow user')
+  expect(await at({ screening: 'off' }, { [PROJECT]: conf({ screening: { mode: 'shadow' } }) }, screening)).toBe('shadow project')
+  // the user's own file still sets the knobs, and may loosen
+  const mine = await snapshot(io({}, { [USER]: conf({ 'tool-gate': { mode: 'off', minConfidence: 0.9 } }) }))
+  expect(`${resolve(mine, toolGate).mode} ${resolve(mine, toolGate).knobs.minConfidence?.value}`).toBe('off 0.9')
+})
+
+test('writing a looser protective mode, or its knobs, to the project file is refused; tightening and clearing are not', async () => {
+  const files: Record<string, string> = {}
+  const fake = io({}, files)
+  expect(await write(fake, 'project', 'screening', 'mode', 'off')).toEqual({
+    problem: 'project config may not lower screening: off is looser than on (default), and a project may only make it stricter' })
+  expect(await write(fake, 'project', 'tool-gate', 'mode', 'off')).toEqual({
+    problem: 'project config may not lower tool-gate: off is looser than shadow (default), and a project may only make it stricter' })
+  expect(await write(fake, 'project', 'tool-gate', 'timeoutMs', 1000)).toEqual({
+    problem: 'project config may not set tool-gate.timeoutMs: tool-gate guards you, so only your own file sets its settings' })
+  expect(PROJECT in files).toBe(false)
+  expect(await write(fake, 'project', 'tool-gate', 'mode', 'on')).toEqual({ ok: true, path: PROJECT })
+  expect(await write(fake, 'project', 'tool-gate', 'timeoutMs', undefined)).toEqual({ ok: true, path: PROJECT })
+  expect(await write(fake, 'user', 'tool-gate', 'mode', 'off')).toEqual({ ok: true, path: USER })
+  expect(await write(fake, 'project', 'skills', 'mode', 'off')).toEqual({ ok: true, path: PROJECT })
+})

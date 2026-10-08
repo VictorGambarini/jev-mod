@@ -15,6 +15,7 @@ src/
     limits.ts          the daily budget, shared with the `jev` command
     memory.ts          per-session memory, one namespace per feature, in the mod's store
     activity.ts        what each feature did (or in shadow would have done), counted by day
+    background.ts      work a hook starts and does not wait for: a shadow decision
   features/            one folder per feature
     command/           /jev-mod: index.ts · parse.ts and format.ts (pure) with their tests
     status/            /jev-mod status: index.ts · report.ts (pure) · report.test.ts
@@ -106,7 +107,11 @@ Every request needs the token (a cookie set on the first `/?t=` load, which then
 `/`) and a Host of `127.0.0.1:<port>` or `localhost:<port>`; a POST also needs the page's own
 Origin, JSON, and an `X-Jev-Mod` header (`auth.mjs`, unit-tested). Bodies are capped at 4 KB.
 The state holds no key: the backend part names where a key was found, not the key. The server
-exits with the module, on `/jev-mod dashboard stop`, or when its parent process goes away.
+exits with the module, on `/jev-mod dashboard stop`, when its parent process goes away, or when a
+write to its stdout fails (it writes a blank line every few seconds, so a server nobody reads any
+more notices). Its pid and port (never its token) are kept in the run folder's `server.json`: a
+copy of the module loaded after a reload ends the server an earlier copy left for the session,
+once `ps` shows that pid is that server (`server.mjs` and this session's state file).
 Every feature in the registry, with its knobs, is in the state, so a new feature appears on the
 page with nothing added to the dashboard. With no bun or node, the same page is written as a
 file with the state inside it, read-only.
@@ -115,7 +120,12 @@ file with the state inside it, read-only.
 
 One `tool.call` hook changes what a tool returned, in a fixed order: screening first (WebFetch,
 WebSearch, MCP tools, Bash that fetches), then output trimming (every Bash output, a failed
-command's included), on the text screening left. Each step is self-contained in the hook and
+command's included), on the text screening left. A large Bash output comes as a preview with the
+whole of it in Claude Code's file; trimming reads that file, so for a command screening looks at
+the file's text goes through the same screen (`screening.screenWhole`) first, and is not inlined
+when it cannot be screened. A failed command's trimmed text goes back as `{ deny }`: core takes a
+hook's `result` only in the tool's record shape and reads no `isError` from a hook, and a deny
+after the tool ran is what the model reads as an error result. Each step is self-contained in the hook and
 returns its own result or null; a step that returns null leaves the result as the step before it
 made it, and a hook that changed nothing hands core the very object `next(e)` gave it.
 
@@ -123,8 +133,23 @@ made it, and a hook that changed nothing hands core the very object `next(e)` ga
 
 Every feature fails open: an answer it cannot get, or cannot trust, leaves the request as Claude
 Code would have sent it. `core/jev.ts` stops asking for five minutes after a failure. A hook that
-throws is skipped by the engine (it runs as if the hook were not there), which is also
-fail-open, and also silent: test the glue live, not only the rules.
+throws would be skipped by the engine; each of the mod's hooks carries a `.catch` that passes the
+event on unchanged, so that is the mod's own choice (`claude plugin validate` lists each gating
+hook "with .catch"). Both are silent: test the glue live, not only the rules.
+
+Shadow never adds latency. In shadow a feature changes nothing, so the tool gate, the completion
+gate and output trimming start the decision with `core/background.ts`'s `inBackground` and return
+at once; the decision counts its own outcome when it lands, once, and anything it throws is
+dropped. `on` waits for the answer, as it must.
+
+## Protective features
+
+`screening`, `tool-gate` and `stop-gate` are marked `protective` in the registry. A project's
+`.claude/jev-mod.json` comes with a cloned repository, so for these `config.resolve` takes the
+project's mode only when it is no looser (off < shadow < on) than what the layers beneath it give
+(the user's file, the older switches, the default), and reads their knobs from the user's file
+alone. `problems()` reports what was passed over ("project config may not lower screening"), and
+`config.write` refuses to write it, so `/jev-mod ... --project` and the dashboard both refuse it.
 
 ## Seams kept for what comes next
 

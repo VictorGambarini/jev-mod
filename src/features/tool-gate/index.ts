@@ -1,5 +1,6 @@
 import { hostOf } from '../../core/host'
 import * as activity from '../../core/activity'
+import { inBackground } from '../../core/background'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
@@ -7,7 +8,7 @@ import * as memory from '../../core/memory'
 import { modeOf, setting } from '../../core/config'
 import { isPrivate, jevDir } from '../../core/settings'
 import { ask, costOf, JevError } from '../../engine/client'
-import { callIsSensitive, decide, questionsFor, remember as rememberPrompt, riskOf, stateOf, type Remembered, type Scope } from './rules'
+import { callIsSensitive, decide, questionsFor, remember as rememberPrompt, riskOf, stateOf, type Remembered, type Risk, type Scope, type Verdict } from './rules'
 
 // The tool-call gate: before a consequential call runs (a push, a delete, a publish, a deploy,
 // a write outside the project, an MCP tool that sends or changes something), the decision model
@@ -34,23 +35,41 @@ export async function analyse(io: IO, text: string): Promise<void> {
 
 export type Gate = { decision: 'ask'; reason: string } | null
 
+type Call = { tool: string; input: unknown; agentId?: string }
+
 /**
  * What the gate makes of one call Claude Code would allow: an ask with the reason the person
  * reads, or null to leave the verdict as it is. Counts what it did (or in shadow would have
- * done) for the calls it looked at; calls it does not consider risky are not counted.
+ * done) for the calls it looked at; calls it does not consider risky are not counted. Off, or a
+ * call that is not risky, costs one read of the config and nothing else. In shadow the
+ * judgement runs in the background: nothing changes, so the call never waits for it.
  */
-export async function check(io: IO, e: { tool: string; input: unknown; agentId?: string }): Promise<Gate> {
+export async function check(io: IO, e: Call): Promise<Gate> {
   const resolved = await setting(io, ID)
   if (resolved.mode === 'off') return null
   const scope = String(resolved.knobs.scope?.value ?? 'all-risky') as Scope
-  const minConfidence = Number(resolved.knobs.minConfidence?.value ?? 0.7)
-  const timeoutMs = Number(resolved.knobs.timeoutMs?.value ?? 2000)
   const [root, home] = await Promise.all([io.projectRoot(), io.home()])
   const risk = riskOf(e.tool, e.input, scope, root, home)
   if (!risk) return null
-  const shadow = resolved.mode !== 'on'
-  const skip = async (): Promise<Gate> => { await activity.count(io, ID, 'skipped'); return null }
+  await memory.load(io)
+  const minConfidence = Number(resolved.knobs.minConfidence?.value ?? 0.7)
+  const timeoutMs = Number(resolved.knobs.timeoutMs?.value ?? 2000)
+  if (resolved.mode !== 'on') {
+    inBackground(() => judge(io, e, risk, minConfidence, timeoutMs, true))
+    return null
+  }
+  const verdict = await judge(io, e, risk, minConfidence, timeoutMs, false)
+  if (!verdict) return null
+  const mine = memory.space<ToolGateSpace>(ID)
+  mine.asked = (mine.asked ?? 0) + 1
+  mine.last = risk.why
+  await Promise.all([memory.save(io), activity.count(io, ID, 'asked-person')])
+  return { decision: 'ask', reason: verdict.reason }
+}
 
+/** The decision model's verdict on a risky call when it doubts it, else null; every outcome but the ask counted here. */
+async function judge(io: IO, e: Call, risk: Risk, minConfidence: number, timeoutMs: number, shadow: boolean): Promise<Verdict | null> {
+  const skip = async (): Promise<null> => { await activity.count(io, ID, 'skipped'); return null }
   const mine = memory.space<ToolGateSpace>(ID)
   if (!mine.prompts?.length) return skip() // nothing to judge it against
   if (coolingOff() || callIsSensitive(e.tool, e.input)) return skip()
@@ -62,10 +81,9 @@ export async function check(io: IO, e: { tool: string; input: unknown; agentId?:
     if (!allowed) return skip()
   }
 
-  const host = hostOf(io)
   let answers
   try {
-    const asked = await ask(host, stateOf(e.tool, e.input, risk, mine, !!e.agentId), questionsFor(mine), { timeoutMs, retries: 0 })
+    const asked = await ask(hostOf(io), stateOf(e.tool, e.input, risk, mine, !!e.agentId), questionsFor(mine), { timeoutMs, retries: 0 })
     await Promise.all([recordCalls(io, [asked], [], ID), limits?.charge(costOf(asked))])
     answers = asked.answers
   } catch (error) {
@@ -82,8 +100,5 @@ export async function check(io: IO, e: { tool: string; input: unknown; agentId?:
     await activity.count(io, ID, 'would-ask')
     return null
   }
-  mine.asked = (mine.asked ?? 0) + 1
-  mine.last = risk.why
-  await Promise.all([memory.save(io), activity.count(io, ID, 'asked-person')])
-  return { decision: 'ask', reason: verdict.reason }
+  return verdict
 }

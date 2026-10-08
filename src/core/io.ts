@@ -31,6 +31,8 @@ export interface IO {
   readFile(path: string): Promise<string>
   /** The folders directly inside `path`, links to folders included; [] when it is not a folder. */
   folders(path: string): Promise<string[]>
+  /** The plain files directly inside `path`, with when each was last changed; [] when it is not a folder. */
+  files(path: string): Promise<{ name: string; mtimeMs: number }[]>
   writeFile(path: string, text: string): Promise<void>
   home(): Promise<string | undefined>
   /** An environment variable; the ones the engine reads by name are listed in register.tsx. */

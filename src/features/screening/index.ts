@@ -24,13 +24,9 @@ export { kindOf }
  */
 async function screenText(io: IO, tool: string, text: string, raw: boolean) {
   if (text.length < SCREEN_MIN_CHARS) return null
-  const host = hostOf(io)
-  const dir = await jevDir(io)
   const setting = await modeOf(io, 'screening')
   if (setting === 'off') return null
-  const send = !coolingOff() && !(await isPrivate(io, dir))
-  const verdict = await screenResult(host, tool, text, { send, raw })
-  await recordCalls(io, verdict.calls ?? [], verdict.errors ?? [], 'screening')
+  const { verdict } = await judge(io, tool, text, raw)
   const withheld = withholdText(tool, text, raw, verdict)
   if (withheld === null) return null
   // shadow: what it would have withheld is counted, and the text goes on as it came
@@ -39,6 +35,41 @@ async function screenText(io: IO, tool: string, text: string, raw: boolean) {
     return null
   }
   return { text: withheld, flagged: verdict.flagged.length }
+}
+
+/** The screen's verdict on one text, and whether the backend was to be asked. */
+async function judge(io: IO, tool: string, text: string, raw: boolean) {
+  const send = !coolingOff() && !(await isPrivate(io, await jevDir(io)))
+  const verdict = await screenResult(hostOf(io), tool, text, { send, raw })
+  await recordCalls(io, verdict.calls ?? [], verdict.errors ?? [], 'screening')
+  return { verdict, send }
+}
+
+/**
+ * A fetching Bash command's whole output, read from the file Claude Code kept it in, through the
+ * same screen as its preview: what trim-output reads there must not reach the model unscreened.
+ * The text to use (withheld in on; as it came, counted, in shadow; as it came when screening is
+ * off), or null when it could not be screened (the screen failed, or the backend it was to ask
+ * did not answer): then the file's text must not be put in front of the model.
+ */
+export async function screenWhole(io: IO, text: string): Promise<string | null> {
+  try {
+    const setting = await modeOf(io, 'screening')
+    if (setting === 'off' || text.length < SCREEN_MIN_CHARS) return text
+    const { verdict, send } = await judge(io, 'Bash', text, true)
+    if (verdict.screening === 'none' && verdict.status === 'fail_open') return null
+    if (send && verdict.errors?.length) return null
+    const withheld = withholdText('Bash', text, true, verdict)
+    if (withheld === null) return text
+    if (setting !== 'on') {
+      await activity.count(io, 'screening', 'would-withhold', verdict.flagged.length)
+      return text
+    }
+    count(io, verdict.flagged.length, 'a fetched response')
+    return withheld
+  } catch {
+    return null
+  }
 }
 
 function count(io: IO, withheld: number, what: string): void {

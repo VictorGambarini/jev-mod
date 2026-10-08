@@ -6,7 +6,9 @@
    read a file or a /config field for a switch of its own. That is all `/jev-mod` needs:
    `/jev-mod` lists it, `/jev-mod <id>` shows its help, and `/jev-mod <id> on|off|shadow` and
    `/jev-mod <id> <knob> <value>` set it, with nothing added to the command, and
-   `/jev-mod dashboard` shows it with a control for its mode and each knob.
+   `/jev-mod dashboard` shows it with a control for its mode and each knob. A feature that
+   guards the person (a screen, a gate) is `protective: true`: a project's file may then only
+   make its mode stricter, and never sets its knobs.
 2. **A folder:** `src/features/<name>/`.
 3. **The decision, pure:** `src/features/<name>/<rules>.ts`, plain functions with no IO, and
    `<rules>.test.ts` beside it (`import { test, expect } from 'claude-code/testing'`). Everything
@@ -36,7 +38,10 @@
      `session.start` and answered by a `command.run` hook whose matcher names it by literal.
    - Something the IO cannot do yet? Add it to `core/io.ts` and `ioOf` in `register.tsx`, with
      the literal names the validator wants.
-8. **Fail open.** If the feature cannot decide, return null and let the hook pass the event on.
+8. **Fail open.** If the feature cannot decide, return null and let the hook pass the event on;
+   a new hook gets a `.catch` that passes the event on unchanged. In shadow, never wait for the
+   backend: start the decision with `inBackground` (`core/background.ts`), return at once, and
+   let it count its own outcome.
 9. **Check it:** `claude plugin validate .`, `claude plugin test .`, then live: a headless
    `claude -p ... --plugin-dir .` run (stream-json for anything that needs the session open).
 10. **Document it** in the README's feature table.

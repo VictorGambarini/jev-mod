@@ -23,7 +23,8 @@ import * as trimOutput from './features/trim-output'
 // features/ and its lines here (docs/ADDING-A-FEATURE.md).
 //
 // Every decision fails open: a feature that cannot decide leaves the request exactly as Claude
-// Code would have sent it.
+// Code would have sent it. Each hook says so itself: its `.catch` passes the event on unchanged
+// (a throwing hook would be skipped anyway; this makes that the mod's choice, not the engine's).
 
 /**
  * An environment variable. The validator wants each `$.env.get` named by literal, so the ones
@@ -98,6 +99,14 @@ function ioOf($: any): IO {
         return []
       }
     },
+    files: async path => {
+      try {
+        const entries: { name: string; kind: string; mtimeMs: number }[] = await $.fs.list(path)
+        return entries.filter(entry => entry.kind === 'file').map(entry => ({ name: entry.name, mtimeMs: entry.mtimeMs }))
+      } catch {
+        return []
+      }
+    },
     writeFile: (path, text) => $.fs.write(path, text),
     home: () => $.env.get('HOME'),
     env: name => envOf($, name),
@@ -130,13 +139,23 @@ function ioOf($: any): IO {
   }
 }
 
+/**
+ * A failed call's answer with a shorter error text. Core takes a hook's `result` only in the
+ * tool's own record shape and reads no `isError` from a hook, so a record would reach the model
+ * as a success; `{ deny }` after the tool ran undoes nothing and is the one answer the model
+ * reads as an error (is_error), with this text, "Exit code N" still first.
+ */
+function failedWith(text: string) {
+  return { deny: text }
+}
+
 // A change in /config, or a key set in the plugin's settings, reloads this module with the new options.
 export const register: Register = (on, given) => {
   options = { ...(given ?? {}) }
   on('session.start', async ($, e, next) => {
     await $.command.register(command.command)
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // Each feature's look at the prompt, all at once: the prompt waits for the slowest, not the sum.
   on('prompt.submit', async ($, e, next) => {
@@ -147,14 +166,14 @@ export const register: Register = (on, given) => {
     const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text)])
     await refresh($)
     return next(suggestion ? { ...e, context: [...(e.context ?? []), suggestion] } : e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('turn.start', async ($, e, next) => {
     routing.turnStarted(e.turnId, e.text)
     stopGate.turnStarted(e.text)
     trimOutput.noteGoal(e.text)
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // The main agent ending a turn normally: the completion gate may send it back to verify a claim
   // (Stop's block). Settings Stop hooks beneath decide first; one that blocks is left to stand.
@@ -163,7 +182,7 @@ export const register: Register = (on, given) => {
     if (e.agent_id || ran.block !== undefined || ran.preventContinuation) return ran
     const note = await stopGate.check(ioOf($), { promptId: e.prompt_id, last: e.last_assistant_message })
     return note ? { ...ran, block: note } : ran
-  })
+  }).catch(($, e, next) => next(e))
 
   on('turn.step', async function* ($, e, next) {
     // A subagent's steps keep the model its definition names.
@@ -174,22 +193,25 @@ export const register: Register = (on, given) => {
     await refresh($)
     if (!routed) return yield* next(e)
     return yield* next({ ...e, model: routed.model, effort: routed.effort as typeof e.effort })
+  }).catch(async function* ($, e, next) {
+    return yield* next(e)
   })
 
   on('command.run', { command: 'jev-mod' }, async ($, e) => command.run(ioOf($), e.args))
+    .catch(() => ({ text: 'jev-mod: the command failed before it finished; /jev-mod shows the settings as they are now.' }))
 
   // /jev-mod's subcommands, features and settings in the typeahead; nothing for any other prompt.
   on('prompt.autocomplete', async ($, e, next) => {
     const mine = command.suggest(e.text, e.cursor, e.token)
     if (!mine.length) return next(e)
     return { suggestions: [...(await next(e)).suggestions, ...mine] }
-  })
+  }).catch(($, e, next) => next(e))
 
   // Only the compaction /jev-mod compact queued; /compact and auto-compaction pass untouched.
   on('session.compact', async ($, e, next) => {
     if (!compact.isOurs(e)) return next(e)
     return compact.compact(ioOf($), e.messages)
-  })
+  }).catch(($, e, next) => next(e))
 
   // Screening first, on what the tool returned; then output trimming, on what screening left.
   on('tool.call', async ($, e, next) => {
@@ -197,35 +219,41 @@ export const register: Register = (on, given) => {
     const trims = trimOutput.wants(e.tool)
     if (!kind && !trims) return next(e)
     let ran: any = await next(e)
-    if (ran.deny !== undefined || ran.result === undefined) return ran
-    if (kind && !ran.isError) {
-      const result = await screening.filter(ioOf($), kind, e.tool, ran.result)
+    if (ran.deny !== undefined) return ran
+    const failed = ran.isError === true
+    const io = ioOf($)
+    if (kind && !failed && ran.result !== undefined) {
+      const result = await screening.filter(io, kind, e.tool, ran.result)
       if (result !== null) ran = { ...ran, result }
     }
-    // trim-output: a long Bash output (a failed command's included), after screening
+    // trim-output: a long Bash output (a failed command's error text included), after screening.
+    // A persisted output is read whole from its file, so for a command screening looks at, that
+    // text goes through the same screen first.
     if (trims) {
       const command = String((e as { command?: unknown }).command ?? '')
-      const result = await trimOutput.trim(ioOf($), { command, subagent: Boolean(e.agentId) }, ran.result)
-      if (result !== null) ran = { ...ran, result }
+      const screen = kind ? (text: string) => screening.screenWhole(io, text) : undefined
+      const given = failed ? (typeof ran.text === 'string' ? ran.text : ran.result) : ran.result
+      const result = await trimOutput.trim(io, { command, subagent: Boolean(e.agentId), screen }, given)
+      if (result !== null) ran = failed ? failedWith(String(result)) : { ...ran, result }
     }
     await refresh($)
     return ran
-  })
+  }).catch(($, e, next) => next(e))
 
   // ── tool-call gate (features/tool-gate) ──
   // At the permission decision, after Claude Code's own verdict: a consequential call it would
   // allow may become an ask, with the reason in the dialog; nothing else changes. Its own hook,
   // apart from tool.call's (screening, after the result), so the two never touch. A plugin's
-  // `$.tool.check` query (no tool_use_id) runs nothing and is not judged.
+  // `$.tool.check` query (no tool_use_id) runs nothing and is not judged. The band is redrawn
+  // only when the gate asked: an allowed call costs one read of the config.
   on('tool.check', async ($, e, next) => {
     const verdict = await next(e)
     if (verdict.decision !== 'allow' || e.tool_use_id === undefined) return verdict
-    const io = ioOf($)
-    await memory.load(io)
-    const gate = await toolGate.check(io, e)
+    const gate = await toolGate.check(ioOf($), e)
+    if (!gate) return verdict
     await refresh($)
-    return gate ?? verdict
-  })
+    return gate
+  }).catch(($, e, next) => next(e))
   // ── end tool-call gate ──
 
   // The band above the prompt; next(e) (nothing of the mod's) until it has done something.
@@ -240,5 +268,5 @@ export const register: Register = (on, given) => {
         {segments.map(s => <Text color={s.color ? THEME[s.color] : undefined} dimColor={s.dim}>{s.text}</Text>)}
       </Box>
     )
-  })
+  }).catch(($, e, next) => next(e))
 }

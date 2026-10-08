@@ -18,6 +18,8 @@ import { build, embed, lastDays, lines, pageWith, readLine, remember, type Answe
 // back as a JSON line, is checked against the registry and written with config.write, and the
 // state file is rewritten with the answer (state.ts says what each line holds). The server never
 // writes a config file, and it dies with this module (or when `/jev-mod dashboard stop` ends it).
+// Its pid and port (never its token) are kept in the run folder's server.json, so a copy of this
+// module loaded after a reload ends the server an earlier copy left for the session.
 //
 // With neither bun nor node, the same page is written once as a file with the state inside it,
 // read-only.
@@ -129,8 +131,27 @@ async function open(io: IO, target: string): Promise<boolean> {
   }
 }
 
+/**
+ * A server an earlier copy of this module started for this session (before a reload), ended,
+ * so the session has one page at most. Only a process that is that server (its command line
+ * names server.mjs and this session's state file) is ended: a pid the system has since given to
+ * something else is left alone.
+ */
+async function endEarlier(io: IO, serverFile: string, statePath: string): Promise<void> {
+  const was = await readJson(io, serverFile)
+  const pid = Number(was?.pid)
+  if (!Number.isInteger(pid) || pid <= 1) return
+  try {
+    const ps = await io.run(['ps', '-p', String(pid), '-o', 'args='], { timeoutMs: 5000 })
+    if (ps.exitCode === 0 && ps.stdout.includes('server.mjs') && ps.stdout.includes(statePath)) {
+      await io.run(['kill', String(pid)], { timeoutMs: 5000 })
+    }
+  } catch { /* gone already */ }
+  await io.writeFile(serverFile, '{}').catch(() => {})
+}
+
 /** Start the server and wait for its ready line; null when it does not come. */
-async function start(io: IO, bin: string, statePath: string, dir: string): Promise<Running | null> {
+async function start(io: IO, bin: string, statePath: string, dir: string, serverFile: string): Promise<Running | null> {
   const server = `${dir}/server.mjs`
   const stream = io.spawn([bin, server, statePath, `${dir}/page.html`])
   const it = stream[Symbol.asyncIterator]()
@@ -151,6 +172,7 @@ async function start(io: IO, bin: string, statePath: string, dir: string): Promi
     me.ended = true
     void it.return?.()
     if (me.pid) void io.run(['kill', String(me.pid)], { timeoutMs: 5000 }).catch(() => {})
+    void io.writeFile(serverFile, '{}').catch(() => {})
   }
   void (async () => {
     let rest = ''
@@ -168,6 +190,7 @@ async function start(io: IO, bin: string, statePath: string, dir: string): Promi
           if (msg.kind === 'ready') {
             me.pid = msg.pid
             me.url = `http://127.0.0.1:${msg.port}/?t=${msg.token}`
+            await io.writeFile(serverFile, JSON.stringify({ pid: msg.pid, port: msg.port, at: Date.now() })).catch(() => {})
             ready(me)
           } else if (msg.kind === 'refresh') {
             void refresh()
@@ -218,11 +241,13 @@ export async function run(io: IO, action: 'open' | 'stop' = 'open'): Promise<{ t
     const opened = await open(io, running.url)
     return { text: said(running.url, opened, true) }
   }
+  const serverFile = `${run}/server.json`
+  await endEarlier(io, serverFile, statePath)
   const forced = flags(await io.env('JEV_MOD_DASHBOARD')).has('static')
   const bin = forced ? null : await runtime(io)
   if (!bin) return writeStatic(io, dir, run, forced ? 'asked for a static page' : 'neither bun nor node is on PATH')
   await io.writeFile(statePath, JSON.stringify(await gather(io, 'live')))
-  const started = await start(io, bin, statePath, dir)
+  const started = await start(io, bin, statePath, dir, serverFile)
   if (!started) return writeStatic(io, dir, run, `the server (${bin}) did not start`)
   running = started
   const opened = await open(io, started.url)

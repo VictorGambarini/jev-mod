@@ -23,6 +23,11 @@ export type Feature = {
   modes: readonly Mode[]
   default: Mode
   knobs: Record<string, Knob>
+  /**
+   * It guards the person (screening, the gates): a project's file, which comes with a cloned
+   * repo, may only make its mode stricter (off < shadow < on), and its knobs are not read.
+   */
+  protective?: true
   /** Where earlier versions kept its switch, still read below the config files. */
   legacy?: {
     /** The /config field, and the value that meant "not set". */
@@ -58,7 +63,7 @@ export const FEATURES: readonly Feature[] = [
     summary: 'Withholds instructions aimed at the model in fetched text',
     help: 'on: WebFetch, WebSearch, MCP results and Bash output fetched from the network are screened, and the sentences '
       + 'that carry instructions are withheld. shadow: screened and counted, nothing withheld.',
-    modes: ['off', 'shadow', 'on'], default: 'on', knobs: {},
+    modes: ['off', 'shadow', 'on'], default: 'on', knobs: {}, protective: true,
     legacy: { option: 'screening', unset: 'default', state: 'hook_screen' },
   },
   {
@@ -69,12 +74,12 @@ export const FEATURES: readonly Feature[] = [
       + 'migrates or writes outside the project; Write/Edit outside the project; an MCP tool that sends, creates, '
       + 'changes or deletes), the decision model is asked whether you asked for it, whether it breaks a limit you '
       + 'stated, and whether it is hard to undo. on: a doubtful call is put to you in the permission dialog, with the '
-      + 'reason, instead of running unasked. shadow: decided and counted (would-ask, passed, skipped), nothing changes; on counts asked-person. '
+      + 'reason, instead of running unasked. shadow: decided in the background and counted (would-ask, passed, skipped); nothing changes and no call waits for it; on counts asked-person. '
       + 'It only tightens Claude Code\'s own decision: a call your rules refuse or already ask about is left alone. '
       + 'Reads, builds, tests and edits inside the project are never sent. No answer in time, private mode, a secret '
       + 'in the call, the daily budget or a backend cool-off: the call goes on as Claude Code decided. In '
       + 'bypassPermissions, auto and dontAsk modes the mode settles the ask (it may allow or refuse it without you).',
-    modes: ['off', 'shadow', 'on'], default: 'shadow',
+    modes: ['off', 'shadow', 'on'], default: 'shadow', protective: true,
     knobs: {
       minConfidence: { type: 'number', title: 'Confidence', default: 0.7, min: 0, max: 1,
         help: 'How sure the decision model must be that you asked for a hard-to-undo call for it to run unasked, '
@@ -94,8 +99,8 @@ export const FEATURES: readonly Feature[] = [
       + 'that final message and what the turn ran (edited files, commands and the tail of their output) and judges whether the '
       + 'claims are shown. on: when it is sure enough they are not, the agent is told which claim is unshown and asked to verify '
       + 'it or say plainly what is unverified, never to take a destructive step; at most maxNudges times per prompt. '
-      + 'shadow: the same judgement, counted as would-nudge or passed; the agent is never stopped. off: nothing is read or sent.',
-    modes: ['off', 'shadow', 'on'], default: 'shadow',
+      + 'shadow: the same judgement, in the background, counted as would-nudge or passed; the agent is never stopped or kept waiting. off: nothing is read or sent.',
+    modes: ['off', 'shadow', 'on'], default: 'shadow', protective: true,
     knobs: {
       maxNudges: { type: 'int', title: 'Nudges per prompt', help: 'How many times one prompt\'s turn may be sent back to verify; 0 never sends it back.', default: 2, min: 0, max: 5 },
       minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown before the agent is sent back.', default: 0.7, min: 0, max: 1 },
@@ -111,7 +116,7 @@ export const FEATURES: readonly Feature[] = [
       + 'chunks it scores under keepThreshold are replaced by a marker naming their lines. Errors, warnings, failures, stack '
       + 'traces, summaries and the first and last lines are always kept. The full output is saved under '
       + '~/.cache/jev-mod/outputs/ (the last 50) and the trimmed output names the file. '
-      + 'shadow: what would be cut is computed and counted, nothing is changed. '
+      + 'shadow: what would be cut is computed in the background and counted; nothing is changed and the command never waits for it. '
       + 'Subagents, private profiles and localOnly get the local folding only.',
     modes: ['off', 'shadow', 'on'], default: 'shadow',
     knobs: {
@@ -131,6 +136,11 @@ export const FEATURES: readonly Feature[] = [
     legacy: { option: 'band', unset: 'on' },
   },
 ]
+
+/** How strict a mode is: off < shadow < on. */
+export function strictness(mode: Mode): number {
+  return MODES.indexOf(mode)
+}
 
 export function feature(id: string, features: readonly Feature[] = FEATURES): Feature | undefined {
   return features.find(f => f.id === id)

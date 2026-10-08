@@ -4,7 +4,8 @@
 //
 //   node server.mjs <state.json> <page.html>
 //
-// It binds 127.0.0.1 on a free port and prints one JSON line on stdout:
+// It binds 127.0.0.1 on a free port and prints one JSON line on stdout (and a blank line every
+// few seconds, so it notices when nobody reads it):
 //   {"ready":true,"port":<port>,"token":"<one-time token>","pid":<pid>}
 // It never writes a config file. A change from the page becomes one JSON line on stdout,
 //   {"id":"<op id>","op":"set","scope":"user","feature":"skills","key":"mode","value":"shadow"}
@@ -154,4 +155,7 @@ setInterval(() => {
   if (process.ppid !== parent) process.exit(0)
 }, 3000).unref()
 process.stdout.on('error', () => process.exit(0))
+// A blank line now and then (the mod skips them): once nothing reads stdout any more (the mod
+// that started it was unloaded), the write fails with EPIPE and the server exits above.
+setInterval(() => { process.stdout.write('\n') }, 5000).unref()
 for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, () => process.exit(0))

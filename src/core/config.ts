@@ -1,13 +1,14 @@
 import { hostOf } from './host'
 import type { IO } from './io'
 import { jevDir } from './settings'
-import { checkKnob, checkMode, feature, FEATURES, type Feature, type KnobValue, type Mode } from './registry'
+import { checkKnob, checkMode, feature, FEATURES, strictness, type Feature, type KnobValue, type Mode } from './registry'
 
 // Which features are on and how they are set, from (first that says wins):
 //
 //   1. a kill file:     <jev-mod dir>/OFF (everything), <jev-mod dir>/<ID>_OFF, or jev-skills' <jev dir>/<KEY>_OFF
 //   2. /config:         "jev-mod on" (enabled) unticked turns every feature off
-//   3. the project:     <project>/.claude/jev-mod.json
+//   3. the project:     <project>/.claude/jev-mod.json; for a protective feature (screening, the
+//                       gates) only a mode stricter than 4-6 give, and none of its knobs
 //   4. the user:        ~/.config/jev-mod/config.json (XDG_CONFIG_HOME respected)
 //   5. older switches:  a /config field set away from its default, then jev-skills' state.json
 //   6. the feature's default (registry.ts)
@@ -107,10 +108,35 @@ export function killedBy(snap: Snapshot, f: Feature): string[] {
   return killFiles(f, snap.mod, snap.jev).filter(path => snap.kills.includes(path))
 }
 
+/** The mode the layers beneath the project's file give a feature: the user's file, older switches, the default. */
+export function beneathProject(snap: Snapshot, f: Feature): { mode: Mode; source: Source } {
+  const mine = section(snap.files.user, f.id)
+  if (mine && 'mode' in mine) {
+    const checked = checkMode(f, mine.mode)
+    if ('mode' in checked) return { mode: checked.mode, source: 'user' }
+  }
+  if (f.legacy) {
+    const set = snap.options[f.legacy.option]
+    if (typeof set === 'string' && set !== f.legacy.unset) {
+      const checked = checkMode(f, set)
+      if ('mode' in checked) return { mode: checked.mode, source: 'older setting' }
+    }
+    const fromState = stateMode(f, snap.state)
+    if (fromState) return { mode: fromState, source: 'older setting' }
+  }
+  return { mode: f.default, source: 'default' }
+}
+
+/** Whether the project's file may set this mode: for a protective feature, only one no looser than beneath it. */
+function projectMay(snap: Snapshot, f: Feature, mode: Mode): boolean {
+  return !f.protective || strictness(mode) >= strictness(beneathProject(snap, f).mode)
+}
+
 /** One feature's mode and knobs from a snapshot. Pure. */
 export function resolve(snap: Snapshot, f: Feature): Resolved {
   const knobs: Resolved['knobs'] = Object.fromEntries(Object.entries(f.knobs).map(([name, k]) => [name, { value: k.default, source: 'default' as Source }]))
-  for (const scope of ['user', 'project'] as const) {
+  // a protective feature's knobs come from the user's file alone: a cloned repo cannot loosen them
+  for (const scope of f.protective ? ['user'] as const : ['user', 'project'] as const) {
     const mine = section(snap.files[scope], f.id)
     for (const name of Object.keys(f.knobs)) {
       if (!mine || !(name in mine)) continue
@@ -122,23 +148,23 @@ export function resolve(snap: Snapshot, f: Feature): Resolved {
   if (killedBy(snap, f).length) return at('off', 'kill file')
   const enabled = snap.options.enabled
   if (enabled === false || enabled === 'false') return at('off', '/config')
-  for (const scope of ['project', 'user'] as const) {
-    const mine = section(snap.files[scope], f.id)
-    if (mine && 'mode' in mine) {
-      const checked = checkMode(f, mine.mode)
-      if ('mode' in checked) return at(checked.mode, scope)
-    }
+  const project = section(snap.files.project, f.id)
+  if (project && 'mode' in project) {
+    const checked = checkMode(f, project.mode)
+    if ('mode' in checked && projectMay(snap, f, checked.mode)) return at(checked.mode, 'project')
   }
-  if (f.legacy) {
-    const set = snap.options[f.legacy.option]
-    if (typeof set === 'string' && set !== f.legacy.unset) {
-      const checked = checkMode(f, set)
-      if ('mode' in checked) return at(checked.mode, 'older setting')
-    }
-    const fromState = stateMode(f, snap.state)
-    if (fromState) return at(fromState, 'older setting')
-  }
-  return at(f.default, 'default')
+  const below = beneathProject(snap, f)
+  return at(below.mode, below.source)
+}
+
+/** Why a project may not set this, or null when it may: a protective feature only gets stricter. */
+function projectRefuses(snap: Snapshot, f: Feature, key: string, value: unknown): string | null {
+  if (!f.protective) return null
+  if (key !== 'mode') return `project config may not set ${f.id}.${key}: ${f.id} guards you, so only your own file sets its settings`
+  const checked = checkMode(f, value)
+  if (!('mode' in checked) || projectMay(snap, f, checked.mode)) return null
+  const below = beneathProject(snap, f)
+  return `project config may not lower ${f.id}: ${checked.mode} is looser than ${below.mode} (${below.source}), and a project may only make it stricter`
 }
 
 /** Everything in the files that was passed over: unknown features, modes and knobs that do not check. */
@@ -158,6 +184,10 @@ export function problems(snap: Snapshot, features: readonly Feature[] = FEATURES
       for (const [key, value] of Object.entries(settings)) {
         const checked = key === 'mode' ? checkMode(f, value) : checkKnob(f, key, value)
         if ('problem' in checked) out.push(`${scope} config: ${checked.problem}`)
+        else if (scope === 'project') {
+          const refused = projectRefuses(snap, f, key, value)
+          if (refused) out.push(`${refused}; it is passed over`)
+        }
       }
     }
   }
@@ -189,6 +219,11 @@ export async function write(io: IO, scope: Scope, id: string, key: string, value
     const result = key === 'mode' ? checkMode(f, value) : checkKnob(f, key, value)
     if ('problem' in result) return result
     checked = 'mode' in result ? result.mode : result.value
+    // a project may tighten a protective feature, never loosen it: refused here, so /jev-mod and the dashboard both say so
+    if (scope === 'project' && f.protective) {
+      const refused = projectRefuses(await snapshot(io, features), f, key, checked)
+      if (refused) return { problem: refused }
+    }
   }
   return edit(io, scope, id, mine => {
     if (checked === undefined) delete mine[key]

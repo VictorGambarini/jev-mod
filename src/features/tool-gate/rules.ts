@@ -51,20 +51,40 @@ const BASH_RISKS: [RegExp, string][] = [
   [at(String.raw`(?:scp|rsync|sftp)\b`), 'copies files to or from another machine'],
 ]
 
-// Where a write is harmless: the project, the temp folders, devices.
-const SAFE_PREFIXES = ['/tmp/', '/private/tmp/', '/var/tmp/', '/var/folders/', '/dev/']
+// Where a write is harmless: the project, the temp folders, and the devices that only print or discard.
+const SAFE_PREFIXES = ['/tmp/', '/private/tmp/', '/var/tmp/', '/var/folders/', '/dev/fd/']
+const SAFE_DEVICES = new Set(['/dev/null', '/dev/stdout', '/dev/stderr', '/dev/tty'])
 
-/** A path with . and .. resolved, ~ read as `home`; relative paths are taken as the project's. */
+/** A leading `$VAR` or `${VAR}` read as the folder it names; undefined for one it cannot read (null: no path at all). */
+function expandVar(p: string, root: string | undefined, home: string | undefined): string | null | undefined {
+  const m = /^\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))(?=\/|$)/.exec(p)
+  if (!m) return p
+  const rest = p.slice(m[0].length)
+  const name = m[1] ?? m[2]!
+  const at = (dir: string | undefined) => (dir === undefined ? undefined : dir + rest)
+  switch (name) {
+    case 'HOME': return at(home)
+    case 'XDG_CONFIG_HOME': return at(home && `${home}/.config`)
+    case 'XDG_DATA_HOME': return at(home && `${home}/.local/share`)
+    case 'XDG_STATE_HOME': return at(home && `${home}/.local/state`)
+    case 'XDG_CACHE_HOME': return at(home && `${home}/.cache`)
+    case 'PWD': return at(root)
+    case 'TMPDIR': case 'TMP': case 'TEMP': return '/tmp' + rest
+    default: return undefined
+  }
+}
+
+/** A path with . and .. resolved, ~ and $HOME read as `home`; relative paths are taken as the project's. */
 export function resolvePath(path: string, root: string | undefined, home: string | undefined): string | null {
   let p = path.trim().replace(/^['"]|['"]$/g, '')
   if (!p) return null
   if (p === '~' || p.startsWith('~/')) {
     if (!home) return null
     p = home + p.slice(1)
-  } else if (p.startsWith('$HOME/') || p.startsWith('${HOME}/')) {
-    if (!home) return null
-    p = home + p.slice(p.indexOf('/'))
   }
+  const expanded = expandVar(p, root, home)
+  if (!expanded) return null
+  p = expanded
   if (!p.startsWith('/')) {
     if (!root) return null
     p = `${root}/${p}`
@@ -80,11 +100,14 @@ export function resolvePath(path: string, root: string | undefined, home: string
 
 /** Whether a write to this path lands outside the project (and outside the temp folders and Claude's own notes). */
 export function outsideProject(path: string, root: string | undefined, home: string | undefined): boolean {
-  const full = resolvePath(path, root, home)
+  const bare = path.trim().replace(/^['"]|['"]$/g, '')
+  // a variable it cannot read ($XDG_..., $SOMEDIR) may name any folder: taken as outside
+  if (bare.startsWith('$') && !bare.startsWith('$(') && expandVar(bare, root, home) === undefined) return true
+  const full = resolvePath(bare, root, home)
   if (full === null) return false
   const inside = (dir: string) => full === dir || full.startsWith(dir.endsWith('/') ? dir : dir + '/')
   if (root && inside(resolvePath(root, root, home) ?? root)) return false
-  if (SAFE_PREFIXES.some(prefix => full.startsWith(prefix)) || full === '/dev/null') return false
+  if (SAFE_DEVICES.has(full) || SAFE_PREFIXES.some(prefix => full.startsWith(prefix))) return false
   // Claude Code's own memory and plans are written outside the project on its own account.
   if (home && (inside(`${home}/.claude/projects`) || inside(`${home}/.claude/plans`) || inside(`${home}/.claude/todos`))) return false
   return true
@@ -94,10 +117,186 @@ export function outsideProject(path: string, root: string | undefined, home: str
 const REDIRECT = /(?:^|[^0-9&<>])>{1,2}\s*([^\s;&|<>()]+)/g
 const TEE = /\btee\s+(?:-\S+\s+)*([^\s;&|<>()]+)/g
 
+// ── reading a command line ──────────────────────────────────────────────────
+
+/**
+ * The simple commands of a command line, each as its words with the quotes taken off: cut at
+ * ; & | ( ) ` $( and newlines outside quotes, with redirections (and their targets) left out,
+ * since REDIRECT reads those. A rough reading, not a shell's: enough to see each command's name.
+ */
+export function simpleCommands(line: string): string[][] {
+  const out: string[][] = []
+  let words: string[] = []
+  let word: string | null = null
+  const endWord = () => { if (word !== null) words.push(word); word = null }
+  const endCommand = () => { endWord(); if (words.length) out.push(words); words = [] }
+  let i = 0
+  while (i < line.length) {
+    const c = line[i]!
+    if (c === "'" || c === '"') {
+      const close = line.indexOf(c, i + 1)
+      const end = close === -1 ? line.length : close
+      word = (word ?? '') + line.slice(i + 1, end)
+      i = end + 1
+      continue
+    }
+    if (c === '\\' && i + 1 < line.length) { word = (word ?? '') + line[i + 1]; i += 2; continue }
+    if (c === '$' && line[i + 1] === '(') { endCommand(); i += 2; continue }
+    if (';&|()`\n'.includes(c)) { endCommand(); i++; continue }
+    if (c === '>' || c === '<') {
+      // a redirection: its fd (2>) and its target are not words of the command
+      if (word !== null && /^\d+$/.test(word)) word = null
+      endWord()
+      i++
+      while (line[i] === '>' || line[i] === '&' || line[i] === '<') i++
+      while (line[i] === ' ' || line[i] === '\t') i++
+      while (i < line.length && !/[\s;&|()<>`]/.test(line[i]!)) i++
+      continue
+    }
+    if (c === ' ' || c === '\t' || c === '\r') { endWord(); i++; continue }
+    word = (word ?? '') + c
+    i++
+  }
+  endCommand()
+  return out
+}
+
+// Commands that run the command after them: each with the options that take a value.
+const WRAPPERS: Record<string, Set<string>> = {
+  sudo: new Set(['-u', '-g', '-h', '-p', '-C', '-D', '-r', '-t', '-U', '-T', '-R', '--user', '--group', '--host', '--prompt', '--chdir']),
+  doas: new Set(['-u', '-C']),
+  env: new Set(['-u', '-C', '-S', '--unset', '--chdir', '--split-string']),
+  nice: new Set(['-n', '--adjustment']),
+  ionice: new Set(['-c', '-n', '-p', '--class', '--classdata']),
+  nohup: new Set(),
+  time: new Set(['-f', '-o', '--format', '--output']),
+  command: new Set(),
+  exec: new Set(['-a']),
+  stdbuf: new Set(['-i', '-o', '-e']),
+  timeout: new Set(['-s', '-k', '--signal', '--kill-after']),
+  xargs: new Set(['-n', '-I', '-L', '-P', '-s', '-d', '-E', '-a', '--max-args', '--max-lines', '--max-procs', '--max-chars',
+    '--delimiter', '--eof', '--arg-file', '--replace']),
+  chronic: new Set(),
+  unbuffer: new Set(),
+}
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh', 'mksh', 'ash', 'fish'])
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/
+const MAX_DEPTH = 4
+
+const basename = (word: string) => (word.includes('/') ? word.slice(word.lastIndexOf('/') + 1) : word)
+
+/**
+ * Each command a line runs, as its words, its name a bare name: `sudo -u root /bin/rm -rf x`
+ * is `rm -rf x`; `xargs -n 1 rm` is `rm`; `bash -c "git push"` and `eval "git push"` are
+ * read as the command line inside them, as far down as MAX_DEPTH.
+ */
+export function commandsIn(line: string, depth = 0): string[][] {
+  const out: string[][] = []
+  for (let words of simpleCommands(line)) {
+    while (words.length && ASSIGNMENT.test(words[0]!)) words = words.slice(1)
+    // the wrappers in front, each with its options (and a timeout's duration)
+    for (let guard = 0; words.length && guard < 8; guard++) {
+      const name = basename(words[0]!)
+      const takes = WRAPPERS[name]
+      if (!takes) break
+      let i = 1
+      while (i < words.length) {
+        const w = words[i]!
+        if (w === '--') { i++; break }
+        if (name === 'env' && ASSIGNMENT.test(w)) { i++; continue }
+        if (!w.startsWith('-') || w === '-') break
+        i += takes.has(w) ? 2 : 1
+      }
+      if (name === 'timeout' && i < words.length) i++ // the duration
+      if (name === 'command' && /^-[vV]$/.test(words[1] ?? '')) { words = []; break } // a lookup, not a run
+      words = words.slice(i)
+      while (words.length && ASSIGNMENT.test(words[0]!)) words = words.slice(1)
+    }
+    if (!words.length) continue
+    words = [basename(words[0]!), ...words.slice(1)]
+    const name = words[0]!
+    // a command line handed to a shell, or to eval, is read as one
+    if (depth < MAX_DEPTH && name === 'eval') {
+      out.push(...commandsIn(words.slice(1).join(' '), depth + 1))
+      continue
+    }
+    if (depth < MAX_DEPTH && SHELLS.has(name)) {
+      const at = words.findIndex((w, i) => i > 0 && /^-[A-Za-z]*c[A-Za-z]*$/.test(w))
+      if (at > 0 && words[at + 1] !== undefined) {
+        out.push(...commandsIn(words[at + 1]!, depth + 1))
+        continue
+      }
+    }
+    out.push(words)
+  }
+  return out
+}
+
+/** A command's words that are not options; an option in `takes` swallows the word after it. */
+function operands(words: readonly string[], takes: ReadonlySet<string> = new Set()): string[] {
+  const out: string[] = []
+  for (let i = 1; i < words.length; i++) {
+    const w = words[i]!
+    if (w === '--') { out.push(...words.slice(i + 1)); break }
+    if (w.startsWith('-') && w !== '-') { if (takes.has(w)) i++; continue }
+    out.push(w)
+  }
+  return out
+}
+
+/** The paths a command writes to, for the commands that copy, link, install or edit in place. */
+export function writeTargets(words: readonly string[]): string[] {
+  const name = words[0]
+  const flag = (re: RegExp) => words.slice(1).some(w => re.test(w))
+  const valueOf = (short: string, long: string) => {
+    for (let i = 1; i < words.length; i++) {
+      if (words[i] === short) return words[i + 1]
+      if (words[i]!.startsWith(`${long}=`)) return words[i]!.slice(long.length + 1)
+    }
+    return undefined
+  }
+  switch (name) {
+    case 'cp': case 'ln': case 'install': {
+      const target = valueOf('-t', '--target-directory')
+      if (target !== undefined) return [target]
+      const args = operands(words, new Set(['-m', '-o', '-g', '-S', '--suffix', '--mode', '--owner', '--group']))
+      if (name === 'install' && flag(/^-\w*d/)) return args
+      return args.length >= 2 ? [args[args.length - 1]!] : []
+    }
+    case 'tee':
+      return operands(words)
+    case 'dd':
+      return words.slice(1).filter(w => w.startsWith('of=')).map(w => w.slice(3))
+    case 'truncate':
+      return operands(words, new Set(['-s', '-r', '--size', '--reference']))
+    case 'sed': {
+      if (!flag(/^(?:-[A-Za-z]*i|--in-place)/)) return []
+      const scripted = flag(/^(?:-e|-f|--expression|--file)/)
+      const args = operands(words, new Set(['-e', '-f', '-l', '--expression', '--file', '--line-length']))
+      return scripted ? args : args.slice(1)
+    }
+    case 'perl': {
+      if (!flag(/^-[A-Za-z]*i/)) return []
+      const scripted = flag(/^-[A-Za-z]*[eE]$/)
+      const args = operands(words, new Set(['-e', '-E', '-M', '-I']))
+      return scripted ? args : args.slice(1)
+    }
+    default:
+      return []
+  }
+}
+
 /** The reason a Bash command is consequential, or null for one that is not. */
 export function bashRisk(command: string, root?: string, home?: string): string | null {
   if (!command.trim()) return null
   for (const [pattern, why] of BASH_RISKS) if (pattern.test(command)) return why
+  // each command as it runs: behind sudo, xargs, a full path, `sh -c` or eval
+  const commands = commandsIn(command)
+  for (const words of commands) {
+    const line = words.map(w => w.replace(/[;&|()`\n]|\$\(/g, ' ')).join(' ')
+    for (const [pattern, why] of BASH_RISKS) if (pattern.test(line)) return why
+    if (writeTargets(words).some(target => outsideProject(target, root, home))) return 'writes outside the project'
+  }
   for (const re of [REDIRECT, TEE]) {
     for (const m of command.matchAll(re)) {
       const target = m[1]! // both patterns capture group 1 unconditionally

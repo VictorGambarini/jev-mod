@@ -44,6 +44,7 @@ async function envOf($: any, name: string): Promise<string | undefined> {
     case 'VENICE_API_KEY': return read(await $.env.get('VENICE_API_KEY'))
     case 'OPENCODE_ZEN_API_KEY': return read(await $.env.get('OPENCODE_ZEN_API_KEY'))
     case 'JEV_PROXY_API_KEY': return read(await $.env.get('JEV_PROXY_API_KEY'))
+    case 'JEV_MOD_DASHBOARD': return read(await $.env.get('JEV_MOD_DASHBOARD'))
     default: {
       if (!/^[A-Z][A-Z0-9_]{0,63}$/.test(name)) return undefined
       try {
@@ -79,6 +80,8 @@ function ioOf($: any): IO {
   return {
     option: name => options[name] as string | boolean | undefined,
     run: (argv, init) => $.process.run(argv, init),
+    spawn: (argv, init) => $.process.spawn({ argv, ...init }),
+    pluginRoot: () => $.plugin.root,
     fetch: (url, init) => $.http.fetch(url, init),
     readFile: path => $.fs.read(path),
     folders: async path => {

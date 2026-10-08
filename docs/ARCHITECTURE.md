@@ -18,7 +18,8 @@ src/
   features/            one folder per feature
     command/           /jev-mod: index.ts · parse.ts and format.ts (pure) with their tests
     status/            /jev-mod status: index.ts · report.ts (pure) · report.test.ts
-    dashboard/         /jev-mod dashboard (to come)
+    dashboard/         /jev-mod dashboard: index.ts (glue) · state.ts (pure) · auth.mjs (pure) ·
+                       server.mjs (bun/node, outside the mod) · page.html, with their tests
     routing/           index.ts (glue) · rules.ts (pure) · rules.test.ts
     skills/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
@@ -69,6 +70,32 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
 - **Settings:** `core/config.ts`, read from the layers on each use; `/jev-mod` writes the user
   or project file through `config.write` and `config.reset`.
 - **Across sessions:** the decision backend's own config (keys, tuning), outside the mod.
+
+## The dashboard
+
+A mod cannot listen on a port, so `/jev-mod dashboard` starts `features/dashboard/server.mjs`
+with `bun` or `node` (`io.spawn`, which wraps `$.process.spawn`) and reads its stdout for as
+long as the module lives. The two talk through stdout lines and one file:
+
+```
+server stdout → mod   {"ready":true,"port":…,"token":…,"pid":…}        once, after listen(0) on 127.0.0.1
+                      {"op":"refresh"}                                  the state file is over 2 s old
+                      {"id":"op-3-…","op":"set","scope":"user","feature":"skills","key":"mode","value":"shadow"}
+mod → state file      ~/.config/jev-mod/dashboard/<session>/state.json  state.ts's State, rewritten with
+                                                                        answered[<id>] after each change
+```
+
+The server never writes a config file and holds no registry: a change is checked by
+`state.readLine` and applied with `config.write` / `config.reset` (the registry checks the
+value), and the POST waits up to 3 s for its id in `answered`. GET `/api/state` serves the file.
+Every request needs the token (a cookie set on the first `/?t=` load, which then redirects to
+`/`) and a Host of `127.0.0.1:<port>` or `localhost:<port>`; a POST also needs the page's own
+Origin, JSON, and an `X-Jev-Mod` header (`auth.mjs`, unit-tested). Bodies are capped at 4 KB.
+The state holds no key: the backend part names where a key was found, not the key. The server
+exits with the module, on `/jev-mod dashboard stop`, or when its parent process goes away.
+Every feature in the registry, with its knobs, is in the state, so a new feature appears on the
+page with nothing added to the dashboard. With no bun or node, the same page is written as a
+file with the state inside it, read-only.
 
 ## Failure
 

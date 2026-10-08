@@ -5,7 +5,8 @@
    Ask `modeOf(io, '<id>')` before acting, and read knobs with `setting(io, '<id>')`; never
    read a file or a /config field for a switch of its own. That is all `/jev-mod` needs:
    `/jev-mod` lists it, `/jev-mod <id>` shows its help, and `/jev-mod <id> on|off|shadow` and
-   `/jev-mod <id> <knob> <value>` set it, with nothing added to the command.
+   `/jev-mod <id> <knob> <value>` set it, with nothing added to the command, and
+   `/jev-mod dashboard` shows it with a control for its mode and each knob.
 2. **A folder:** `src/features/<name>/`.
 3. **The decision, pure:** `src/features/<name>/<rules>.ts`, plain functions with no IO, and
    `<rules>.test.ts` beside it (`import { test, expect } from 'claude-code/testing'`). Everything

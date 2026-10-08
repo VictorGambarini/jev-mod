@@ -14,7 +14,7 @@ import { complete, parse } from './parse'
 export const command = {
   name: 'jev-mod',
   description: "jev-mod's features: list, set a mode or setting, status, compact, dashboard",
-  argumentHint: '[status|compact|dashboard|<feature> [on|off|shadow|reset|<setting> <value>] [--project]]',
+  argumentHint: '[status|compact|dashboard [stop]|<feature> [on|off|shadow|reset|<setting> <value>] [--project]]',
 }
 
 export async function run(io: IO, args: string): Promise<{ text: string }> {
@@ -22,7 +22,7 @@ export async function run(io: IO, args: string): Promise<{ text: string }> {
   switch (action.kind) {
     case 'status': return status.run(io)
     case 'compact': return compact.run(io)
-    case 'dashboard': return dashboard.run(io)
+    case 'dashboard': return dashboard.run(io, action.stop ? 'stop' : 'open')
     case 'help': return { text: usage() }
     case 'usage': return { text: usage(action.problem) }
     case 'list': {

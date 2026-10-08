@@ -38,6 +38,7 @@ export function hostOf(io: IO): Host {
       try { return await io.readFile(path) } catch { return undefined }
     },
     secret: (service, account) => secret(io, service, account),
+    setting: async name => { const v = io.option(name); return typeof v === 'string' ? v : undefined },
     home: async () => (await io.home()) ?? '',
     now: () => Date.now(),
     sleep: ms => io.sleep(ms),

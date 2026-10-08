@@ -1,8 +1,78 @@
 {
   "name": "jev-mod",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A cheap decision model picks each turn's skill, model and effort, compacts on request, and withholds injected text",
-  "author": { "name": "Victor Gambarini" },
+  "author": {
+    "name": "Victor Gambarini"
+  },
   "license": "MIT",
-  "repository": "https://github.com/VictorGambarini/jev-mod"
+  "repository": "https://github.com/VictorGambarini/jev-mod",
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "Decision backend key",
+      "sensitive": true,
+      "required": false,
+      "description": "Your key for the provider below (TypeSafe unless you pick another). Kept in your OS's secure storage and handed only to this mod, never to the conversation. Leave empty to use a key in the environment or one jev-skills stored."
+    },
+    "provider": {
+      "type": "string",
+      "title": "Provider for that key",
+      "default": "typesafe",
+      "options": [
+        "typesafe",
+        "openrouter",
+        "venice",
+        "zen"
+      ],
+      "description": "Who answers the decisions with the key above: TypeSafe, or Jev through OpenRouter, Venice or OpenCode Zen."
+    },
+    "backend_api_key": {
+      "type": "string",
+      "title": "Named backend key",
+      "sensitive": true,
+      "required": false,
+      "description": "The key for the decision server named as default in ~/.config/jev/backends.json, if you use one. Kept in secure storage."
+    },
+    "routing": {
+      "type": "string",
+      "title": "Routing",
+      "default": "on",
+      "options": [
+        "on",
+        "off"
+      ],
+      "description": "Each turn's model and effort from the decision model's lane. off: every turn runs as Claude Code sends it."
+    },
+    "skills": {
+      "type": "string",
+      "title": "Skill suggestions",
+      "default": "default",
+      "options": [
+        "default",
+        "on",
+        "shadow",
+        "off"
+      ],
+      "description": "default: what jev-skills' `jev switches` set, or on if it set nothing. shadow: ask and count, change nothing."
+    },
+    "screening": {
+      "type": "string",
+      "title": "Screening",
+      "default": "default",
+      "options": [
+        "default",
+        "on",
+        "shadow",
+        "off"
+      ],
+      "description": "default: what jev-skills' `jev switches` set, or on if it set nothing. shadow: ask and count, change nothing."
+    },
+    "private": {
+      "type": "boolean",
+      "title": "Private",
+      "default": false,
+      "description": "Send nothing to the decision backend: no routing or skill suggestions, and fetched text is screened with local patterns only."
+    }
+  }
 }

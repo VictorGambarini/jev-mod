@@ -16,3 +16,5 @@ jobs:
         run: for f in test/parity/fixtures/*.json; do python3 -m json.tool "$f" > /dev/null || exit 1; done
       - name: the tests' .ts copies of the fixtures match the JSON
         run: python3 tools/parity/to_ts.py --check
+      - name: src/version.ts states plugin.json's version
+        run: python3 -c "import json,re,sys; v=json.load(open('.claude-plugin/plugin.json'))['version']; t=open('src/version.ts').read(); sys.exit(0 if f\"'{v}'\" in t else 'src/version.ts does not say ' + v)"

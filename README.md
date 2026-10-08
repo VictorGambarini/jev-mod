@@ -25,21 +25,51 @@ failed call the mod stops asking for five minutes, so a backend that is down cos
 /plugin install jev-mod --marketplace VictorGambarini/jev-mod
 ```
 
-**Every feature runs inside the mod, with no Python.** It reads the keys, `backends.json`,
-switches, lane policy and `lanes.json` that jev-skills' `jev` command writes, and shares its
-daily budget. For now the key itself is still stored with `jev setup-key` from
-[hermes-jev-skills](https://github.com/kerpopule/hermes-jev-skills), or set in the environment
-(`TYPESAFE_API_KEY`, ...); key setup is the last part being ported ([docs/PORTING.md](docs/PORTING.md)).
+Installing asks for the mod's settings. **The key** is your TypeSafe key (or OpenRouter, Venice or
+OpenCode Zen: pick which beside it). Claude Code keeps it in your OS's secure storage and hands
+it only to the mod; it never enters the conversation, so Claude never sees it. To set or change
+it later, open jev-mod in `/plugin`, or run this in your own terminal (not through Claude):
+
+```bash
+read -rs KEY && printf '{"api_key":"%s"}' "$KEY" | claude plugin configure jev-mod --values-stdin; unset KEY
+```
+
+Then check it with **`/jev-status`**: the backend, where its key came from (never the key), a live
+check call, the switches, and today's spend.
+
+Nothing else is needed: no Python. A key already in the environment (`TYPESAFE_API_KEY`, ...) or
+stored by jev-skills' `jev setup-key` is found too, and the mod reads jev-skills' switches,
+`backends.json`, lane policy and `lanes.json` and shares its daily budget, so the two can run
+side by side.
+
+### Settings
+
+`/config` lists the rest, under jev-mod:
+
+| Setting | Default | |
+|---|---|---|
+| Routing | on | each turn's model and effort from the decision model's lane |
+| Skill suggestions | default | `on`, `shadow` (ask and count, suggest nothing), `off`; `default` follows `jev switches`, else on |
+| Screening | default | the same, for withholding injected text |
+| Private | off | send nothing: no routing or suggestions; fetched text is screened locally only |
+
+A `HOOK_SKILLS_OFF` or `HOOK_SCREEN_OFF` file in `~/.config/jev` still turns that feature off
+whatever the setting says.
 
 ## Decision backends
 
-| Backend | Protocol |
-|---|---|
-| Jev via TypeSafe, OpenRouter, Venice or OpenCode Zen | `systemone` |
-| Your own OpenAI-compatible server (vLLM, Ollama, ...) | `openai`, with logprobs *(with the engine port)* |
+Jev answers through TypeSafe, OpenRouter, Venice or OpenCode Zen. Any other server that answers
+the same `/v1/systemone` protocol (a self-hosted decision model, a gateway) can be named in
+`~/.config/jev/backends.json` and made the default:
 
-Every threshold was measured on Jev. Another model's confidences are not the same numbers, so
-each backend can carry its own tuning.
+```json
+{"default": "lais05",
+ "backends": {"lais05": {"protocol": "systemone", "url": "https://lais05.example/v1/systemone", "model": "Cloudflare/clef-flash"}}}
+```
+
+Its key goes in the *named backend key* setting. Every threshold was measured on Jev; another
+model's confidences are not the same numbers, so a backend can carry its own `tuning` and its
+own copy of a policy (`~/.config/jev/backends/<name>/policies/`).
 
 ## Status line
 

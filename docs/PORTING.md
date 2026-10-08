@@ -3,8 +3,8 @@
 Each engine module moves from jev-skills' Python into `src/engine/`, in TypeScript, reaching the
 outside world only through a `Host` (`core/host.ts` builds one from `IO`); when a module
 reproduces its parity fixtures exactly, the features switch to it and their call to the Python
-`jev` command goes. Every feature has switched, and the bridge to the command is gone; only
-storing a key still needs jev-skills.
+`jev` command goes. Every feature has switched, the bridge to the command is gone, and the
+key is set in the mod's own settings: jev-mod needs nothing from jev-skills.
 
 ## Parity fixtures
 
@@ -77,6 +77,9 @@ Known differences that are not fixture answers, and why:
 - **No ledger rows.** decide.py appended every decision to the ledger; the mod tallies calls and
   cost in the session record (the status line's) instead. Policy labels and state digests,
   which only the ledger used, are not computed.
+- **Switches default to on.** jev-skills read a switch nobody set as off; the mod is installed to
+  do these things, so with no setting anywhere a switch is on. A set value, an unreadable or
+  misspelt one (off), and the `<SWITCH>_OFF` files read as before.
 - **Already suggested** is remembered in the session record, not jev-skills'
   `jev-hooks-sessions.json`, and the mod writes no `jev-hooks.jsonl` row per prompt.
 - **backends.json that cannot be read** (a permissions error, say) reads as no file at all,
@@ -93,8 +96,8 @@ an entry stops differing.
 | `engine/privacy.ts` | `privacy.py` | everything that sends text | **done**: 890 cases, 10 of them deliberately different (leak fixes, `test/parity/divergences.ts`); not wired in yet |
 | `engine/screen.ts` | `rerank.local_screen`, `webscreen.py`, `hooks.screen_text` | screening | **done and wired in** (five deliberate mutations each caught) |
 | `engine/client.ts` | `client.py`, `ledger.cost` | everything | **done** (six deliberate mutations each caught) |
-| `engine/backends.ts`, `engine/keys.ts` | `backends.py`, `tuning.check`, `keystore.py` (reading) | client | **done** for `systemone`; the `openai` (logprobs) protocol is still to do. Storing a key (`jev setup-key`) is not ported yet |
+| `engine/backends.ts`, `engine/keys.ts` | `backends.py`, `tuning.check`, `keystore.py` (reading) | client | **done** (`systemone`, the only protocol jev-skills has) |
 | `engine/skills.ts` | `skillpick.py`, `hooks.user_prompt` | skills | **done and wired in** (nine deliberate mutations caught; the tenth, `trim` for `strip` in the gate, cannot change an answer) |
 | `engine/lanes.ts`, `engine/policy.ts`, `core/limits.ts` | `lanes.classify`/`targets`, `decide.decide`, `policy.py` (load, lint, readings, rules, drift), `limits.py` | routing | **done and wired in** (thirteen deliberate mutations caught, after adding cases for two the first run missed) |
 | `engine/compact.ts` | `compact.select` | /compact-jev | **done and wired in** (nine deliberate mutations caught; the tenth, clipping at 701, cuts at the same 350 as 700 and cannot change an answer; 702 is caught) |
-| key setup | `key_setup.py` | first run | to do: no Python, the key never in the conversation |
+| key setup | `key_setup.py`, `jev doctor`, `jev switches` | first run | **done, differently**: the key is a sensitive `userConfig` field Claude Code keeps in secure storage and hands only to the mod (`/plugin` or `claude plugin configure`), so no page or terminal prompt is needed; `/jev-status` checks it with key_setup's own verification question; the switches and private mode are `/config` settings |

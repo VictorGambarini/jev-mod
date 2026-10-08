@@ -5,6 +5,7 @@ import * as compactJev from './features/compact-jev'
 import * as routing from './features/routing'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
+import * as status from './features/status'
 
 // jev-mod: a cheap decision model (Jev, or any decision backend) makes the small decisions
 // inside Claude Code, so the expensive model only does the work.
@@ -51,8 +52,12 @@ async function envOf($: any, name: string): Promise<string | undefined> {
   }
 }
 
+/** The mod's settings (its manifest's userConfig), as Claude Code handed them to register. */
+let options: Record<string, unknown> = {}
+
 function ioOf($: any): IO {
   return {
+    option: name => options[name] as string | boolean | undefined,
     run: (argv, init) => $.process.run(argv, init),
     fetch: (url, init) => $.http.fetch(url, init),
     readFile: path => $.fs.read(path),
@@ -97,9 +102,12 @@ function ioOf($: any): IO {
   }
 }
 
-export const register: Register = on => {
+// A change in /config, or a key set in the plugin's settings, reloads this module with the new options.
+export const register: Register = (on, given) => {
+  options = { ...(given ?? {}) }
   on('session.start', async ($, e, next) => {
     await $.command.register(compactJev.command)
+    await $.command.register(status.command)
     return next(e)
   })
 
@@ -129,6 +137,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'compact-jev' }, async $ => compactJev.run(ioOf($)))
+  on('command.run', { command: 'jev-status' }, async $ => status.run(ioOf($)))
 
   // Only the compaction /compact-jev queued; /compact and auto-compaction pass untouched.
   on('session.compact', async ($, e, next) => {

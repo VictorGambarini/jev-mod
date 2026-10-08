@@ -11,6 +11,8 @@ export type RunResult = { exitCode: number; stdout: string; stderr: string }
 export type Usage = { contextTokens: number; contextWindow?: number; contextPercent?: number }
 
 export interface IO {
+  /** One of the mod's settings (plugin.json userConfig): a secret field's value only ever goes to key lookup. */
+  option(name: string): string | boolean | undefined
   // the outside world
   run(argv: string[], init?: { stdin?: string; timeoutMs?: number }): Promise<RunResult>
   fetch(url: string, init?: FetchInit): Promise<FetchResponse>

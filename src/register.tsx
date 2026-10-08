@@ -260,7 +260,7 @@ export const register: Register = (on, given) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!bandOn || e.props.hasSurvey) return next(e)
     const features = await read($, band)
-    const segments = features ? line(features, Date.now()) : null
+    const segments = line(features ?? {}, Date.now())
     if (!segments) return next(e)
     const { Box, Text } = $.ui.resolve(e)
     return (

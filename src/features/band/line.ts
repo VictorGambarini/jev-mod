@@ -28,12 +28,12 @@ function backend(model: string | undefined): string {
   return owner ? `${short} · ${owner}` : short
 }
 
-/** The band's segments, or null when the mod has done nothing yet this session. */
+/** The band's segments; a dim "ready" line until the mod has done something this session. */
 export function line(features: Features, now: number): Segment[] | null {
   const routing = features.routing ?? {}
   const calls = features.jev ?? {}
   const screening = features.screening ?? {}
-  if (!routing.lane && !calls.calls && !calls.error) return null
+  if (!routing.lane && !calls.calls && !calls.error) return [{ text: '🧭 jev-mod ready', dim: true }, { text: ' · judges your next prompt', dim: true }]
   const out: Segment[] = []
   const lane = routing.lane as string | undefined
   if (lane && DIFFICULTY[lane]) {

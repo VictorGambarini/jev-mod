@@ -12,7 +12,7 @@ test('kept, withheld, failing, and nothing yet', () => {
     jev: { calls: 3, cost: 0.00002, model: 'Cloudflare/clef-flash', error: 'network', retryAt: 90_000 } }, 0)!
   expect(plain(kept)).toBe('🧭 hard · kept  $0.00002 (3)  🛡 withheld 2  🔌 clef-flash · Cloudflare ✗ network, retry in 2m')
   expect(kept.find(s => s.text.startsWith('🔌'))!.color).toBe('red')
-  expect(line({}, 0)).toBe(null)
+  expect(plain(line({}, 0)!)).toBe('🧭 jev-mod ready · judges your next prompt')
   expect(plain(line({ routing: { lane: 'as is' }, jev: { calls: 1, cost: 0 } }, 0)!)).toBe('🧭 not routed  $0.00000 (1)  🔌 jev')
 })
 

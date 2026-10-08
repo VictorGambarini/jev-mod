@@ -24,6 +24,7 @@ src/
     skills/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
     tool-gate/         index.ts (glue, on tool.check) · rules.ts (pure: risk classifier, state, verdict) · rules.test.ts
+    trim-output/       index.ts (glue, archive) · trim.ts (fold, chunk, drop: pure) · their tests
     compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
@@ -109,6 +110,14 @@ exits with the module, on `/jev-mod dashboard stop`, or when its parent process 
 Every feature in the registry, with its knobs, is in the state, so a new feature appears on the
 page with nothing added to the dashboard. With no bun or node, the same page is written as a
 file with the state inside it, read-only.
+
+## Tool results
+
+One `tool.call` hook changes what a tool returned, in a fixed order: screening first (WebFetch,
+WebSearch, MCP tools, Bash that fetches), then output trimming (every Bash output, a failed
+command's included), on the text screening left. Each step is self-contained in the hook and
+returns its own result or null; a step that returns null leaves the result as the step before it
+made it, and a hook that changed nothing hands core the very object `next(e)` gave it.
 
 ## Failure
 

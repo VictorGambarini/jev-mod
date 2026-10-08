@@ -16,6 +16,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
 | **Tool-call gate** (shadow by default) | before a consequential tool call Claude Code would allow: Bash that pushes, deletes, rewrites history, publishes, installs, deploys, migrates or writes outside the project; Write/Edit outside the project; MCP tools that send, create, change or delete | Whether you asked for it, whether it breaks a limit you stated ("don't push"), and whether it is hard to undo. A doubtful call is put to you in the permission dialog with the reason, instead of running unasked. It only tightens Claude Code's decision, never loosens it. |
 | **Completion gate** (`stop-gate`, shadow by default) | when the main agent ends a turn claiming the work is done or checks pass | Whether the turn's evidence (edited files, the commands it ran and the tail of their output) shows each claim. In `on`, an unshown claim sends the agent back once more, naming it and asking it to verify or say plainly what is unverified, never to take a hard-to-undo step; at most twice per prompt. |
+| **Output trimming** | after a Bash command prints 200 lines or more (shadow by default) | Runs of repeated and near-identical lines are folded locally; then each remaining chunk the current goal (your latest request and the command) no longer needs is replaced by a marker naming its lines. Errors, warnings, failures, stack traces, summaries and the first and last lines always stay. The full output is kept in `~/.cache/jev-mod/outputs/` (the last 50), and the trimmed output's first line names the file. Bash output that screening looked at is trimmed after screening, so only screened text reaches the model. |
 | **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
 | **`/jev-mod compact`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
@@ -114,6 +115,7 @@ the config file. Without bun or node it writes a read-only copy of the page inst
 | `skills` | on, shadow, off | on | suggests the installed skill that matches a prompt |
 | `screening` | on, shadow, off | on | withholds instructions aimed at the model in fetched text |
 | `tool-gate` | on, shadow, off | shadow | asks you before a consequential tool call the decision model doubts; settings `minConfidence` (0.7), `scope` (`bash`, `bash+edits`, `all-risky`), `timeoutMs` (2000) |
+| `trim-output` | on, shadow, off | shadow | cuts long Bash output down to what the current goal needs; `minLines` (200), `keepThreshold` (0.35), `localOnly` (false) |
 | `band` | on, off | on | the line above the prompt |
 | `stop-gate` | on, shadow, off | shadow | checks a turn's "done" against its evidence; `maxNudges` (0-5, 2) per prompt, `minConfidence` (0-1, 0.7) to send it back, `evidenceChars` (1000-20000, 6000) sent with each check |
 
@@ -136,7 +138,7 @@ default.
 
 `/config` keeps what has to live there: the keys, the provider, *jev-mod on* (untick it to turn
 everything off), and *Private* (send nothing: no routing or suggestions; fetched text is
-screened locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev-mod band* fields
+screened locally only; long output is folded locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev-mod band* fields
 still work when the files do not set that feature, and will go in a later release.
 
 ## Decision backends

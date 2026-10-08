@@ -222,6 +222,17 @@ def jev_state_dir() -> Path:
     return Path(os.environ.get("XDG_STATE_HOME") or HOME / ".local" / "state") / "jev" / "logs"
 
 
+def short_jev(model: Optional[str]) -> Optional[str]:
+    """jev-1.13.0 or typesafe/jev-1.13-20260917 -> jev-1.13."""
+    if not model:
+        return None
+    name = str(model).split("/")[-1]
+    parts = name.split("-")
+    if len(parts) > 2 and parts[-1].isdigit():
+        return "-".join(parts[:2])
+    return ".".join(name.split(".")[:2]) if name.count(".") >= 2 else name
+
+
 def last_jev_model() -> Optional[str]:
     """The model the newest ledger row was answered by, e.g. typesafe/jev-1.13-20260917 -> jev-1.13."""
     try:
@@ -236,7 +247,7 @@ def last_jev_model() -> Optional[str]:
     return "-".join(parts[:2]) if len(parts) > 2 and parts[-1].isdigit() else (model or None)
 
 
-def backend() -> str:
+def backend(recorded: Optional[str] = None) -> str:
     """'<decision model> · <where it is served>', e.g. jev-1.13 · openrouter or clef-flash · lais05."""
     xdg = Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "jev"
     config = read_json(Path(os.environ.get("JEV_BACKENDS") or xdg / "backends.json"))
@@ -249,7 +260,7 @@ def backend() -> str:
     for provider in ("typesafe", "openrouter", "venice", "zen"):
         file = "credentials" if provider == "typesafe" else f"credentials-{provider}"
         if (xdg / file).is_file():
-            return f"{last_jev_model() or 'jev'} · {provider}"
+            return f"{short_jev(recorded) or last_jev_model() or 'jev'} · {provider}"
     return "jev"
 
 
@@ -308,7 +319,7 @@ def line_jev(data: Dict[str, Any]) -> Optional[str]:
     if screening.get("withheld"):
         parts.append("🛡 " + c(f"withheld {screening['withheld']}", RED))
 
-    where = f"🔌 {backend()}"
+    where = f"🔌 {backend(calls.get('model'))}"
     error = calls.get("error")
     if error:
         left = ((calls.get("retryAt") or 0) / 1000) - time.time()

@@ -187,3 +187,114 @@ export class Text {
     return at === -1 ? -1 : this.cp(at)
   }
 }
+
+/** Python's `pattern.fullmatch(text)`: the whole text, with no allowance for a final newline. */
+export function fullmatch(re: RegExp, text: string): boolean {
+  const m = matchStart(re, text)
+  return m !== null && m[0].length === text.length
+}
+
+const NOT_PRINTABLE = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Cn}\p{Zl}\p{Zp}\p{Zs}]/u
+
+/** Python's repr() of a string, as its error messages quote one. */
+export function repr(s: string): string {
+  const quote = s.includes("'") && !s.includes('"') ? '"' : "'"
+  let out = quote
+  for (const c of s) {
+    if (c === '\\') out += '\\\\'
+    else if (c === quote) out += '\\' + c
+    else if (c === '\n') out += '\\n'
+    else if (c === '\r') out += '\\r'
+    else if (c === '\t') out += '\\t'
+    else if (c !== ' ' && NOT_PRINTABLE.test(c)) {
+      const cp = c.codePointAt(0)!
+      out += cp < 0x100 ? '\\x' + cp.toString(16).padStart(2, '0')
+        : cp < 0x10000 ? '\\u' + cp.toString(16).padStart(4, '0') : '\\U' + cp.toString(16).padStart(8, '0')
+    } else out += c
+  }
+  return out + quote
+}
+
+/** Python's str.splitlines(). */
+export function splitlines(text: string): string[] {
+  const lines = text.split(/\r\n|[\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029]/)
+  if (lines.length && lines[lines.length - 1] === '') lines.pop()
+  return lines
+}
+
+/** Python's float(text), or null where it raises ValueError. */
+export function pyFloat(text: string): number | null {
+  const s = strip(text).replace(/(?<=\d)_(?=\d)/g, '')
+  if (/^[+-]?(?:inf|infinity)$/i.test(s)) return s.startsWith('-') ? -Infinity : Infinity
+  if (/^[+-]?nan$/i.test(s)) return NaN
+  if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(s)) return null
+  return Number(s)
+}
+
+export type SplitURL = {
+  scheme: string; netloc: string; path: string; query: string; fragment: string
+  hostname: string | null; username: string | null; password: string | null
+  /** Python's .port: null when absent; throws where Python raises ValueError. */
+  port(): number | null
+}
+
+/** urllib.parse.urlsplit, including what it quietly drops (leading controls, \t \r \n). */
+export function urlsplit(input: string): SplitURL {
+  let url = input.replace(/^[\x00-\x20]+/, '').replace(/[\t\r\n]/g, '')
+  let scheme = ''
+  let netloc = ''
+  let query = ''
+  let fragment = ''
+  const colon = url.indexOf(':')
+  if (colon > 0 && /^[A-Za-z]$/.test(url[0]) && /^[A-Za-z0-9+\-.]+$/.test(url.slice(0, colon))) {
+    scheme = url.slice(0, colon).toLowerCase()
+    url = url.slice(colon + 1)
+  }
+  if (url.startsWith('//')) {
+    let end = url.length
+    for (const c of '/?#') {
+      const at = url.indexOf(c, 2)
+      if (at >= 0) end = Math.min(end, at)
+    }
+    netloc = url.slice(2, end)
+    url = url.slice(end)
+    if (netloc.includes('[') !== netloc.includes(']')) throw new Error('Invalid IPv6 URL')
+  }
+  const hash = url.indexOf('#')
+  if (hash >= 0) { fragment = url.slice(hash + 1); url = url.slice(0, hash) }
+  const q = url.indexOf('?')
+  if (q >= 0) { query = url.slice(q + 1); url = url.slice(0, q) }
+  const at = netloc.lastIndexOf('@')
+  const userinfo = at >= 0 ? netloc.slice(0, at) : null
+  const hostinfo = at >= 0 ? netloc.slice(at + 1) : netloc
+  let host: string
+  let portText: string
+  if (hostinfo.startsWith('[')) {
+    const close = hostinfo.indexOf(']')
+    host = hostinfo.slice(1, close)
+    const after = hostinfo.slice(close + 1)
+    portText = after.startsWith(':') ? after.slice(1) : ''
+  } else {
+    const c = hostinfo.indexOf(':')
+    host = c >= 0 ? hostinfo.slice(0, c) : hostinfo
+    portText = c >= 0 ? hostinfo.slice(c + 1) : ''
+  }
+  let username: string | null = null
+  let password: string | null = null
+  if (userinfo !== null) {
+    const c = userinfo.indexOf(':')
+    username = c >= 0 ? userinfo.slice(0, c) : userinfo
+    password = c >= 0 ? userinfo.slice(c + 1) : null
+  }
+  return {
+    scheme, netloc, path: url, query, fragment, username, password,
+    hostname: host ? host.toLowerCase() : null,
+    port() {
+      if (!portText) return null
+      if (!/^[0-9]+$/.test(portText)) throw new Error(`Port could not be cast to integer value as ${repr(portText)}`)
+      const n = Number(portText)
+      if (n > 65535) throw new Error('Port out of range 0-65535')
+      return n
+    },
+  }
+}

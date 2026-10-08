@@ -1,0 +1,202 @@
+[
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint": "https://gw.example/v1/systemone",
+  "url": "https://gw.example"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint": "https://gw.example/v1/systemone",
+  "url": "https://gw.example/"
+ },
+ {
+  "check_url": "https://gw.example/jev",
+  "custom_endpoint": "https://gw.example/jev/v1/systemone",
+  "url": "https://gw.example/jev"
+ },
+ {
+  "check_url": "https://gw.example/jev",
+  "custom_endpoint": "https://gw.example/jev/v1/systemone",
+  "url": "https://gw.example/jev/"
+ },
+ {
+  "check_url": "https://gw.example/v1/systemone",
+  "custom_endpoint": "https://gw.example/v1/systemone/v1/systemone",
+  "url": "https://gw.example/v1/systemone"
+ },
+ {
+  "check_url_error": "the URL must be http(s)://host/path",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example:0/x"
+ },
+ {
+  "check_url_error": "not a usable URL: 'https://gw.example:99999/x'",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example:99999/x"
+ },
+ {
+  "check_url_error": "not a usable URL: 'https://gw.example:abc/x'",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example:abc/x"
+ },
+ {
+  "check_url": "https://gw.example:8443/x",
+  "custom_endpoint": "https://gw.example:8443/x/v1/systemone",
+  "url": "https://gw.example:8443/x"
+ },
+ {
+  "check_url": "https://[::1]:8080/x",
+  "custom_endpoint": "https://[::1]:8080/x/v1/systemone",
+  "url": "https://[::1]:8080/x"
+ },
+ {
+  "check_url": "http://[::1]/x",
+  "custom_endpoint": "http://[::1]/x/v1/systemone",
+  "url": "http://[::1]/x"
+ },
+ {
+  "check_url": "http://127.0.0.1/x",
+  "custom_endpoint": "http://127.0.0.1/x/v1/systemone",
+  "url": "http://127.0.0.1/x"
+ },
+ {
+  "check_url": "http://localhost/x",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "http://localhost/x"
+ },
+ {
+  "check_url_error": "plain http is allowed only on 127.0.0.1, ::1 or localhost; use https",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "http://gw.example/x"
+ },
+ {
+  "check_url": "HTTPS://GW.Example/x",
+  "custom_endpoint": "HTTPS://GW.Example/x/v1/systemone",
+  "url": "HTTPS://GW.Example/x"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/a b"
+ },
+ {
+  "check_url": "https://gw.example/x",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": " https://gw.example/x "
+ },
+ {
+  "check_url": "https://gw.example/x",
+  "custom_endpoint": "https://gw.example/x\n/v1/systemone",
+  "url": "https://gw.example/x\n"
+ },
+ {
+  "check_url": "https://gw.ex\tample/x",
+  "custom_endpoint": "https://gw.ex\tample/x/v1/systemone",
+  "url": "https://gw.ex\tample/x"
+ },
+ {
+  "check_url": "https://@gw.example/x",
+  "custom_endpoint": "https://@gw.example/x/v1/systemone",
+  "url": "https://@gw.example/x"
+ },
+ {
+  "check_url_error": "the URL may not carry a user, password, query or fragment",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://u@gw.example/x"
+ },
+ {
+  "check_url_error": "the URL may not carry a user, password, query or fragment",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://u:p@gw.example/x"
+ },
+ {
+  "check_url": "https://gw.example/x?",
+  "custom_endpoint": "https://gw.example/x?/v1/systemone",
+  "url": "https://gw.example/x?"
+ },
+ {
+  "check_url_error": "the URL may not carry a user, password, query or fragment",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/x?a=1"
+ },
+ {
+  "check_url": "https://gw.example/x#",
+  "custom_endpoint": "https://gw.example/x#/v1/systemone",
+  "url": "https://gw.example/x#"
+ },
+ {
+  "check_url_error": "the URL may not carry a user, password, query or fragment",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/x#f"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/./x"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/../x"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/a/.."
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example//x"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/%2e%2e/x"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/x\\y"
+ },
+ {
+  "check_url_error": "the URL needs the full endpoint path, like https://host/v1/systemone",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https://gw.example/ü"
+ },
+ {
+  "check_url_error": "the URL must be http(s)://host/path",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "ftp://gw.example/x"
+ },
+ {
+  "check_url_error": "the URL must be http(s)://host/path",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "https:///x"
+ },
+ {
+  "check_url_error": "the URL must be http(s)://host/path",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "//gw.example/x"
+ },
+ {
+  "check_url_error": "the URL must be http(s)://host/path",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": "gw.example/x"
+ },
+ {
+  "check_url_error": "the URL must be http(s)://host/path",
+  "custom_endpoint_error": "invalid_endpoint",
+  "url": ""
+ },
+ {
+  "check_url": "https://gw.example:/x",
+  "custom_endpoint": "https://gw.example:/x/v1/systemone",
+  "url": "https://gw.example:/x"
+ },
+ {
+  "check_url": "https://gw.example/a;b=c/@d",
+  "custom_endpoint": "https://gw.example/a;b=c/@d/v1/systemone",
+  "url": "https://gw.example/a;b=c/@d"
+ }
+]

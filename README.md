@@ -25,10 +25,11 @@ failed call the mod stops asking for five minutes, so a backend that is down cos
 /plugin install jev-mod --marketplace VictorGambarini/jev-mod
 ```
 
-**For now it also needs the `jev` command** from [hermes-jev-skills](https://github.com/kerpopule/hermes-jev-skills)
-on your PATH, with a decision backend connected (`jev doctor`). The engine is being ported into
-the mod in TypeScript ([docs/PORTING.md](docs/PORTING.md)); once it is, jev-mod needs nothing
-else.
+**For now routing, skill suggestions and /compact-jev also need the `jev` command** from
+[hermes-jev-skills](https://github.com/kerpopule/hermes-jev-skills) on your PATH, and the key
+is still set up with `jev setup-key`. Screening already runs inside the mod, with no Python:
+it reads the same keys and `backends.json` the `jev` command does. The rest of the engine is
+being ported ([docs/PORTING.md](docs/PORTING.md)); once it is, jev-mod needs nothing else.
 
 ## Decision backends
 

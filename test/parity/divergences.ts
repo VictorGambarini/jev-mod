@@ -27,3 +27,20 @@ export const DIVERGENCES: Record<string, Divergence> = {
   'deadbeefdeadbeefdeadbeefdeadbeefé': { redact: '[hex]é', redact_80: '[hex]é', why: ACCENT_BOUNDARY },
   'édeadbeefdeadbeefdeadbeefdeadbeef': { redact: 'é[hex]', redact_80: 'é[hex]', why: ACCENT_BOUNDARY },
 }
+
+// URLs that backends.check_url or client._custom_typesafe_endpoint accepted although the URL
+// they checked was not the one requested: Python's urlsplit drops tabs and newlines before
+// checking, reads past an empty "?" or "#", and an empty user before "@", and the request then
+// carries them ("https://gw.example/x?" became the endpoint ".../x?/v1/systemone", a query).
+// The port refuses them all.
+const CARRIES = { check_url_error: 'the URL may not carry a user, password, query or fragment' }
+const INVALID = { custom_endpoint_error: 'invalid_endpoint' }
+export const URL_DIVERGENCES: Record<string, { check_url?: unknown; custom_endpoint?: unknown }> = {
+  // check_url strips a trailing newline before checking and returning, so only the gateway differs.
+  'https://gw.example/x\n': { custom_endpoint: INVALID },
+  'https://gw.ex\tample/x': { check_url: CARRIES, custom_endpoint: INVALID },
+  'https://@gw.example/x': { check_url: CARRIES, custom_endpoint: INVALID },
+  'https://gw.example/x?': { check_url: CARRIES, custom_endpoint: INVALID },
+  'https://gw.example/x#': { check_url: CARRIES, custom_endpoint: INVALID },
+  'https://gw.example/a;b=c/@d': { check_url: CARRIES, custom_endpoint: INVALID },
+}

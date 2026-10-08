@@ -1,8 +1,10 @@
 # Porting the engine to TypeScript
 
-jev-mod's features still call the Python `jev` command (src/core/jev.ts). Each engine module
-moves into `src/engine/`, in TypeScript, reaching the outside world only through `IO`; when a
-module reproduces its parity fixtures exactly, the features switch to it and the CLI call goes.
+Each engine module moves from jev-skills' Python into `src/engine/`, in TypeScript, reaching the
+outside world only through a `Host` (`core/host.ts` builds one from `IO`); when a module
+reproduces its parity fixtures exactly, the features switch to it and their call to the Python
+`jev` command (src/core/jev.ts) goes. Screening has switched; routing, skills and
+/compact-jev still call the command.
 
 ## Parity fixtures
 
@@ -20,7 +22,10 @@ record both the request sent and the decision reached:
 | `screen_patterns.json` | the source of every compiled pattern in the screen, which the port must copy exactly | 37 |
 | `webscreen.json` | chunking, units (structured and raw), withholding | 27 texts, 11 unit sets |
 | `webscreen_unicode.json` | the same, on astral characters at the chunk edge, Python's whitespace, and Python's JSON (key order, big integers, floats, NaN, malformed shapes) | 5 texts, 14 unit sets |
-| `client.json` | answer validation (incl. each invariant), question checks | 14 + 8 |
+| `client.json` | answer validation (incl. each invariant), question checks, word for word | 39 + 24 |
+| `client_ask.json` | `ask`: for each way a request is routed (every provider, a gateway, named backends, overrides, missing keys, the size limit in code points, retries, refused replies) the exact URL, body and headers sent, the reply, and the outcome | 54 |
+| `urls.json` | `backends.check_url` and the gateway rule on URL edge cases | 40 |
+| `webscreen_screen.json` | screening end to end against the scripted backend: requests, verdict, withheld text | 10 |
 | `lanes.json` | `lane classify`: request and decision, every lane | 49 |
 | `skills.json` | the catalog, `pick`: requests and picks, every branch | 16 |
 | `compact.json` | `compact-select`: requests and fates | 2 |
@@ -43,6 +48,18 @@ A fixture passing proves little until it is shown to fail: for each port, break 
 translation on purpose (a window off by one, JavaScript's `$`, its whitespace, its float
 format) and check that a parity test catches it. Where none does, the fixture needs cases.
 
+Known differences that are not fixture answers, and why:
+
+- **Redirects.** client.py refused every 3xx. Claude Code's fetch follows a redirect but drops
+  `Authorization` when it leaves the origin (checked against two local servers), so a key still
+  cannot reach another host; the redirected reply then fails to parse and the call fails open.
+- **Who the client says it is.** `User-Agent`, and OpenRouter's `HTTP-Referer` and `X-Title`,
+  name jev-mod rather than jev-skills. The parity test passes jev-skills' values in.
+- **A cool-off screens locally.** The CLI path skipped screening entirely while the backend was
+  cooling off after a failure; the engine path screens with the local patterns meanwhile.
+- **backends.json that cannot be read** (a permissions error, say) reads as no file at all,
+  rather than as a misconfiguration; a file that is not JSON is still a misconfiguration.
+
 A port may fix what the original got wrong, but only visibly: the fixture keeps Python's
 answer, `test/parity/divergences.ts` gives the new one and why, and the parity test fails if
 an entry stops differing.
@@ -52,9 +69,9 @@ an entry stops differing.
 | Module | From | Used by | Status |
 |---|---|---|---|
 | `engine/privacy.ts` | `privacy.py` | everything that sends text | **done**: 890 cases, 10 of them deliberately different (leak fixes, `test/parity/divergences.ts`); not wired in yet |
-| `engine/screen.ts` | `rerank.local_screen`, `webscreen.py` | screening | **done** for the local screen, chunks, units and withholding (all fixtures; five deliberate mutations each caught). Asking Jev per chunk waits for `client.ts`; not wired in yet |
-| `engine/client.ts` | `client.py` (questions, answer validation, transports) | everything | to do |
-| `engine/backends.ts` | `backends.py`, `keystore.py` | client | to do: `systemone` and `openai` (logprobs) protocols |
+| `engine/screen.ts` | `rerank.local_screen`, `webscreen.py`, `hooks.screen_text` | screening | **done and wired in** (five deliberate mutations each caught) |
+| `engine/client.ts` | `client.py`, `ledger.cost` | everything | **done** (six deliberate mutations each caught) |
+| `engine/backends.ts`, `engine/keys.ts` | `backends.py`, `tuning.check`, `keystore.py` (reading) | client | **done** for `systemone`; the `openai` (logprobs) protocol is still to do. Storing a key (`jev setup-key`) is not ported yet |
 | `engine/skills.ts` | `skillpick.py` | skills | to do |
 | `engine/lanes.ts` | `lanes.py`, `policy.py`, `decide.py` (what `lane` needs) | routing | to do |
 | `engine/compact.ts` | `compact.py` | /compact-jev | to do |

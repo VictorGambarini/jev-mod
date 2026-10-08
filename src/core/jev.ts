@@ -11,7 +11,7 @@ import * as memory from './memory'
 // Every call is also tallied in the session's "jev" namespace for the status line: the
 // running cost and call count, and the last failure with when the cool-off ends.
 
-export type JevSpace = { cost?: number; calls?: number; error?: string | null; retryAt?: number }
+export type JevSpace = { cost?: number; calls?: number; error?: string | null; retryAt?: number; model?: string }
 
 export const COOL_OFF_MS = 5 * 60_000
 let quietUntil = 0
@@ -42,12 +42,24 @@ export async function jev(io: IO, args: string[], stdin: string, timeoutMs: numb
 }
 
 async function tally(io: IO, out: any, error: string | null, now: number): Promise<void> {
-  const mine = memory.space<JevSpace>('jev')
   const cost = Number(out?.decision?.cost_usd ?? out?.cost_usd)
-  mine.calls = (mine.calls ?? 0) + 1
-  if (Number.isFinite(cost)) mine.cost = (mine.cost ?? 0) + cost
-  mine.error = error
-  mine.retryAt = error === null ? undefined : now + COOL_OFF_MS
+  await record(io, { calls: 1, cost: Number.isFinite(cost) ? cost : 0, error, now })
+}
+
+/**
+ * One or more backend calls, for the status line: their cost and count added to the session's
+ * running total, the model that answered, and the last failure with when its cool-off ends. A
+ * failure also starts the cool-off here, whichever path (CLI or engine) made the call.
+ */
+export async function record(io: IO, call: { calls: number; cost: number; error: string | null; model?: string | null; now?: number }): Promise<void> {
+  const now = call.now ?? Date.now()
+  const mine = memory.space<JevSpace>('jev')
+  mine.calls = (mine.calls ?? 0) + call.calls
+  mine.cost = (mine.cost ?? 0) + call.cost
+  if (call.model) mine.model = call.model
+  mine.error = call.error
+  mine.retryAt = call.error === null ? undefined : now + COOL_OFF_MS
+  if (call.error !== null) quietUntil = Math.max(quietUntil, now + COOL_OFF_MS)
   await memory.save(io)
 }
 

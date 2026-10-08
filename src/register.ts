@@ -17,6 +17,40 @@ import * as skills from './features/skills'
 // Every decision fails open: a feature that cannot decide leaves the request exactly as Claude
 // Code would have sent it.
 
+/**
+ * An environment variable. The validator wants each `$.env.get` named by literal, so the ones
+ * the engine reads are listed; any other (a backend's own key variable, which its config
+ * names) is read by running printenv.
+ */
+async function envOf($: any, name: string): Promise<string | undefined> {
+  const read = (value: string | null | undefined) => value ?? undefined
+  switch (name) {
+    case 'HOME': return read(await $.env.get('HOME'))
+    case 'XDG_CONFIG_HOME': return read(await $.env.get('XDG_CONFIG_HOME'))
+    case 'JEV_HOME': return read(await $.env.get('JEV_HOME'))
+    case 'JEV_BACKEND': return read(await $.env.get('JEV_BACKEND'))
+    case 'JEV_BACKENDS': return read(await $.env.get('JEV_BACKENDS'))
+    case 'JEV_PROVIDER': return read(await $.env.get('JEV_PROVIDER'))
+    case 'JEV_MODEL': return read(await $.env.get('JEV_MODEL'))
+    case 'TYPESAFE_MODEL': return read(await $.env.get('TYPESAFE_MODEL'))
+    case 'TYPESAFE_BASE_URL': return read(await $.env.get('TYPESAFE_BASE_URL'))
+    case 'TYPESAFE_API_KEY': return read(await $.env.get('TYPESAFE_API_KEY'))
+    case 'OPENROUTER_API_KEY': return read(await $.env.get('OPENROUTER_API_KEY'))
+    case 'VENICE_API_KEY': return read(await $.env.get('VENICE_API_KEY'))
+    case 'OPENCODE_ZEN_API_KEY': return read(await $.env.get('OPENCODE_ZEN_API_KEY'))
+    case 'JEV_PROXY_API_KEY': return read(await $.env.get('JEV_PROXY_API_KEY'))
+    default: {
+      if (!/^[A-Z][A-Z0-9_]{0,63}$/.test(name)) return undefined
+      try {
+        const ran = await $.process.run(['printenv', name], { timeoutMs: 5000 })
+        return ran.exitCode === 0 ? ran.stdout.replace(/\n$/, '') : undefined
+      } catch {
+        return undefined
+      }
+    }
+  }
+}
+
 function ioOf($: any): IO {
   return {
     run: (argv, init) => $.process.run(argv, init),
@@ -24,6 +58,8 @@ function ioOf($: any): IO {
     readFile: path => $.fs.read(path),
     writeFile: (path, text) => $.fs.write(path, text),
     home: () => $.env.get('HOME'),
+    env: name => envOf($, name),
+    sleep: ms => $.clock.sleep(ms),
     sessionId: () => $.session.id(),
     usage: async () => {
       const { context } = await $.session.usage()

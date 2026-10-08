@@ -21,7 +21,7 @@ const SPACE = /[ \t\n\r]*/y
 
 /** json.loads: throws PyJSONError where Python raises. */
 export function loads(text: string): PyValue {
-  if (text.startsWith('﻿')) throw new PyJSONError('Unexpected UTF-8 BOM')
+  if (text.startsWith('\ufeff')) throw new PyJSONError('Unexpected UTF-8 BOM')
   let at = 0
   const skip = () => { SPACE.lastIndex = at; SPACE.exec(text); at = SPACE.lastIndex }
   const fail = (what: string): never => { throw new PyJSONError(`${what} at ${at}`) }
@@ -167,4 +167,48 @@ export function truthy(value: PyValue | undefined): boolean {
   if (Array.isArray(value)) return value.length > 0
   if (value instanceof Map) return value.size > 0
   return true
+}
+
+const ASCII_NAMED: Record<string, string> = { ...NAMED }
+
+/** A string as json.dumps writes it with ensure_ascii=True: everything outside ' '..'~' escaped. */
+function quoteAscii(s: string): string {
+  return '"' + s.replace(/[^ -~]|[\\"]/g, c => ASCII_NAMED[c] ?? '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')) + '"'
+}
+
+/**
+ * json.dumps(value, separators=..., ensure_ascii=..., default=str) on a JavaScript value, as
+ * the client sends a request. A JavaScript number does not say whether it was an int or a
+ * float, so one that is a whole number below 1e16 is written as an int and anything else as
+ * Python writes a float. Maps and the PyValue types are written as `dumps` writes them.
+ */
+export function encode(value: unknown, options: { compact?: boolean; ensureAscii?: boolean } = {}): string {
+  const [item, key] = options.compact ? [',', ':'] : [', ', ': ']
+  const q = options.ensureAscii === false ? quote : quoteAscii
+  const walk = (v: unknown): string => {
+    if (v === null || v === undefined) return 'null'
+    if (v === true) return 'true'
+    if (v === false) return 'false'
+    if (typeof v === 'string') return q(v)
+    if (typeof v === 'bigint') return v.toString()
+    if (typeof v === 'number') return Number.isInteger(v) && Math.abs(v) < 1e16 ? String(v === 0 ? 0 : v) : floatRepr(v)
+    if (v instanceof PyFloat) return floatRepr(v.value)
+    if (Array.isArray(v)) return '[' + v.map(walk).join(item) + ']'
+    if (v instanceof Map) return '{' + [...v].map(([k, x]) => q(String(k)) + key + walk(x)).join(item) + '}'
+    if (typeof v === 'object') {
+      return '{' + Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined)
+        .map(([k, x]) => q(k) + key + walk(x)).join(item) + '}'
+    }
+    return q(String(v)) // default=str
+  }
+  return walk(value)
+}
+
+/** A parsed PyValue as plain JavaScript: objects, arrays, numbers. */
+export function toPlain(value: PyValue | undefined): unknown {
+  if (value instanceof Map) return Object.fromEntries([...value].map(([k, v]) => [k, toPlain(v)]))
+  if (Array.isArray(value)) return value.map(toPlain)
+  if (typeof value === 'bigint') return Number(value)
+  if (value instanceof PyFloat) return value.value
+  return value
 }

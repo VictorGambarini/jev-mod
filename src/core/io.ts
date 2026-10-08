@@ -6,7 +6,7 @@
 // that to every feature, the engine and the core. A test hands them a fake IO instead.
 
 export type FetchInit = { method?: string; headers?: Record<string, string>; body?: string }
-export type FetchResponse = { status: number; ok: boolean; text: string }
+export type FetchResponse = { status: number; ok: boolean; text: string; headers?: Record<string, string> }
 export type RunResult = { exitCode: number; stdout: string; stderr: string }
 export type Usage = { contextTokens: number; contextWindow?: number; contextPercent?: number }
 
@@ -17,6 +17,9 @@ export interface IO {
   readFile(path: string): Promise<string>
   writeFile(path: string, text: string): Promise<void>
   home(): Promise<string | undefined>
+  /** An environment variable; the ones the engine reads by name are listed in register.ts. */
+  env(name: string): Promise<string | undefined>
+  sleep(ms: number): Promise<void>
   // this session
   sessionId(): Promise<string | null>
   usage(): Promise<Usage>

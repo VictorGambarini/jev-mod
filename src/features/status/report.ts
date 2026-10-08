@@ -17,7 +17,7 @@ export type Facts = {
 }
 
 const SOURCE: Record<KeySource, string> = {
-  environment: 'from the environment', settings: "from this mod's settings (secure storage)",
+  environment: 'from the environment', settings: "from this mod's settings (Claude Code's credential store)",
   keychain: "from the OS secret store (jev-skills' setup-key)", file: "from ~/.config/jev (jev-skills' setup-key)",
   none: 'none found',
 }
@@ -26,7 +26,7 @@ const NAMES: Record<string, string> = { typesafe: 'TypeSafe', openrouter: 'OpenR
 
 /** What to do about a failed check, by its code. */
 function advice(error: string, facts: Facts): string {
-  if (error === 'no_key') return "Set a key: /plugin, open jev-mod's settings (or run `claude plugin configure jev-mod` in your own terminal)."
+  if (error === 'no_key') return "Set a key in jev-mod's settings: /plugin, or `claude plugin configure jev-mod@jev-mod --values-stdin` in your own terminal (README)."
   if (error === 'auth_failed') return facts.backend ? "The server refused the key: set the named backend key in jev-mod's settings."
     : `${NAMES[facts.provider] ?? 'The provider'} refused the key: replace it in jev-mod's settings.`
   if (error === 'credits_exhausted') return 'The account is out of credit.'

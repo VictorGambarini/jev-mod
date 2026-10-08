@@ -27,6 +27,8 @@ test("the mod's key is for the provider picked beside it, after the environment 
   expect(await providerKey(host({}, { api_key: 'ts-settings-0001' }), 'typesafe')).toBe('ts-settings-0001')
   expect(await provider(host({}, { api_key: '  ', provider: 'venice' }))).toBe('absent')
   expect(await keySource(host({}, {}), 'zen')).toBe('none')
+  // A secret setting cannot be emptied, so "none" stands for no key.
+  expect(await providerKey(host({}, { api_key: 'None' }, { '/home/u/.config/jev/credentials': 'TYPESAFE_API_KEY=ts-file-0001\n' }), 'typesafe')).toBe('ts-file-0001')
 })
 
 test("a named backend takes the mod's backend key, never the provider key", async () => {

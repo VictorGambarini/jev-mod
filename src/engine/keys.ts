@@ -1,7 +1,7 @@
 // Where a decision backend's key lives, and how to read it without showing it.
 //
 // For each built-in provider, first hit wins: its environment variable, the key set in the
-// mod's own settings (kept by Claude Code in secure storage, for the provider picked there), the
+// mod's own settings (kept in Claude Code's credential store, for the provider picked there), the
 // OS secret store (macOS Keychain or secret-tool), then a 0600 file under ~/.config/jev. A named backend's
 // key is read the same way under its own name, so it can never be mistaken for a provider key
 // and a provider key can never be read as a backend's.
@@ -59,8 +59,10 @@ async function envKey(host: KeyHost, name: string): Promise<string | undefined> 
   return strip((await host.env(name)) ?? '') || undefined
 }
 
+// A secret setting cannot be emptied once set (an empty value keeps the old one), so "none" clears it.
 async function settingKey(host: KeyHost, name: 'api_key' | 'backend_api_key'): Promise<string | undefined> {
-  return strip((await host.setting?.(name)) ?? '') || undefined
+  const value = strip((await host.setting?.(name)) ?? '')
+  return value && value.toLowerCase() !== 'none' ? value : undefined
 }
 
 /** The provider the mod's settings hold a key for, or undefined. */

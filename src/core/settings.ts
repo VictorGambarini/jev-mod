@@ -41,7 +41,8 @@ export function routingOn(io: IO): boolean {
 
 /** Private sends nothing: the mod's setting, or the profile listed in routing.json's private_profiles (or one we cannot read). */
 export async function isPrivate(io: IO, dir: string): Promise<boolean> {
-  if (io.option('private') === true) return true
+  const set = io.option('private')
+  if (set === true || set === 'true') return true
   const text = await hostOf(io).readFile(`${dir}/routing.json`)
   if (text === undefined) return false
   try {

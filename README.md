@@ -26,13 +26,17 @@ failed call the mod stops asking for five minutes, so a backend that is down cos
 ```
 
 Installing asks for the mod's settings. **The key** is your TypeSafe key (or OpenRouter, Venice or
-OpenCode Zen: pick which beside it). Claude Code keeps it in your OS's secure storage and hands
-it only to the mod; it never enters the conversation, so Claude never sees it. To set or change
-it later, open jev-mod in `/plugin`, or run this in your own terminal (not through Claude):
+OpenCode Zen: pick which beside it). Claude Code keeps it in its own credential store, the
+Keychain on macOS and `~/.claude/.credentials.json` (a 0600 file, beside your Claude login) on
+Linux, and hands it only to the mod: it never enters the conversation, so Claude never sees it.
+To set or change it later, open jev-mod in `/plugin`, or run this in your own terminal (not
+through Claude):
 
 ```bash
-read -rs KEY && printf '{"api_key":"%s"}' "$KEY" | claude plugin configure jev-mod --values-stdin; unset KEY
+read -rs KEY && printf '{"api_key":"%s"}' "$KEY" | claude plugin configure jev-mod@jev-mod --values-stdin; unset KEY
 ```
+
+An empty value keeps the key already set; set it to `none` to stop using it.
 
 Then check it with **`/jev-status`**: the backend, where its key came from (never the key), a live
 check call, the switches, and today's spend.

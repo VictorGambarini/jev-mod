@@ -1,6 +1,6 @@
 {
   "name": "jev-mod",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A cheap decision model picks each turn's skill, model and effort, compacts on request, and withholds injected text",
   "author": {
     "name": "Victor Gambarini"
@@ -13,7 +13,7 @@
       "title": "Decision backend key",
       "sensitive": true,
       "required": false,
-      "description": "Your key for the provider below (TypeSafe unless you pick another). Kept in your OS's secure storage and handed only to this mod, never to the conversation. Leave empty to use a key in the environment or one jev-skills stored."
+      "description": "Your key for the provider below (TypeSafe unless you pick another). Kept in Claude Code's credential store (the Keychain on macOS; ~/.claude/.credentials.json, a 0600 file, on Linux) and handed only to this mod, never to the conversation. Leave empty to use a key in the environment or one jev-skills stored; set it to none to stop using one set here."
     },
     "provider": {
       "type": "string",
@@ -32,7 +32,7 @@
       "title": "Named backend key",
       "sensitive": true,
       "required": false,
-      "description": "The key for the decision server named as default in ~/.config/jev/backends.json, if you use one. Kept in secure storage."
+      "description": "The key for the decision server named as default in ~/.config/jev/backends.json, if you use one. Kept in Claude Code's credential store (the Keychain on macOS; ~/.claude/.credentials.json, a 0600 file, on Linux); none stops using it."
     },
     "routing": {
       "type": "string",

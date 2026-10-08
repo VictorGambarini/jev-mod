@@ -11,7 +11,7 @@ test('a working setup reads as one line each: backend, key source, check, switch
   expect(report(base)).toBe([
     'jev-mod 0.4.0',
     'backend: Jev through TypeSafe',
-    "key: from this mod's settings (secure storage)",
+    "key: from this mod's settings (Claude Code's credential store)",
     'check: ok, answered by jev-1.13.0 in 412 ms ($0.00002)',
     'switches: routing on · skills on · screening on',
     'today: $0.0017 of the $1.00 daily budget',
@@ -21,7 +21,7 @@ test('a working setup reads as one line each: backend, key source, check, switch
 test('a failure says what to do, for a provider and for a named backend', () => {
   const noKey = report({ ...base, provider: 'absent', keySource: 'none', check: { ok: false, error: 'no_key', said: '' } })
   expect(noKey).toContain('backend: none (no key found')
-  expect(noKey).toContain("check: failed (no_key). Set a key: /plugin, open jev-mod's settings")
+  expect(noKey).toContain("check: failed (no_key). Set a key in jev-mod's settings: /plugin, or `claude plugin configure jev-mod@jev-mod")
   const refused = report({ ...base, backend: { name: 'lais05', model: 'clef-flash', url: 'https://x/v1/systemone' },
     keySource: 'file', check: { ok: false, error: 'auth_failed', said: 'HTTP 401: bad key' } })
   expect(refused).toContain('backend: lais05 · clef-flash at https://x/v1/systemone')

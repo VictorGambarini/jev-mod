@@ -22,6 +22,7 @@ test('a switch: the kill file, then the setting, then jev-skills’ state.json, 
 
 test('private and routing follow the settings', async () => {
   expect(await isPrivate(io({ private: true }, {}), '/c')).toBe(true)
+  expect(await isPrivate(io({ private: 'true' }, {}), '/c')).toBe(true)
   expect(await isPrivate(io({}, {}), '/c')).toBe(false)
   expect(await isPrivate(io({}, { '/c/routing.json': JSON.stringify({ private_profiles: ['default'] }) }), '/c')).toBe(true)
   expect(routingOn(io({}, {}))).toBe(true)

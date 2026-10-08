@@ -1,5 +1,7 @@
+import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
-import { jev } from '../../core/jev'
+import { recordCalls } from '../../core/jev'
+import { select } from '../../engine/compact'
 import { keepOnly } from './keep'
 
 // /compact-jev: a compaction with no summariser. Jev marks each turn keep / summarize / drop;
@@ -11,7 +13,6 @@ import { keepOnly } from './keep'
 // that one compaction instead of the summariser.
 
 export const MARK = '[compact-jev: keep only what Jev marks keep]'
-const TIMEOUT_MS = 120_000
 let pending = false
 
 export const command = {
@@ -42,8 +43,14 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
   })
   const done = (skip: string) => { io.toast(`compact-jev: ${skip}.`); return { skip } }
   if (toJev.length === 0) return done('nothing to judge')
-  const out = await jev(io, ['compact-select'], JSON.stringify({ messages: toJev }), TIMEOUT_MS)
-  if (!out?.fates || out.status === 'fail_open') return done('Jev did not answer; nothing was removed')
+  let out
+  try {
+    out = await select(hostOf(io), toJev)
+  } catch {
+    return done('Jev did not answer; nothing was removed')
+  }
+  await recordCalls(io, out.calls ?? [], out.errors)
+  if (out.status === 'fail_open') return done('Jev did not answer; nothing was removed')
   if (out.status === 'partial') return done('Jev judged only part of the conversation; nothing was removed')
   const kept = keepOnly(messages, sent, out.fates)
   if (kept.length === messages.length) return done('Jev marked every turn keep; nothing to remove')

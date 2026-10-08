@@ -3,8 +3,8 @@
 Each engine module moves from jev-skills' Python into `src/engine/`, in TypeScript, reaching the
 outside world only through a `Host` (`core/host.ts` builds one from `IO`); when a module
 reproduces its parity fixtures exactly, the features switch to it and their call to the Python
-`jev` command (src/core/jev.ts) goes. Screening, skills and routing have switched;
-/compact-jev still calls the command.
+`jev` command goes. Every feature has switched, and the bridge to the command is gone; only
+storing a key still needs jev-skills.
 
 ## Parity fixtures
 
@@ -33,7 +33,7 @@ record both the request sent and the decision reached:
 | `lane_policy.json`, `lane_targets.json` | the shipped lane policy; `lanes.targets` with lanes.json files laid on top | 1, 22 |
 | `skill_text.json` | `looks_trivial` on every string the skill tests use plus Unicode, apostrophes, question marks in four scripts; `_front_matter` on block scalars, CRLF, Python's line ends and whitespace | 449 + 51 |
 | `skill_catalogs.json`, `skills.json` | `pick` end to end over 11, 130 and 1,000 skills: every request with the reply it got (the batches go out side by side, so the test answers by body), the result; every branch (trivial, sensitive, no skills, one batch lost, stage 2 lost, the cap, ties, `round()`'s ties) | 50 runs |
-| `compact.json` | `compact-select`: requests and fates | 2 |
+| `compact_convos.json`, `compact.json` | `compact.select` end to end: every request with its reply, in order; several batches, batches cut by encoded size (Japanese), system, empty, list and secret turns, drops either side of 0.7, `keep_last` from 0 past the length, one batch lost, all lost, a refusal | 23 runs |
 
 To regenerate (while a jev-skills checkout exists), then refresh the `.ts` copies the tests
 import (the plugin test runner loads code files only; CI checks the copies are current):
@@ -96,5 +96,5 @@ an entry stops differing.
 | `engine/backends.ts`, `engine/keys.ts` | `backends.py`, `tuning.check`, `keystore.py` (reading) | client | **done** for `systemone`; the `openai` (logprobs) protocol is still to do. Storing a key (`jev setup-key`) is not ported yet |
 | `engine/skills.ts` | `skillpick.py`, `hooks.user_prompt` | skills | **done and wired in** (nine deliberate mutations caught; the tenth, `trim` for `strip` in the gate, cannot change an answer) |
 | `engine/lanes.ts`, `engine/policy.ts`, `core/limits.ts` | `lanes.classify`/`targets`, `decide.decide`, `policy.py` (load, lint, readings, rules, drift), `limits.py` | routing | **done and wired in** (thirteen deliberate mutations caught, after adding cases for two the first run missed) |
-| `engine/compact.ts` | `compact.py` | /compact-jev | to do |
+| `engine/compact.ts` | `compact.select` | /compact-jev | **done and wired in** (nine deliberate mutations caught; the tenth, clipping at 701, cuts at the same 350 as 700 and cannot change an answer; 702 is caught) |
 | key setup | `key_setup.py` | first run | to do: no Python, the key never in the conversation |

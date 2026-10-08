@@ -5,8 +5,8 @@
    `<rules>.test.ts` beside it (`import { test, expect } from 'claude-code/testing'`). Everything
    worth testing goes here: the kit can test it, and it cannot test hooks like `turn.step`.
 3. **The glue:** `src/features/<name>/index.ts`, exporting functions that take an `IO` and the
-   event's fields, call the engine through `core/jev.ts` (or `src/engine/` once ported), and
-   return what the hook should do. Never `$`: the validator refuses it across an import.
+   event's fields, call the engine in `src/engine/` with `hostOf(io)`, tally its calls with
+   `core/jev.ts`'s `recordCalls`, and return what the hook should do. Never `$`: the validator refuses it across an import.
 4. **Its memory, if it has any:** `memory.space<MySpace>('<name>')`, mutated in place, then
    `memory.save(io)`. The status line can read it.
 5. **The wiring:** a few lines in `src/register.ts`.

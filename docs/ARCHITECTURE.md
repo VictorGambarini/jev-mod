@@ -7,7 +7,10 @@ src/
   register.ts          the only file that holds `$`; builds the IO, wires hooks to features
   core/                what every feature needs from Claude Code, through IO
     io.ts              the IO interface: everything the mod may do to the outside world
-    jev.ts             calls into the decision engine (today the `jev` CLI), with a cool-off
+    jev.ts             the session's tally of backend calls, and the cool-off after a failure
+    host.ts            the engine's Host, built from IO
+    settings.ts        jev's switches and private profiles, as jev-skills writes them
+    limits.ts          the daily budget, shared with the `jev` command
     memory.ts          per-session memory, one namespace per feature, in the mod's store
   features/            one folder per feature
     routing/           index.ts (glue) · rules.ts (pure) · rules.test.ts
@@ -26,8 +29,8 @@ tools/parity/          the capture script
    backends, redaction, the injection screen, skill selection, the lane policy, transcript
    selection. It reaches the network and files only through the `IO` it is handed, so it is
    testable with a fake IO and reusable by anything that can provide one.
-2. **`core/`: what every feature needs from Claude Code.** Calling the engine with a timeout
-   and a breaker, per-session memory, and (to come) per-turn facts and settings.
+2. **`core/`: what every feature needs from Claude Code.** The engine's host, the call tally
+   and its cool-off, jev's settings and budget, per-session memory, and (to come) per-turn facts and settings.
 3. **`features/`: one folder each.** `index.ts` turns events into decisions using core; every
    rule worth testing lives in a plain file beside it with its tests.
 

@@ -769,6 +769,45 @@ lane_run("charge the card \u0664\u0661\u0661\u0661 \u0661\u0661\u0661\u0661 \u06
 lane_run("rotate \u00e9AKIA1234567890ABCDEF in the deploy config", {"lane": "small"})
 save("lanes", LANE_RUNS)
 
-MESSAGES = [{"role": "user" if i % 2 == 0 else "assistant", "content": CORPUS[i % len(CORPUS)]} for i in range(24)]
-save("compact", [scripted_run(lambda **kw: compact.select(MESSAGES, **kw), v) for v in ({}, {"fate": "keep"})])
+# ── compaction: compact.select end to end ───────────────────────────────────
+# Every request with its reply. Batches go one after another; a turn's fate is a choice named
+# t<index>, and unnamed the scripted backend picks the first option ("keep").
+def convo(count: int, start: int = 0) -> List[Dict[str, Any]]:
+    return [{"role": "user" if i % 2 == 0 else "assistant", "content": CORPUS[(start + i) % len(CORPUS)]} for i in range(count)]
+
+
+JAPANESE = "これは長い日本語の文章です。設定ファイルを確認してください。" * 40
+ODD = [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": ""},
+       {"role": "assistant", "content": None}, {"role": "user", "content": [{"type": "text", "text": "part one"}, {"type": "image"}, "x", {"text": "part two"}]},
+       {"role": "assistant", "content": "   "}, {"content": "a turn with no role at all, about the deploy"},
+       {"role": "user", "content": "my password is hunter2, use it for the deploy"},
+       {"role": "user", "content": "the token is ghp_" + "a1B2" * 9}, {"role": "assistant", "content": 12345},
+       {"role": "user", "content": "caf\u00e9 \U0001f600 " * 120}, {"role": "tool", "content": "exit 1\nTraceback: KeyError 'x'"}]
+CONVOS = {"short": convo(5), "plain": convo(24), "long": convo(95, 3), "japanese": [{"role": "user", "content": JAPANESE}] * 30 + convo(4),
+          "odd": ODD + convo(8), "empty": []}
+COMPACT_RUNS = []
+
+
+def compact_run(name, values, keep_last=6, fail_when=None, fail=None, **scripted):
+    fake = Recorded(values, fail_when=fail_when, fail=fail)
+    fake.inner = Scripted(values, fail=fail, **scripted)
+    result = compact.select(CONVOS[name], keep_last=keep_last, transport=fake)
+    COMPACT_RUNS.append({"convo": name, "keep_last": keep_last, "values": values, "scripted": scripted,
+                         "exchanges": fake.exchanges, "result": result})
+
+
+DROPS = {f"t{i}": ("drop" if i % 3 == 0 else "summarize" if i % 3 == 1 else "keep") for i in range(100)}
+for name in CONVOS:
+    compact_run(name, {})
+    compact_run(name, DROPS)
+compact_run("plain", DROPS, confidence=0.69)
+compact_run("plain", DROPS, confidence=0.7)
+for keep_last in (0, 1, 23, 24, 30):
+    compact_run("plain", DROPS, keep_last=keep_last)
+compact_run("long", DROPS, fail_when='"t3"')
+compact_run("long", DROPS, fail="network")
+compact_run("plain", DROPS, fail="auth_failed")
+compact_run("japanese", DROPS, fail_when='"t20"')
+save("compact", COMPACT_RUNS)
+save("compact_convos", CONVOS)
 print(f"fixtures in {OUT}")

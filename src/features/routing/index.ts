@@ -1,6 +1,6 @@
 import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
-import { coolingOff, record } from '../../core/jev'
+import { coolingOff, OUTAGES, record } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
 import * as memory from '../../core/memory'
 import { isPrivate, jevDir } from '../../core/settings'
@@ -17,7 +17,6 @@ import { chooseModel, FOLLOW_UP_MS, sessionLane, type LaneName, type Previous } 
 
 export const MODEL_SWITCH_MAX_TOKENS = 40_000
 const CLASSIFY_TIMEOUT_MS = 4_000 // per request, as `jev lane classify` had it
-const OUTAGES = ['network', 'timeout', 'http_502', 'http_503', 'http_504']
 const CONFIG_TTL_MS = 5 * 60_000
 
 // The lane table names models as Claude Code's agent files do; a full id passes through.

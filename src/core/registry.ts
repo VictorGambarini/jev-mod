@@ -62,6 +62,31 @@ export const FEATURES: readonly Feature[] = [
     legacy: { option: 'screening', unset: 'default', state: 'hook_screen' },
   },
   {
+    id: 'tool-gate',
+    title: 'Tool-call gate',
+    summary: 'Asks you before a consequential tool call the decision model doubts',
+    help: 'Before a consequential call runs (Bash that pushes, deletes, rewrites history, publishes, installs, deploys, '
+      + 'migrates or writes outside the project; Write/Edit outside the project; an MCP tool that sends, creates, '
+      + 'changes or deletes), the decision model is asked whether you asked for it, whether it breaks a limit you '
+      + 'stated, and whether it is hard to undo. on: a doubtful call is put to you in the permission dialog, with the '
+      + 'reason, instead of running unasked. shadow: decided and counted (would-ask, passed, skipped), nothing changes; on counts asked-person. '
+      + 'It only tightens Claude Code\'s own decision: a call your rules refuse or already ask about is left alone. '
+      + 'Reads, builds, tests and edits inside the project are never sent. No answer in time, private mode, a secret '
+      + 'in the call, the daily budget or a backend cool-off: the call goes on as Claude Code decided. In '
+      + 'bypassPermissions, auto and dontAsk modes the mode settles the ask (it may allow or refuse it without you).',
+    modes: ['off', 'shadow', 'on'], default: 'shadow',
+    knobs: {
+      minConfidence: { type: 'number', title: 'Confidence', default: 0.7, min: 0, max: 1,
+        help: 'How sure the decision model must be that you asked for a hard-to-undo call for it to run unasked, '
+          + 'and that a call breaks a limit you stated for it to be put to you. Higher asks more often.' },
+      scope: { type: 'choice', title: 'Which calls', default: 'all-risky', options: ['bash', 'bash+edits', 'all-risky'],
+        help: 'bash: consequential Bash commands only. bash+edits: also Write/Edit outside the project. all-risky: also '
+          + 'MCP tools whose names send, create, change or delete.' },
+      timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 2000, min: 500, max: 5000,
+        help: 'How long a call waits for the decision before it goes on as Claude Code decided.' },
+    },
+  },
+  {
     id: 'band',
     title: 'jev-mod band',
     summary: 'A line above the prompt: what jev-mod decided, its cost, what screening withheld',

@@ -17,6 +17,7 @@ test('the words, a feature, its modes, settings and reset; --project anywhere', 
   expect(parse('Status', features)).toEqual({ kind: 'status' })
   expect(parse('compact', features)).toEqual({ kind: 'compact' })
   expect(parse('dashboard', features)).toEqual({ kind: 'dashboard' })
+  expect(parse('dashboard Stop', features)).toEqual({ kind: 'dashboard', stop: true })
   expect(parse('help', features)).toEqual({ kind: 'help' })
   expect(parse('skills', features)).toEqual({ kind: 'show', feature: 'skills' })
   expect(parse('skills SHADOW', features)).toEqual({ kind: 'set', feature: 'skills', key: 'mode', value: 'shadow', scope: 'user' })
@@ -28,6 +29,7 @@ test('the words, a feature, its modes, settings and reset; --project anywhere', 
 test('anything else says what was wrong', () => {
   expect(parse('skils on', features)).toEqual({ kind: 'usage', problem: `no feature or command skils (features: ${features.map(f => f.id).join(', ')})` })
   expect(parse('status now', features)).toEqual({ kind: 'usage', problem: 'status takes nothing after it' })
+  expect(parse('dashboard now', features)).toEqual({ kind: 'usage', problem: 'dashboard takes nothing after it' })
   expect(parse('stop-gate maxNudges', features)).toEqual({ kind: 'usage', problem: 'stop-gate.maxNudges needs a value: /jev-mod stop-gate maxNudges <value>' })
   expect(parse('stop-gate loud', features)).toEqual({ kind: 'usage', problem: 'stop-gate takes off, shadow, on, reset, maxNudges, tone, not loud' })
   expect(parse('skills on please', features).kind).toBe('usage')

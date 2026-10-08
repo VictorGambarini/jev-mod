@@ -8,6 +8,7 @@
 export type FetchInit = { method?: string; headers?: Record<string, string>; body?: string }
 export type FetchResponse = { status: number; ok: boolean; text: string; headers?: Record<string, string> }
 export type RunResult = { exitCode: number; stdout: string; stderr: string }
+export type SpawnPiece = { stream: 'stdout' | 'stderr'; text: string }
 export type Usage = { contextTokens: number; contextWindow?: number; contextPercent?: number }
 
 export interface IO {
@@ -15,6 +16,11 @@ export interface IO {
   option(name: string): string | boolean | undefined
   // the outside world
   run(argv: string[], init?: { stdin?: string; timeoutMs?: number }): Promise<RunResult>
+  /**
+   * Start a long-lived child and stream its output; the loop over it is the child's life
+   * (leaving it, `return()`, or the module unloading ends the child).
+   */
+  spawn(argv: string[], init?: { cwd?: string; env?: Record<string, string> }): AsyncIterable<SpawnPiece>
   fetch(url: string, init?: FetchInit): Promise<FetchResponse>
   readFile(path: string): Promise<string>
   /** The folders directly inside `path`, links to folders included; [] when it is not a folder. */
@@ -24,6 +30,8 @@ export interface IO {
   /** An environment variable; the ones the engine reads by name are listed in register.tsx. */
   env(name: string): Promise<string | undefined>
   sleep(ms: number): Promise<void>
+  /** The plugin's own folder (where plugin.json is), absolute: files it ships are under it. */
+  pluginRoot(): string
   // this session
   sessionId(): Promise<string | null>
   /** The session's project root, absolute. */

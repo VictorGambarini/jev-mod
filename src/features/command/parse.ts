@@ -4,7 +4,7 @@ import { MODES, type Feature } from '../../core/registry'
 // /jev-mod's arguments, read into what to do. Pure: the text after the name in, an action out.
 //
 //   /jev-mod [list]                          every feature, its mode and settings
-//   /jev-mod status | compact | dashboard | help
+//   /jev-mod status | compact | dashboard [stop] | help
 //   /jev-mod <feature>                       its help, modes and settings
 //   /jev-mod <feature> on|off|shadow         set its mode
 //   /jev-mod <feature> <setting> <value>     set one of its settings
@@ -13,7 +13,8 @@ import { MODES, type Feature } from '../../core/registry'
 // --project, anywhere, writes the project's file instead of yours.
 
 export type Action =
-  | { kind: 'list' | 'status' | 'compact' | 'dashboard' | 'help' }
+  | { kind: 'list' | 'status' | 'compact' | 'help' }
+  | { kind: 'dashboard'; stop?: true }
   | { kind: 'show'; feature: string }
   | { kind: 'set'; feature: string; key: string; value: string; scope: Scope }
   | { kind: 'reset'; feature: string; scope: Scope }
@@ -25,7 +26,7 @@ const ABOUT: Record<(typeof WORDS)[number], string> = {
   list: 'every feature, its mode and settings',
   status: "the backend, its key source, a live check, today's spend",
   compact: 'compact keeping only the turns Jev marks keep, no summary',
-  dashboard: 'what each feature did, and would have done',
+  dashboard: 'a page in your browser to see and set every feature (stop ends it)',
   help: 'how to use /jev-mod',
 }
 
@@ -36,8 +37,9 @@ export function parse(args: string, features: readonly Feature[]): Action {
   if (first === undefined) return { kind: 'list' }
   const word = first.toLowerCase()
   if ((WORDS as readonly string[]).includes(word)) {
+    if (word === 'dashboard' && second?.toLowerCase() === 'stop' && !rest.length) return { kind: 'dashboard', stop: true }
     if (second !== undefined) return { kind: 'usage', problem: `${word} takes nothing after it` }
-    return { kind: word as (typeof WORDS)[number] }
+    return { kind: word } as Action
   }
   const f = features.find(x => x.id === word)
   if (!f) return { kind: 'usage', problem: `no feature or command ${first} (features: ${features.map(x => x.id).join(', ')})` }
@@ -67,6 +69,7 @@ export function complete(before: string, token: string, features: readonly Featu
   const done = typed.slice(0, -1).filter(w => w !== '--project')
   const starts = (rows: Suggestion[]) => rows.filter(r => r.text.startsWith(token) && r.text !== token)
   if (token.startsWith('--')) return starts([{ text: '--project', description: "write the project's .claude/jev-mod.json" }])
+  if (done.length === 1 && done[0] === 'dashboard') return starts([{ text: 'stop', description: 'stop the dashboard server' }])
   if (done.length === 0) {
     return starts([...WORDS.map(w => ({ text: w, description: ABOUT[w] })), ...features.map(f => ({ text: f.id, description: f.summary }))])
   }

@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>jev-mod dashboard</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f5f4ef; --panel: #ffffff; --sunk: #efeee8; --ink: #1b1c1e; --muted: #676a71; --line: #e2e0d8;
+  --accent: #0d6b57; --accent-soft: #dcefe8; --accent-ink: #ffffff;
+  --shadow: #9a6200; --shadow-soft: #fbefd9; --off: #7d8088; --danger: #b3261e; --danger-soft: #fbe5e2;
+  --focus: #2f6fed; --radius: 10px;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #111213; --panel: #1a1b1d; --sunk: #151617; --ink: #e9e7e2; --muted: #9b9ea5; --line: #2b2c30;
+    --accent: #52c4a2; --accent-soft: #173a31; --accent-ink: #06231c;
+    --shadow: #e4ad4a; --shadow-soft: #3a2c12; --off: #8e9199; --danger: #ff8f84; --danger-soft: #3d1a17;
+    --focus: #8ab4ff;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* header */
+header { border-bottom: 1px solid var(--line); background: var(--panel); }
+.top { display: flex; align-items: center; gap: 16px; padding: 14px 0; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+.brand h1 { font-size: 18px; letter-spacing: -.01em; margin: 0; font-weight: 650; }
+.brand h1 b { color: var(--accent); font-weight: 650; }
+.brand .ver { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: var(--bg); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--off); flex: none; }
+.dot.ok { background: var(--accent); } .dot.bad { background: var(--danger); } .dot.warn { background: var(--shadow); }
+
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; }
+nav.tabs button { border: 0; background: none; padding: 10px 14px 11px; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; font-weight: 550; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs button:hover { color: var(--ink); }
+
+/* scope switch */
+.scope { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 2px; background: var(--sunk); gap: 2px; }
+.seg button { border: 0; background: none; border-radius: 6px; padding: 4px 11px; cursor: pointer; color: var(--muted);
+  font-size: 13px; font-weight: 550; min-height: 30px; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.seg button:disabled { cursor: not-allowed; opacity: .45; }
+.seg.mode button[aria-pressed="true"][data-mode="on"] { background: var(--accent); color: var(--accent-ink); }
+.seg.mode button[aria-pressed="true"][data-mode="shadow"] { background: var(--shadow-soft); color: var(--shadow);
+  box-shadow: inset 0 0 0 1px var(--shadow); }
+.seg.mode button[aria-pressed="true"][data-mode="off"] { background: var(--panel); color: var(--ink); }
+
+main.wrap { padding-top: 22px; padding-bottom: 60px; }
+.notes { display: grid; gap: 8px; margin-bottom: 18px; }
+.note { border-radius: var(--radius); padding: 10px 14px; font-size: 14px; border: 1px solid var(--line); background: var(--panel); }
+.note.warn { background: var(--shadow-soft); border-color: transparent; }
+.note.bad { background: var(--danger-soft); border-color: transparent; }
+.note ul { margin: 4px 0 0; padding-left: 18px; }
+.note strong { font-weight: 650; }
+
+/* feature cards */
+.cards { display: grid; gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.card-head { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.card-title { flex: 1 1 260px; min-width: 0; }
+.card-title h2 { margin: 0; font-size: 16px; font-weight: 650; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card-title h2 code { color: var(--muted); font-weight: 400; }
+.card-title p { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+.ctl { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.q { border: 1px solid var(--line); background: var(--bg); border-radius: 50%; width: 24px; height: 24px; padding: 0;
+  font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; flex: none; line-height: 1; }
+.q[aria-expanded="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.help { margin: 10px 0 0; padding: 10px 12px; background: var(--sunk); border-radius: 8px; font-size: 14px; }
+.src { font-size: 12px; color: var(--muted); }
+.tag { display: inline-block; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; font-weight: 650;
+  padding: 1px 7px; border-radius: 4px; background: var(--sunk); color: var(--muted); }
+.tag.user, .tag.project { background: var(--accent-soft); color: var(--accent); }
+.tag.kill, .tag.config { background: var(--danger-soft); color: var(--danger); }
+.override { margin-top: 10px; font-size: 13px; color: var(--shadow); display: flex; gap: 6px; }
+.knobs { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 12px; display: grid; gap: 10px; }
+.knob { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; }
+.knob label { font-weight: 550; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+.knob .field { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.knob input[type="number"], .knob select { width: 120px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
+.knob input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+.knob .meta { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.knob .help { grid-column: 1 / -1; margin: 0; }
+.link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 2px 4px; font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
+.link:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+.foot { margin-top: 12px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* activity */
+.act { display: grid; gap: 12px; }
+.chart { display: grid; grid-template-columns: minmax(92px, 150px) 1fr 52px; gap: 6px 10px; align-items: end; margin-top: 12px; }
+.chart .lbl { font-family: var(--mono); font-size: 12.5px; align-self: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart .lbl.would { color: var(--shadow); }
+.chart .tot { font-variant-numeric: tabular-nums; text-align: right; font-size: 13px; align-self: center; }
+.bars { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; height: 34px; align-items: end;
+  border-bottom: 1px solid var(--line); }
+.bar { background: var(--accent); border-radius: 2px 2px 0 0; min-height: 0; }
+.bar.zero { background: transparent; }
+.bar.would { background: repeating-linear-gradient(135deg, var(--shadow) 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1px var(--shadow); }
+.axis { grid-column: 2; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: var(--accent); }
+.legend i.would { background: repeating-linear-gradient(135deg, var(--shadow) 0 2px, transparent 2px 4px); box-shadow: inset 0 0 0 1px var(--shadow); }
+.empty { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+
+/* budget & backend */
+.big { font-size: 34px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.big { line-height: 1.15; }
+.big small { display: block; margin-top: 4px; font-size: 15px; color: var(--muted); font-weight: 450; letter-spacing: 0; }
+.meter { height: 10px; background: var(--sunk); border-radius: 999px; overflow: hidden; margin: 12px 0 6px; }
+.meter span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.meter.warn span { background: var(--shadow); } .meter.bad span { background: var(--danger); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 7px 4px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 550; font-size: 12.5px; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+dl { display: grid; grid-template-columns: minmax(110px, 180px) 1fr; gap: 10px 16px; margin: 0; }
+dt { color: var(--muted); font-size: 13.5px; }
+dd { margin: 0; overflow-wrap: anywhere; }
+
+#toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--panel); padding: 9px 16px; border-radius: 8px; font-size: 14px;
+  opacity: 0; pointer-events: none; transition: opacity .2s; }
+#toast.show { opacity: 1; }
+#toast.bad { background: var(--danger); color: #fff; }
+
+@media (max-width: 620px) {
+  .ctl { align-items: flex-start; width: 100%; }
+  .knob { grid-template-columns: 1fr; }
+  .knob .field { justify-content: flex-start; }
+  .chart { grid-template-columns: 1fr 44px; }
+  .chart .lbl { grid-column: 1 / -1; }
+  .axis { grid-column: 1; }
+  dl { grid-template-columns: 1fr; gap: 2px 0; } dd { margin-bottom: 10px; }
+  .scope { width: 100%; }
+  nav.tabs button { padding: 10px 10px 11px; }
+}
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><h1><b>jev</b>-mod</h1><span class="ver" id="ver"></span></div>
+      <div class="chips" id="chips"></div>
+      <div class="scope" id="scope-box">
+        <span id="scope-label">Edits go to</span>
+        <div class="seg" role="group" aria-labelledby="scope-label" id="scope"></div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections" id="tabs"></nav>
+  </div>
+</header>
+<main class="wrap">
+  <div class="notes" id="notes"></div>
+  <section role="tabpanel" id="panel" tabindex="-1"></section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict'
+const BOOT = /*__BOOT__*/null || { mode: 'static', state: null }
+const LIVE = BOOT.mode === 'live'
+const TABS = [['features', 'Features'], ['activity', 'Activity'], ['budget', 'Budget'], ['backend', 'Backend']]
+const RANK = { 'kill file': 5, '/config': 4, project: 3, user: 2, 'older setting': 1, default: 0 }
+const SOURCE = { default: 'default', user: 'user', project: 'project', 'kill file': 'kill file', '/config': '/config', 'older setting': 'older setting' }
+const KEYS = { environment: 'from the environment', settings: "from jev-mod's settings (Claude Code's credential store)",
+  keychain: "from the OS secret store (jev-skills' setup-key)", file: "from ~/.config/jev (jev-skills' setup-key)", none: 'none found' }
+const PROVIDERS = { typesafe: 'TypeSafe', openrouter: 'OpenRouter', venice: 'Venice', zen: 'OpenCode Zen', absent: 'none' }
+
+let state = BOOT.state
+let tab = 'features'
+let scope = 'user'
+let open = new Set() // help panels shown
+let busy = false
+let gone = null // why the live page stopped updating
+
+try { tab = localStorage.getItem('jevmod.tab') || tab; scope = localStorage.getItem('jevmod.scope') || scope } catch {}
+if (TABS.some(t => '#' + t[0] === location.hash)) tab = location.hash.slice(1)
+if (!TABS.some(t => t[0] === tab)) tab = 'features'
+
+const $ = id => document.getElementById(id)
+const h = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+const money = (n, d = 4) => '$' + Number(n || 0).toFixed(d)
+const sum = a => a.reduce((x, y) => x + y, 0)
+const tag = s => `<span class="tag ${s === 'kill file' ? 'kill' : s === '/config' ? 'config' : h(s)}">${h(SOURCE[s] || s)}</span>`
+
+function toast(text, bad) {
+  const t = $('toast')
+  t.textContent = text
+  t.className = 'show' + (bad ? ' bad' : '')
+  clearTimeout(toast.timer)
+  toast.timer = setTimeout(() => { t.className = bad ? 'bad' : '' }, bad ? 6000 : 2600)
+}
+
+// ---- talking to the session ----
+
+async function load() {
+  if (!LIVE) return
+  try {
+    const r = await fetch('/api/state', { credentials: 'same-origin', cache: 'no-store' })
+    if (r.status === 403) { gone = 'This dashboard link is no longer valid. Run /jev-mod dashboard again.'; return render() }
+    if (!r.ok) return
+    const next = await r.json()
+    gone = null
+    if (state && next.seq === state.seq) return
+    state = next
+    if (!editing()) render()
+  } catch {
+    gone = 'The Claude Code session is closed or the dashboard was stopped; what you see is the last state.'
+    render()
+  }
+}
+
+function editing() {
+  const a = document.activeElement
+  return a && a.tagName === 'INPUT' && a.type === 'number' && a.dataset.dirty === '1'
+}
+
+async function send(op, what) {
+  if (!LIVE || busy) return
+  busy = true
+  document.body.setAttribute('aria-busy', 'true')
+  try {
+    const r = await fetch('/api/op', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Jev-Mod': '1' }, body: JSON.stringify(op) })
+    const got = await r.json().catch(() => ({}))
+    if (got.state) state = got.state
+    if (r.ok && got.ok) toast(`${what} · saved to the ${op.scope === 'project' ? 'project' : 'user'} file`)
+    else toast(got.error || `Not saved (${r.status})`, true)
+  } catch {
+    toast('Not saved: the session did not answer.', true)
+  } finally {
+    busy = false
+    document.body.removeAttribute('aria-busy')
+    render()
+  }
+}
+
+// ---- drawing ----
+
+function chips() {
+  const s = state
+  const out = []
+  const b = s.backend
+  if (b) {
+    const name = b.name ? b.name : `Jev · ${PROVIDERS[b.provider] || b.provider}`
+    const cls = b.misconfigured || b.keySource === 'none' ? 'bad' : b.private ? 'warn' : 'ok'
+    out.push(`<span class="chip"><span class="dot ${cls}"></span>${h(name)}${b.private ? ' · private' : ''}</span>`)
+  }
+  if (s.budget) {
+    const share = s.budget.daily ? s.budget.spent / s.budget.daily : 0
+    out.push(`<span class="chip"><span class="dot ${share >= 1 ? 'bad' : share >= .8 ? 'warn' : 'ok'}"></span>${money(s.budget.spent, 3)} today</span>`)
+  }
+  if (!LIVE) out.push('<span class="chip"><span class="dot warn"></span>read-only snapshot</span>')
+  else if (gone) out.push('<span class="chip"><span class="dot bad"></span>disconnected</span>')
+  return out.join('')
+}
+
+function notes() {
+  const s = state
+  const out = []
+  if (!LIVE) out.push(`<div class="note warn"><strong>Read-only snapshot</strong> from ${h(new Date(s.at).toLocaleString())}: edits are off here. Change a setting with <code>/jev-mod &lt;feature&gt; on|off|shadow</code> or <code>/jev-mod &lt;feature&gt; &lt;setting&gt; &lt;value&gt;</code>.</div>`)
+  if (gone) out.push(`<div class="note bad">${h(gone)}</div>`)
+  if (s.disabled) out.push('<div class="note bad"><strong>jev-mod is off</strong> in <code>/config</code> ("jev-mod on" is unticked): every feature is off whatever its mode says here.</div>')
+  if (s.problems.length) out.push(`<div class="note warn"><strong>Passed over in the config files</strong><ul>${s.problems.map(p => `<li>${h(p)}</li>`).join('')}</ul></div>`)
+  return out.join('')
+}
+
+function scopeSwitch() {
+  const has = !!state.paths.project
+  if (!has && scope === 'project') scope = 'user'
+  const b = (id, label, title, disabled) =>
+    `<button type="button" data-scope="${id}" data-k="scope-${id}" aria-pressed="${scope === id}" title="${h(title)}"${disabled || !LIVE ? ' disabled' : ''}>${label}</button>`
+  return b('user', 'User', state.paths.user || '', false) + b('project', 'This project', state.paths.project || 'This session has no project folder', !has)
+}
+
+/** A note when a layer above the one being edited decides this value. */
+function overrideNote(source, what) {
+  if ((RANK[source] || 0) <= RANK[scope]) return ''
+  const why = source === 'kill file' ? 'a kill file turns it off' : source === '/config' ? '"jev-mod on" is unticked in /config'
+    : 'the project file sets it'
+  return `<div class="override" role="note"><span aria-hidden="true">▲</span><span>${h(what)} here comes from above the ${scope} file: ${why}, so an edit to the ${scope} file will not show until that changes.</span></div>`
+}
+
+function knobField(f, k) {
+  const now = f.resolved.knobs[k.name] || { value: k.default, source: 'default' }
+  const id = `k-${f.id}-${k.name}`
+  const dis = LIVE ? '' : ' disabled'
+  const data = `data-feature="${h(f.id)}" data-knob="${h(k.name)}" data-type="${k.type}" id="${id}" data-k="${id}"`
+  if (k.type === 'boolean') return `<input type="checkbox" ${data}${now.value ? ' checked' : ''}${dis}>`
+  if (k.type === 'choice') return `<select ${data}${dis}>${k.options.map(o => `<option${o === now.value ? ' selected' : ''}>${h(o)}</option>`).join('')}</select>`
+  return `<input type="number" inputmode="${k.type === 'int' ? 'numeric' : 'decimal'}" ${data} min="${k.min}" max="${k.max}" step="${k.type === 'int' ? 1 : 'any'}" value="${h(now.value)}"${dis}>`
+}
+
+function knobRow(f, k) {
+  const now = f.resolved.knobs[k.name] || { value: k.default, source: 'default' }
+  const mine = f.files[scope] && k.name in f.files[scope]
+  const hid = `help-${f.id}-${k.name}`
+  const shown = open.has(hid)
+  const range = k.type === 'int' || k.type === 'number' ? ` · ${k.min} to ${k.max}` : k.type === 'choice' ? ` · ${k.options.join(', ')}` : ''
+  return `<div class="knob">
+    <label for="k-${h(f.id)}-${h(k.name)}">${h(k.title)} <code>${h(k.name)}</code>
+      <button type="button" class="q" data-help="${hid}" data-k="q-${hid}" aria-expanded="${shown}" aria-controls="${hid}" aria-label="About ${h(k.title)}">?</button></label>
+    <div class="field">${knobField(f, k)}
+      ${LIVE && mine ? `<button type="button" class="link" data-clear="${h(f.id)}" data-knob="${h(k.name)}" data-k="clear-${h(f.id)}-${h(k.name)}" aria-label="Clear ${h(k.title)} from the ${scope} file">clear</button>` : ''}</div>
+    <div class="meta">${tag(now.source)} default ${h(k.default)}${h(range)}</div>
+    ${shown ? `<p class="help" id="${hid}">${h(k.help || 'No help text.')}</p>` : ''}
+    ${overrideNote(now.source, k.title)}
+  </div>`
+}
+
+function featureCard(f) {
+  const r = f.resolved
+  const hid = `help-${f.id}`
+  const shown = open.has(hid)
+  const mine = f.files[scope] || {}
+  const modes = f.modes.map(m => `<button type="button" data-mode="${m}" data-feature="${h(f.id)}" data-k="mode-${h(f.id)}-${m}" aria-pressed="${r.mode === m}"${LIVE ? '' : ' disabled'}>${m}</button>`).join('')
+  const sets = Object.keys(mine)
+  return `<article class="card" aria-labelledby="t-${h(f.id)}">
+    <div class="card-head">
+      <div class="card-title">
+        <h2 id="t-${h(f.id)}">${h(f.title)} <code>${h(f.id)}</code>
+          <button type="button" class="q" data-help="${hid}" data-k="q-${hid}" aria-expanded="${shown}" aria-controls="${hid}" aria-label="About ${h(f.title)}">?</button></h2>
+        <p>${h(f.summary)}</p>
+      </div>
+      <div class="ctl">
+        <div class="seg mode" role="group" aria-label="Mode for ${h(f.title)}">${modes}</div>
+        <span class="src">${r.mode} · ${tag(r.source)}${r.source === 'default' ? '' : ` <span class="sr">default ${f.default}</span>`}</span>
+      </div>
+    </div>
+    ${shown ? `<div class="help" id="${hid}">${h(f.help)}<div class="src" style="margin-top:6px">Modes: ${f.modes.join(', ')} · default ${f.default}${f.killedBy.length ? ` · kill file: <code>${f.killedBy.map(h).join(', ')}</code>` : ''}</div></div>` : ''}
+    ${overrideNote(r.source, 'Its mode')}
+    ${f.knobs.length ? `<div class="knobs">${f.knobs.map(k => knobRow(f, k)).join('')}</div>` : ''}
+    ${LIVE ? `<div class="foot"><span class="src">${sets.length ? `The ${scope} file sets ${sets.map(k => `<code>${h(k)}</code>`).join(', ')}.` : `The ${scope} file sets nothing for it.`}</span>
+      <button type="button" class="link" data-reset="${h(f.id)}" data-k="reset-${h(f.id)}"${sets.length ? '' : ' disabled'}>Reset in the ${scope} file</button></div>` : ''}
+  </article>`
+}
+
+function features() {
+  return `<h2 class="sr">Features</h2><div class="cards">${state.features.map(featureCard).join('')}</div>`
+}
+
+function activity() {
+  const a = state.activity
+  const days = a.days
+  const titles = Object.fromEntries(state.features.map(f => [f.id, f.title]))
+  const ids = [...new Set([...state.features.map(f => f.id), ...Object.keys(a.counts), ...Object.keys(a.cost)])]
+  const short = d => d.slice(5)
+  const card = id => {
+    const rows = Object.entries(a.counts[id] || {}).sort((x, y) => sum(y[1]) - sum(x[1]))
+    const cost = sum(a.cost[id] || [])
+    if (!rows.length) return `<article class="card"><h2 style="margin:0;font-size:16px">${h(titles[id] || id)} <code class="src">${h(id)}</code></h2><p class="empty">Nothing in the last ${days.length} days.</p></article>`
+    const max = Math.max(1, ...rows.flatMap(r => r[1]))
+    const chart = rows.map(([outcome, n]) => {
+      const would = outcome.startsWith('would-')
+      const bars = n.map((v, i) => `<div class="bar${v ? '' : ' zero'}${would ? ' would' : ''}" style="height:${v ? Math.max(6, Math.round(v / max * 100)) : 0}%" title="${h(days[i])}: ${v}"></div>`).join('')
+      return `<div class="lbl${would ? ' would' : ''}" title="${h(outcome)}">${h(outcome)}</div>
+        <div class="bars" role="img" aria-label="${h(outcome)}: ${sum(n)} in ${days.length} days, ${n[n.length - 1]} today">${bars}</div>
+        <div class="tot">${sum(n)}</div>`
+    }).join('')
+    return `<article class="card">
+      <div class="card-head"><div class="card-title"><h2>${h(titles[id] || id)} <code>${h(id)}</code></h2>
+        <p>${cost ? `${money(cost)} on the decision backend in ${days.length} days` : 'No backend cost'}</p></div></div>
+      <div class="chart">${chart}<div class="axis" aria-hidden="true"><span>${short(days[0])}</span><span>today</span></div></div>
+    </article>`
+  }
+  return `<div class="act"><div class="legend"><span><i></i>what it did</span><span><i class="would"></i>what it would have done (shadow)</span><span>Last ${days.length} days, by local day</span></div>
+    ${ids.map(card).join('')}</div>`
+}
+
+function budget() {
+  const b = state.budget
+  const a = state.activity
+  if (!b) return '<p class="empty">No budget information.</p>'
+  const share = b.daily ? b.spent / b.daily : 0
+  const cls = share >= 1 ? 'bad' : share >= .8 ? 'warn' : ''
+  const perDay = a.days.map((_, i) => sum(Object.values(a.cost).map(r => r[i] || 0)))
+  const max = Math.max(...perDay, 1e-9)
+  const ids = Object.keys(a.cost).sort((x, y) => sum(a.cost[y]) - sum(a.cost[x]))
+  return `<div class="cards">
+    <article class="card">
+      <div class="big">${money(b.spent)} <small>of ${money(b.daily, 2)} today (${h(b.day)})</small></div>
+      <div class="meter ${cls}" role="meter" aria-label="Today's spend" aria-valuemin="0" aria-valuemax="${b.daily}" aria-valuenow="${b.spent}"><span style="width:${Math.min(100, share * 100).toFixed(1)}%"></span></div>
+      <p class="src">The daily budget is shared with jev-skills' <code>jev</code> command (limits.json). Past it, the mod stops asking the backend until tomorrow; every feature fails open.</p>
+    </article>
+    <article class="card">
+      <h2 style="margin:0 0 4px;font-size:16px">Backend cost, last ${a.days.length} days</h2>
+      ${ids.length ? `<div class="chart"><div class="lbl">all features</div>
+        <div class="bars" role="img" aria-label="${money(sum(perDay))} in ${a.days.length} days">${perDay.map((v, i) => `<div class="bar${v ? '' : ' zero'}" style="height:${v ? Math.max(6, Math.round(v / max * 100)) : 0}%" title="${h(a.days[i])}: ${money(v)}"></div>`).join('')}</div>
+        <div class="tot">${money(sum(perDay), 3)}</div><div class="axis" aria-hidden="true"><span>${a.days[0].slice(5)}</span><span>today</span></div></div>
+      <table style="margin-top:14px"><thead><tr><th scope="col">Feature</th><th scope="col" class="n">Today</th><th scope="col" class="n">${a.days.length} days</th></tr></thead><tbody>
+        ${ids.map(id => `<tr><td>${h(id)}</td><td class="n">${money(a.cost[id][a.cost[id].length - 1])}</td><td class="n">${money(sum(a.cost[id]))}</td></tr>`).join('')}
+      </tbody></table>` : '<p class="empty">No backend calls counted yet.</p>'}
+    </article></div>`
+}
+
+function backend() {
+  const b = state.backend
+  const kills = [...new Set(state.features.flatMap(f => f.killedBy))]
+  const rows = []
+  if (b) {
+    rows.push(['Backend', b.name ? `${h(b.name)} <span class="src">(backends.json)</span>` : `Jev through ${h(PROVIDERS[b.provider] || b.provider)}`])
+    if (b.model) rows.push(['Model', `<code>${h(b.model)}</code>`])
+    rows.push(['Key', h(KEYS[b.keySource] || b.keySource) + ' <span class="src">(where it was found; the key itself never leaves the session)</span>'])
+    if (b.misconfigured) rows.push(['backends.json', `<span style="color:var(--danger)">${h(b.misconfigured)}</span>`])
+    rows.push(['Private', b.private ? 'yes: nothing is sent to the backend' : 'no'])
+  } else rows.push(['Backend', 'could not be read'])
+  rows.push(['jev-mod on', state.disabled ? 'no (unticked in /config)' : 'yes'])
+  rows.push(['User file', `<code>${h(state.paths.user || '')}</code>`])
+  rows.push(['Project file', state.paths.project ? `<code>${h(state.paths.project)}</code>` : '<span class="src">no project folder in this session</span>'])
+  rows.push(['Kill files', kills.length ? kills.map(k => `<code>${h(k)}</code>`).join('<br>') : 'none'])
+  rows.push(['Version', `<code>${h(state.version)}</code>`])
+  return `<div class="cards"><article class="card"><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    <p class="src" style="margin:16px 0 0">A live check of the backend is <code>/jev-mod status</code> in Claude Code. Keys are set in <code>/plugin</code>, never here.</p></article></div>`
+}
+
+function render() {
+  if (!state) { $('panel').innerHTML = '<p class="empty">Waiting for the session…</p>'; return }
+  const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null
+  $('ver').textContent = state.version
+  $('chips').innerHTML = chips()
+  $('scope').innerHTML = scopeSwitch()
+  $('scope-box').hidden = !LIVE
+  $('notes').innerHTML = notes()
+  $('tabs').innerHTML = TABS.map(([id, label]) => `<button type="button" role="tab" id="tab-${id}" data-tab="${id}" data-k="tab-${id}" aria-selected="${tab === id}" aria-controls="panel" tabindex="${tab === id ? 0 : -1}">${label}</button>`).join('')
+  $('panel').setAttribute('aria-labelledby', `tab-${tab}`)
+  $('panel').innerHTML = tab === 'features' ? features() : tab === 'activity' ? activity() : tab === 'budget' ? budget() : backend()
+  if (focused) { const el = document.querySelector(`[data-k="${CSS.escape(focused)}"]`); if (el) el.focus() }
+}
+
+// ---- input ----
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button')
+  if (!t || t.disabled) return
+  const d = t.dataset
+  if (d.tab) { tab = d.tab; try { localStorage.setItem('jevmod.tab', tab) } catch {}; render(); return }
+  if (d.scope) { scope = d.scope; try { localStorage.setItem('jevmod.scope', scope) } catch {}; render(); return }
+  if (d.help) { open.has(d.help) ? open.delete(d.help) : open.add(d.help); render(); return }
+  if (d.mode) return send({ op: 'set', scope, feature: d.feature, key: 'mode', value: d.mode }, `${d.feature} ${d.mode}`)
+  if (d.reset) return send({ op: 'reset', scope, feature: d.reset }, `${d.reset} reset`)
+  if (d.clear) return send({ op: 'set', scope, feature: d.clear, key: d.knob, value: null }, `${d.clear}.${d.knob} cleared`)
+})
+
+document.addEventListener('keydown', e => {
+  const t = e.target
+  if (t.getAttribute && t.getAttribute('role') === 'tab' && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End')) {
+    const i = TABS.findIndex(x => x[0] === t.dataset.tab)
+    const n = e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length
+    tab = TABS[n][0]
+    try { localStorage.setItem('jevmod.tab', tab) } catch {}
+    render()
+    $(`tab-${tab}`).focus()
+    e.preventDefault()
+  }
+})
+
+document.addEventListener('input', e => { if (e.target.type === 'number') e.target.dataset.dirty = '1' })
+
+document.addEventListener('change', e => {
+  const t = e.target
+  if (!t.dataset || !t.dataset.knob) return
+  const type = t.dataset.type
+  let value
+  if (type === 'boolean') value = t.checked
+  else if (type === 'choice') value = t.value
+  else {
+    if (t.value.trim() === '' || !t.checkValidity()) { toast(`${t.dataset.knob} must be ${type === 'int' ? 'a whole number' : 'a number'} from ${t.min} to ${t.max}`, true); return }
+    value = Number(t.value)
+  }
+  t.dataset.dirty = ''
+  send({ op: 'set', scope, feature: t.dataset.feature, key: t.dataset.knob, value }, `${t.dataset.feature}.${t.dataset.knob} = ${value}`)
+})
+
+render()
+if (LIVE) { load(); setInterval(load, 4000) }
+</script>
+</body>
+</html>

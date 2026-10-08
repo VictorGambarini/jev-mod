@@ -25,7 +25,7 @@ One command manages the mod; the typeahead offers each word after it:
 | `/jev-mod` (or `/jev-mod list`) | Every feature: its mode and where that came from, its settings, then anything in the config files that was passed over. |
 | `/jev-mod status` | The backend, where its key came from (never the key), a live check, each feature's mode, today's spend. |
 | `/jev-mod compact` | The compaction above. |
-| `/jev-mod dashboard` | What each feature did, and in shadow would have done (to come). |
+| `/jev-mod dashboard` | A page in your browser to see and set every feature (below); `/jev-mod dashboard stop` ends it. |
 | `/jev-mod <feature>` | Its help, its modes, and each setting with its range, default and value now. |
 | `/jev-mod <feature> on\|off\|shadow` | Sets its mode in your config file (`--project`: the project's). |
 | `/jev-mod <feature> <setting> <value>` | Sets one of its settings. |
@@ -91,6 +91,21 @@ does not have): a typo never turns a feature off.
 
 What each feature did (and in shadow would have done) is counted by day for the last 30 days
 in the mod's own store, for `/jev-mod dashboard`.
+
+### The dashboard
+
+`/jev-mod dashboard` opens a local page in your browser: every feature with an off / shadow / on
+switch, its settings as inputs with their ranges, a `?` for its help, and where each value comes
+from (default, user, project, a kill file, `/config`), with a note when a higher layer overrides
+what you edit. A *User / This project* switch picks which file an edit goes to. Its other tabs are
+the last 14 days of activity (what each feature did, and in shadow would have done), today's spend
+against the daily budget, and the backend with where its key came from (never the key).
+
+It needs `bun` or `node` on PATH: the mod starts a small server bound to 127.0.0.1 on a free port,
+reachable only with the one-time link it prints, and only while the session is open. The server
+writes nothing: each change goes back to the mod, which checks it as `/jev-mod` would and writes
+the config file. Without bun or node it writes a read-only copy of the page instead
+(`~/.config/jev-mod/dashboard/<session>/dashboard.html`) and opens that.
 
 | Feature | Modes | Default | |
 |---|---|---|---|

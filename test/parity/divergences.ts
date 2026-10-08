@@ -44,3 +44,14 @@ export const URL_DIVERGENCES: Record<string, { check_url?: unknown; custom_endpo
   'https://gw.example/x#': { check_url: CARRIES, custom_endpoint: INVALID },
   'https://gw.example/a;b=c/@d': { check_url: CARRIES, custom_endpoint: INVALID },
 }
+
+// Tasks lanes.classify sent as they were and the port does not. decide.py checked the state
+// for secrets as escaped JSON, where privacy.ts's fixes (above) cannot see a key behind an
+// accented letter, and redacted it with privacy.py, which leaves a card in another script
+// whole. The port checks the text itself: such a key is never sent, such a card goes masked.
+export const LANE_DIVERGENCES: Record<string, { port: 'refused' | { sent_with: string; not: string }; why: string }> = {
+  'charge the card ٤١١١ ١١١١ ١١١١ ١١١١ again': { port: { sent_with: '[card]', not: '١١١١' },
+    why: 'a card in Arabic-Indic digits went out whole' },
+  'rotate éAKIA1234567890ABCDEF in the deploy config': { port: 'refused',
+    why: 'an AWS key behind an accented letter passed the escaped check' },
+}

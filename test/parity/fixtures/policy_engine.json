@@ -1,0 +1,678 @@
+{
+ "drift": [
+  {
+   "drift": false,
+   "model": "jev-1.13.0",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": true,
+   "model": "jev-1.13.4",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13,
+    4
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13-free",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "typesafe/jev-1.13-20260917",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": true,
+   "model": "jev-1.14.0",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    14,
+    0
+   ]
+  },
+  {
+   "drift": true,
+   "model": "jev-2.0",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    2,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1",
+   "tuned_on": "jev-1.13.0",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "clef-flash",
+   "tuned_on": "jev-1.13.0",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "",
+   "tuned_on": "jev-1.13.0",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": null,
+   "tuned_on": "jev-1.13.0",
+   "version": []
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13.0-rc1",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": false,
+   "model": "model-١.١٣",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-01.013.0",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": false,
+   "model": "v1.13",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "1.13.0.9",
+   "tuned_on": "jev-1.13.0",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13.0",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13.4",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13,
+    4
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13-free",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "typesafe/jev-1.13-20260917",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": true,
+   "model": "jev-1.14.0",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    14,
+    0
+   ]
+  },
+  {
+   "drift": true,
+   "model": "jev-2.0",
+   "tuned_on": "jev-1.13",
+   "version": [
+    2,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1",
+   "tuned_on": "jev-1.13",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "clef-flash",
+   "tuned_on": "jev-1.13",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "",
+   "tuned_on": "jev-1.13",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": null,
+   "tuned_on": "jev-1.13",
+   "version": []
+  },
+  {
+   "drift": false,
+   "model": "jev-1.13.0-rc1",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": false,
+   "model": "model-١.١٣",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "jev-01.013.0",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": false,
+   "model": "v1.13",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": false,
+   "model": "1.13.0.9",
+   "tuned_on": "jev-1.13",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13.0",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13.4",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13,
+    4
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13-free",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "typesafe/jev-1.13-20260917",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.14.0",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    14,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-2.0",
+   "tuned_on": "clef-flash",
+   "version": [
+    2,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1",
+   "tuned_on": "clef-flash",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "clef-flash",
+   "tuned_on": "clef-flash",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "",
+   "tuned_on": "clef-flash",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": null,
+   "tuned_on": "clef-flash",
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13.0-rc1",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "model-١.١٣",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-01.013.0",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "v1.13",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "1.13.0.9",
+   "tuned_on": "clef-flash",
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13.0",
+   "tuned_on": null,
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13.4",
+   "tuned_on": null,
+   "version": [
+    1,
+    13,
+    4
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13",
+   "tuned_on": null,
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13-free",
+   "tuned_on": null,
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "typesafe/jev-1.13-20260917",
+   "tuned_on": null,
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1.14.0",
+   "tuned_on": null,
+   "version": [
+    1,
+    14,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-2.0",
+   "tuned_on": null,
+   "version": [
+    2,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-1",
+   "tuned_on": null,
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "clef-flash",
+   "tuned_on": null,
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "",
+   "tuned_on": null,
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": null,
+   "tuned_on": null,
+   "version": []
+  },
+  {
+   "drift": null,
+   "model": "jev-1.13.0-rc1",
+   "tuned_on": null,
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "model-١.١٣",
+   "tuned_on": null,
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "jev-01.013.0",
+   "tuned_on": null,
+   "version": [
+    1,
+    13,
+    0
+   ]
+  },
+  {
+   "drift": null,
+   "model": "v1.13",
+   "tuned_on": null,
+   "version": [
+    1,
+    13
+   ]
+  },
+  {
+   "drift": null,
+   "model": "1.13.0.9",
+   "tuned_on": null,
+   "version": [
+    1,
+    13,
+    0
+   ]
+  }
+ ],
+ "pre": [
+  {
+   "facts": {},
+   "pre": null
+  },
+  {
+   "facts": {
+    "person_named_model": true
+   },
+   "pre": {
+    "action": "keep_current",
+    "matched_pre_rule": 0
+   }
+  },
+  {
+   "facts": {
+    "person_named_model": 1
+   },
+   "pre": {
+    "action": "keep_current",
+    "matched_pre_rule": 0
+   }
+  },
+  {
+   "facts": {
+    "person_named_model": "yes"
+   },
+   "pre": null
+  },
+  {
+   "facts": {
+    "person_named_model": false
+   },
+   "pre": null
+  },
+  {
+   "facts": {
+    "prior_failed_attempts": 2
+   },
+   "pre": {
+    "action": "escalate",
+    "matched_pre_rule": 1
+   }
+  },
+  {
+   "facts": {
+    "prior_failed_attempts": 1
+   },
+   "pre": null
+  },
+  {
+   "facts": {
+    "prior_failed_attempts": 2.5
+   },
+   "pre": {
+    "action": "escalate",
+    "matched_pre_rule": 1
+   }
+  },
+  {
+   "facts": {
+    "prior_failed_attempts": true
+   },
+   "pre": null
+  },
+  {
+   "facts": {
+    "prior_failed_attempts": "3"
+   },
+   "pre": null
+  },
+  {
+   "facts": {
+    "prior_failed_attempts": null
+   },
+   "pre": null
+  },
+  {
+   "facts": {
+    "security_paths": true
+   },
+   "pre": {
+    "action": "high",
+    "matched_pre_rule": 2
+   }
+  },
+  {
+   "facts": {
+    "security_paths": 1.0
+   },
+   "pre": {
+    "action": "high",
+    "matched_pre_rule": 2
+   }
+  },
+  {
+   "facts": {
+    "prior_failed_attempts": 5,
+    "security_paths": true
+   },
+   "pre": {
+    "action": "escalate",
+    "matched_pre_rule": 1
+   }
+  },
+  {
+   "facts": {
+    "person_named_model": true,
+    "prior_failed_attempts": 5
+   },
+   "pre": {
+    "action": "keep_current",
+    "matched_pre_rule": 0
+   }
+  },
+  {
+   "facts": {
+    "other": true
+   },
+   "pre": null
+  }
+ ]
+}

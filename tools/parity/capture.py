@@ -461,14 +461,6 @@ def scripted_run(fn, values: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
     return {"values": values, "requests": fake.requests, "result": out}
 
 
-TASKS = ["rename foo to bar in utils.py", "fix the typo in README", "add a --quiet flag to the CLI with a test",
-         "design and implement a plugin system across five harnesses", "the migration broke production auth, investigate",
-         "summarise this file", "update the dependency and run the tests"]
-LANE_ANSWERS = [{"lane": "small"}, {"lane": "medium"}, {"lane": "high"}, {"lane": "escalate"}, {"lane": "other"},
-                {"lane": "small", "security_sensitive": 0.9}, {"lane": "medium", "underspecified": 0.8}]
-save("lanes", [dict(task=t, **scripted_run(lambda **kw: lanes.classify(t, host="claude-code", **kw), v))
-               for t in TASKS for v in LANE_ANSWERS])
-
 # ── skill selection: the gate, the front matter, and pick end to end ─────────
 # The gate and the front-matter reader are pure, so every string jev-skills' skill tests use
 # goes through them, plus hand-written cases on where Python and JavaScript read text
@@ -573,7 +565,9 @@ RUNS = []
 def run(catalog: str, turn: str, values: Dict[str, Any], top_k: int = 1, **recorded: Any) -> None:
     fake = Recorded(values, **recorded)
     result = skillpick.pick(turn, CATALOGS[catalog], top_k=top_k, transport=fake)
-    RUNS.append({"catalog": catalog, "turn": turn, "top_k": top_k, "values": values, "exchanges": fake.exchanges, "result": result})
+    # Sorted: the batches run on threads, so the order they were recorded in is not stable.
+    exchanges = sorted(fake.exchanges, key=lambda e: e["request"])
+    RUNS.append({"catalog": catalog, "turn": turn, "top_k": top_k, "values": values, "exchanges": exchanges, "result": result})
 
 
 for turn in TURNS:
@@ -596,6 +590,184 @@ run("meta", TURNS[0], {})
 SKILL_RUNS = RUNS
 save("skill_catalogs", CATALOGS)
 save("skills", RUNS)
+
+# ── routing: the lane policy, the policy engine under it, and lane classify end to end ──
+from jevkit import policy as policies  # noqa: E402
+from _wire import distribution  # noqa: E402
+
+LANE_POLICY = policies.load("lane")
+LANE_RAW = json.loads((SOURCE / "jevkit" / "policies" / "lane.json").read_text(encoding="utf-8"))
+save("lane_policy", LANE_RAW)
+
+# Every reading the lane rules can see, on and either side of each threshold they name.
+GRID = []
+for picked in ["small", "medium", "high", "escalate", "other"]:
+    for conf in [0.45, 0.4999, 0.5, 0.55, 0.5999, 0.6, 0.65, 0.6999, 0.7, 0.93]:
+        for sec in [0.05, 0.2999, 0.3, 0.5, 0.6999, 0.7, 0.9]:
+            for und in [0.05, 0.4999, 0.5, 0.9]:
+                answers = {"lane": {"choice": picked, "confidence": conf,
+                                    "probabilities": distribution(LANE_POLICY["questions"]["lane"]["criteria"], picked, 1 - conf)},
+                           "security_sensitive": {"noul": sec}, "underspecified": {"noul": und}}
+                values = policies.readings(LANE_POLICY["questions"], answers, LANE_POLICY.get("uncertain_band") or policies.DEFAULT_BAND)
+                GRID.append({"answers": answers, "values": values, "applied": policies.apply(LANE_POLICY, values)})
+FACTS = [{}, {"person_named_model": True}, {"person_named_model": 1}, {"person_named_model": "yes"}, {"person_named_model": False},
+         {"prior_failed_attempts": 2}, {"prior_failed_attempts": 1}, {"prior_failed_attempts": 2.5}, {"prior_failed_attempts": True},
+         {"prior_failed_attempts": "3"}, {"prior_failed_attempts": None}, {"security_paths": True}, {"security_paths": 1.0},
+         {"security_paths": True, "prior_failed_attempts": 5}, {"person_named_model": True, "prior_failed_attempts": 5}, {"other": True}]
+PRE = [{"facts": f, "pre": policies.pre_decide(LANE_POLICY, f)} for f in FACTS]
+MODELS = ["jev-1.13.0", "jev-1.13.4", "jev-1.13", "jev-1.13-free", "typesafe/jev-1.13-20260917", "jev-1.14.0", "jev-2.0", "jev-1",
+          "clef-flash", "", None, "jev-1.13.0-rc1", "model-١.١٣", "jev-01.013.0", "v1.13", "1.13.0.9"]
+DRIFT = [{"tuned_on": t, "model": m, "drift": policies.drifted(t, m), "version": list(policies.version_of(m))}
+         for t in ["jev-1.13.0", "jev-1.13", "clef-flash", None] for m in MODELS]
+save("lane_grid", GRID)
+save("policy_engine", {"pre": PRE, "drift": DRIFT})
+
+# lint: every shipped policy, and the lane policy broken one way at a time.
+def broken(change):
+    data = json.loads(json.dumps(LANE_RAW))
+    change(data)
+    return data
+
+
+def _set(path, value):
+    def change(data):
+        target = data
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+    return change
+
+
+def _drop(path):
+    def change(data):
+        target = data
+        for key in path[:-1]:
+            target = target[key]
+        del target[path[-1]]
+    return change
+
+
+MUTATIONS = {
+    "unknown key": _set(["otherwize"], "medium"), "no name": _drop(["name"]), "bad name": _set(["name"], "Lane!"),
+    "version 0": _set(["version"], 0), "version true": _set(["version"], True), "version 1.5": _set(["version"], 1.5),
+    "no questions": _set(["questions"], {}), "questions a list": _set(["questions"], []),
+    "rules not a list": _set(["rules"], {}), "rule without then": _drop(["rules", 0, "then"]),
+    "rule with both joiners": _set(["rules", 0, "any"], [["lane.choice", "==", "small"]]),
+    "rule with no joiner": _drop(["rules", 4, "any"]), "empty all": _set(["rules", 0, "all"], []),
+    "unknown op": _set(["rules", 0, "all", 0, 1], "~="), "unknown operand": _set(["rules", 0, "all", 0, 0], "lanes.choice"),
+    "noul .p.": _set(["rules", 2, "any", 1, 0], "security_sensitive.p.true"), "choice bare": _set(["rules", 2, "any", 1, 0], "lane"),
+    "unknown option": _set(["rules", 0, "all", 0, 2], "tiny"), "in without list": _set(["rules", 4, "any", 0, 2], "small"),
+    "in with unknown": _set(["rules", 4, "any", 0, 2], ["small", "huge"]), "choice >=": _set(["rules", 0, "all", 0, 1], ">="),
+    "threshold above 1": _set(["rules", 1, "all", 1, 2], 1.5), "threshold a string": _set(["rules", 1, "all", 1, 2], "0.6"),
+    "threshold true": _set(["rules", 1, "all", 1, 2], True), "threshold NaN": _set(["rules", 1, "all", 1, 2], float("nan")),
+    "between empty": _set(["rules", 1, "all", 1], ["lane.confidence", "between", 0.8, 0.2]),
+    "between one value": _set(["rules", 1, "all", 1], ["lane.confidence", "between", 0.8]),
+    "short condition": _set(["rules", 1, "all", 1], ["lane.confidence", ">="]),
+    "nested both": _set(["rules", 2, "any", 2], {"all": [["lane.confidence", "<", 0.5]], "any": [["lane.confidence", "<", 0.5]]}),
+    "nested empty": _set(["rules", 2, "any", 2], {"all": []}), "unsure not bool": _set(["rules", 2, "any", 1], ["security_sensitive.unsure", "==", 1]),
+    "unsure ok": _set(["rules", 2, "any", 1], ["security_sensitive.unsure", "==", True]),
+    "pre-rule reads a question": _set(["pre_rules", 0, "any", 0], ["lane.confidence", ">=", 0.5]),
+    "pre-rule bad fact": _set(["pre_rules", 0, "any", 0, 0], "fact.Person"), "pre-rules not a list": _set(["pre_rules"], {}),
+    "fact between": _set(["pre_rules", 1, "any", 0], ["fact.prior_failed_attempts", "between", 2, 9]),
+    "fact >= string": _set(["pre_rules", 1, "any", 0, 2], "2"), "fact in list": _set(["pre_rules", 1, "any", 0], ["fact.x", "in", [1, 2]]),
+    "fact == object": _set(["pre_rules", 0, "any", 0, 2], {"a": 1}),
+    "no otherwise": _drop(["otherwise"]), "on_error empty": _set(["on_error"], ""), "on_drift number": _set(["on_drift"], 3),
+    "band reversed": _set(["uncertain_band"], [0.7, 0.3]), "band of three": _set(["uncertain_band"], [0.1, 0.5, 0.9]),
+    "undeclared action": _set(["rules", 4, "then"], "large"), "actions not a list": _set(["actions"], "small"),
+    "precedence out of order": _set(["precedence"], ["escalate", "keep_current", "high", "small", "medium"]),
+    "state_fields not a list": _set(["state_fields"], "task"), "tuned_on latest": _set(["tuned_on"], "jev-latest"),
+    "tuned_on no version": _set(["tuned_on"], "jev"), "tuned_on other model": _set(["tuned_on"], "clef-flash"),
+    "question no type": _drop(["questions", "lane", "type"]), "question bad type": _set(["questions", "lane", "type"], "pick"),
+    "choice one option": _set(["questions", "lane", "criteria"], {"small": "x"}),
+    "annotation without add": _set(["annotations"], [{"any": [["lane.confidence", "<", 0.5]]}]),
+    "annotation ok": _set(["annotations"], [{"add": "low confidence", "any": [["lane.confidence", "<", 0.5]]}]),
+    "two unknown keys": lambda d: d.update({"zeta": 1, "alpha": 2}),
+    "33 questions": lambda d: d["questions"].update({f"q{i}": {"type": "noul", "instructions": "Is it?"} for i in range(31)}),
+}
+# `text` is the policy as JSON, which the port lints: the .ts copy of `policy` reads 1.0 as 1.
+LINT = [{"name": f"shipped {path.stem}", "policy": json.loads(path.read_text(encoding="utf-8")), "text": path.read_text(encoding="utf-8"),
+         "problems": policies.lint(json.loads(path.read_text(encoding="utf-8")))}
+        for path in sorted((SOURCE / "jevkit" / "policies").glob("*.json"))]
+for name, change in MUTATIONS.items():
+    data = broken(change)
+    LINT.append({"name": name, "policy": data, "text": json.dumps(data), "problems": policies.lint(data)})
+save("policy_lint", LINT)
+
+# The lane -> model/effort table, with lanes.json laid on top (the XDG one, then the shared one).
+TABLES = [None, {}, {"claude-code": {"small": {"model": "sonnet"}}}, {"claude-code": {"high": {"effort": "high", "agent": "mine"}}},
+          {"claude-code": {"small": {"model": 4, "effort": 1.5, "x": True, "y": None, "z": [1]}}}, {"claude-code": {"tiny": {"model": "x"}}},
+          {"claude-code": "opus"}, {"claude-code": {"small": "opus"}}, {"hermes": {"small": {"model": "x"}}}, [1, 2], "not json"]
+TARGET_ROWS = []
+xdg_file = Path(_scratch) / "jev" / "lanes.json"
+shared_file = Path(_scratch) / "lanes.json"
+for xdg in TABLES:
+    for shared in [None, {"claude-code": {"small": {"effort": "medium"}, "medium": {"model": "opus"}}}]:
+        for path, table in ((xdg_file, xdg), (shared_file, shared)):
+            if table is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(table if isinstance(table, str) else json.dumps(table), encoding="utf-8")
+        TARGET_ROWS.append({"xdg": xdg, "shared": shared, "targets": lanes.targets("claude-code")})
+xdg_file.unlink(missing_ok=True)
+shared_file.unlink(missing_ok=True)
+save("lane_targets", TARGET_ROWS)
+
+
+# classify end to end: every request with the reply it got, as for skills.
+class RecordedLane(Recorded):
+    def __init__(self, values, fail=None, **scripted):
+        self.inner = Scripted(values, fail=fail, **scripted)
+        self.fail_when = None
+        self.exchanges = []
+
+
+TASKS = ["rename foo to bar in utils.py", "fix the typo in README", "add a --quiet flag to the CLI with a test",
+         "design and implement a plugin system across five harnesses", "the migration broke production auth, investigate",
+         "summarise this file", "update the dependency and run the tests"]
+LANE_ANSWERS = [{"lane": "small"}, {"lane": "medium"}, {"lane": "high"}, {"lane": "escalate"}, {"lane": "other"},
+                {"lane": "small", "security_sensitive": 0.9}, {"lane": "medium", "underspecified": 0.8}]
+LANE_RUNS = []
+
+
+def lane_run(task, values, context="", facts=None, limits=None, mode="live", **scripted):
+    limits_file = Path(_scratch) / "limits.json"
+    if limits == "budget":
+        limits_file.write_text(json.dumps({"daily_usd": 0}), encoding="utf-8")
+    fake = RecordedLane(values, **scripted)
+    try:
+        result = lanes.classify(task, context=context, facts=facts, host="claude-code", mode=mode, transport=fake)
+    finally:
+        limits_file.unlink(missing_ok=True)
+    LANE_RUNS.append({"task": task, "context": context, "facts": facts, "limits": limits, "mode": mode, "values": values,
+                      "scripted": {k: v for k, v in scripted.items() if k != "fail"}, "exchanges": fake.exchanges, "result": result})
+
+
+for task in TASKS:
+    for values in LANE_ANSWERS:
+        lane_run(task, values)
+for confidence in [0.45, 0.5, 0.6, 0.65, 0.7, 0.75]:
+    for picked in ["small", "medium", "escalate", "other"]:
+        lane_run(TASKS[0], {"lane": picked}, confidence=confidence)
+for model in ["jev-1.13-free", "typesafe/jev-1.13-20260917", "jev-1.14.0", "jev-2.0", None]:
+    lane_run(TASKS[2], {"lane": "high"}, model=model)
+lane_run(TASKS[2], {"lane": "high"}, model="jev-1.14.0", mode="shadow")
+lane_run(TASKS[2], {"lane": "small"}, tokens=12345)
+for fail in ["network", "timeout", "rate_limited", "auth_failed"]:
+    lane_run(TASKS[1], {"lane": "small"}, fail=fail)
+lane_run(TASKS[1], {"lane": "small"}, limits="budget")
+for facts in [{"person_named_model": True}, {"prior_failed_attempts": 2}, {"security_paths": True}, {"prior_failed_attempts": True}, {}]:
+    lane_run(TASKS[1], {"lane": "small"}, facts=facts)
+lane_run(TASKS[3], {"lane": "high"}, context="the repo is a Python monorepo; tests run with pytest")
+lane_run("rotate the key ghp_" + "a1B2" * 9 + " in the deploy config", {"lane": "small"})
+lane_run("deploy with password: hunter2", {"lane": "small"})
+lane_run("email ana@example.com the café report \U0001f600 and fix the 日本 locale", {"lane": "medium"})
+lane_run("refactor " + "this module and its callers " * 200, {"lane": "high"}, context="x" * 2000)
+lane_run("", {"lane": "small"})
+# Secrets privacy.py misses that the port's privacy.ts catches (test/parity/divergences.ts).
+lane_run("charge the card \u0664\u0661\u0661\u0661 \u0661\u0661\u0661\u0661 \u0661\u0661\u0661\u0661 \u0661\u0661\u0661\u0661 again", {"lane": "small"})
+lane_run("rotate \u00e9AKIA1234567890ABCDEF in the deploy config", {"lane": "small"})
+save("lanes", LANE_RUNS)
 
 MESSAGES = [{"role": "user" if i % 2 == 0 else "assistant", "content": CORPUS[i % len(CORPUS)]} for i in range(24)]
 save("compact", [scripted_run(lambda **kw: compact.select(MESSAGES, **kw), v) for v in ({}, {"fate": "keep"})])

@@ -1,0 +1,767 @@
+[
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": null
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": null
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": {}
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": {}
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "sonnet"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "small": {
+     "model": "sonnet"
+    }
+   }
+  }
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "sonnet"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "small": {
+     "model": "sonnet"
+    }
+   }
+  }
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "mine",
+    "effort": "high",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "high": {
+     "agent": "mine",
+     "effort": "high"
+    }
+   }
+  }
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "mine",
+    "effort": "high",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "high": {
+     "agent": "mine",
+     "effort": "high"
+    }
+   }
+  }
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "1.5",
+    "model": "4",
+    "x": "True"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "small": {
+     "effort": 1.5,
+     "model": 4,
+     "x": true,
+     "y": null,
+     "z": [
+      1
+     ]
+    }
+   }
+  }
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "4",
+    "x": "True"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "small": {
+     "effort": 1.5,
+     "model": 4,
+     "x": true,
+     "y": null,
+     "z": [
+      1
+     ]
+    }
+   }
+  }
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "tiny": {
+     "model": "x"
+    }
+   }
+  }
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "tiny": {
+     "model": "x"
+    }
+   }
+  }
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": "opus"
+  }
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": "opus"
+  }
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "small": "opus"
+   }
+  }
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "claude-code": {
+    "small": "opus"
+   }
+  }
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "hermes": {
+    "small": {
+     "model": "x"
+    }
+   }
+  }
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": {
+   "hermes": {
+    "small": {
+     "model": "x"
+    }
+   }
+  }
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": [
+   1,
+   2
+  ]
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": [
+   1,
+   2
+  ]
+ },
+ {
+  "shared": null,
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "sonnet"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "low",
+    "model": "haiku"
+   }
+  },
+  "xdg": "not json"
+ },
+ {
+  "shared": {
+   "claude-code": {
+    "medium": {
+     "model": "opus"
+    },
+    "small": {
+     "effort": "medium"
+    }
+   }
+  },
+  "targets": {
+   "escalate": {
+    "agent": "jev-lane-escalate",
+    "effort": "high",
+    "model": "opus"
+   },
+   "high": {
+    "agent": "jev-lane-high",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "medium": {
+    "agent": "jev-lane-medium",
+    "effort": "medium",
+    "model": "opus"
+   },
+   "small": {
+    "agent": "jev-lane-small",
+    "effort": "medium",
+    "model": "haiku"
+   }
+  },
+  "xdg": "not json"
+ }
+]

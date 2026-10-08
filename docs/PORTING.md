@@ -3,8 +3,8 @@
 Each engine module moves from jev-skills' Python into `src/engine/`, in TypeScript, reaching the
 outside world only through a `Host` (`core/host.ts` builds one from `IO`); when a module
 reproduces its parity fixtures exactly, the features switch to it and their call to the Python
-`jev` command (src/core/jev.ts) goes. Screening and skills have switched; routing and
-/compact-jev still call the command.
+`jev` command (src/core/jev.ts) goes. Screening, skills and routing have switched;
+/compact-jev still calls the command.
 
 ## Parity fixtures
 
@@ -26,7 +26,11 @@ record both the request sent and the decision reached:
 | `client_ask.json` | `ask`: for each way a request is routed (every provider, a gateway, named backends, overrides, missing keys, the size limit in code points, retries, refused replies) the exact URL, body and headers sent, the reply, and the outcome | 54 |
 | `urls.json` | `backends.check_url` and the gateway rule on URL edge cases | 40 |
 | `webscreen_screen.json` | screening end to end against the scripted backend: requests, verdict, withheld text | 10 |
-| `lanes.json` | `lane classify`: request and decision, every lane | 49 |
+| `lanes.json` | `lane classify` end to end: every request with its reply, every lane; confidence on each threshold, the answering model's version (drift, shadow), outages, the budget spent, the caller's facts, secrets, context, the field caps | 98 |
+| `lane_grid.json` | `policy.readings` and `policy.apply` over the lane policy: every choice, on and either side of each confidence, security and underspecified threshold | 1,400 |
+| `policy_engine.json` | pre-rules on facts Python compares loosely (`1 == True`, a bool is no number), `drifted` and `version_of` | 16 + 64 |
+| `policy_lint.json` | `policy.lint` on every shipped policy and the lane policy broken 58 ways, each message word for word | 72 |
+| `lane_policy.json`, `lane_targets.json` | the shipped lane policy; `lanes.targets` with lanes.json files laid on top | 1, 22 |
 | `skill_text.json` | `looks_trivial` on every string the skill tests use plus Unicode, apostrophes, question marks in four scripts; `_front_matter` on block scalars, CRLF, Python's line ends and whitespace | 449 + 51 |
 | `skill_catalogs.json`, `skills.json` | `pick` end to end over 11, 130 and 1,000 skills: every request with the reply it got (the batches go out side by side, so the test answers by body), the result; every branch (trivial, sensitive, no skills, one batch lost, stage 2 lost, the cap, ties, `round()`'s ties) | 50 runs |
 | `compact.json` | `compact-select`: requests and fates | 2 |
@@ -64,6 +68,15 @@ Known differences that are not fixture answers, and why:
   `engine/skills.ts` reads Claude Code's layout, `<root>/<folder>/SKILL.md`, and the feature
   then keeps only the skills the session itself lists (`$.session.usage` with a local
   `summary` breakdown). Front matter, names and the rest of the pick are as Python had them.
+- **The secret check before a decision** (`decide`) reads the state as text, not as escaped
+  JSON as decide.py did, where privacy.ts's fixes could not see a key behind an accented letter
+  (`LANE_DIVERGENCES` in test/parity/divergences.ts); a card in another script goes masked.
+- **The daily budget** is the same limits.json and limits.state.json, read and written without
+  limits.py's flock, which a mod cannot hold: two processes at the same instant may lose a count.
+- **Private profiles** are not routed either; `jev lane classify` did not check them.
+- **No ledger rows.** decide.py appended every decision to the ledger; the mod tallies calls and
+  cost in the session record (the status line's) instead. Policy labels and state digests,
+  which only the ledger used, are not computed.
 - **Already suggested** is remembered in the session record, not jev-skills'
   `jev-hooks-sessions.json`, and the mod writes no `jev-hooks.jsonl` row per prompt.
 - **backends.json that cannot be read** (a permissions error, say) reads as no file at all,
@@ -82,6 +95,6 @@ an entry stops differing.
 | `engine/client.ts` | `client.py`, `ledger.cost` | everything | **done** (six deliberate mutations each caught) |
 | `engine/backends.ts`, `engine/keys.ts` | `backends.py`, `tuning.check`, `keystore.py` (reading) | client | **done** for `systemone`; the `openai` (logprobs) protocol is still to do. Storing a key (`jev setup-key`) is not ported yet |
 | `engine/skills.ts` | `skillpick.py`, `hooks.user_prompt` | skills | **done and wired in** (nine deliberate mutations caught; the tenth, `trim` for `strip` in the gate, cannot change an answer) |
-| `engine/lanes.ts` | `lanes.py`, `policy.py`, `decide.py` (what `lane` needs) | routing | to do |
+| `engine/lanes.ts`, `engine/policy.ts`, `core/limits.ts` | `lanes.classify`/`targets`, `decide.decide`, `policy.py` (load, lint, readings, rules, drift), `limits.py` | routing | **done and wired in** (thirteen deliberate mutations caught, after adding cases for two the first run missed) |
 | `engine/compact.ts` | `compact.py` | /compact-jev | to do |
 | key setup | `key_setup.py` | first run | to do: no Python, the key never in the conversation |

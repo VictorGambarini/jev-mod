@@ -28,6 +28,8 @@ src/
     trim-output/       index.ts (glue, archive) · trim.ts (fold, chunk, drop: pure) · their tests
     compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
+    find-files/        the find_files tool: index.ts (glue: listing, git grep, the backend) · rank.ts (pure: terms,
+                       scores, cards, ranking) · their tests; src/find-files.test.ts drives it through the kit
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
 statusline/            the two-line status line (reads core/memory.ts's records)
 test/parity/           fixtures captured from jev-skills; the engine port must match them
@@ -128,6 +130,22 @@ hook's `result` only in the tool's record shape and reads no `isError` from a ho
 after the tool ran is what the model reads as an error result. Each step is self-contained in the hook and
 returns its own result or null; a step that returns null leaves the result as the step before it
 made it, and a hook that changed nothing hands core the very object `next(e)` gave it.
+
+## A tool of the mod's own
+
+`find-files` offers the model a tool, `mcp__jev-mod__find_files`: `$.tool.register` at
+`session.start` (or at the first prompt after it is turned on) when its mode is `on`, answered
+by a `tool.call` hook matched on that name. That hook is registered before the general
+`tool.call` hook and never calls `next`, so screening and trimming never see its answer and no
+permission dialog opens (it only reads). A registered tool cannot be withdrawn during a
+session: turned off, it stays listed and answers that it is off.
+
+It narrows locally first (`git ls-files -co --exclude-standard`, else a walk that skips
+`node_modules`, `dist`, `build`, `vendor` and the like; `git grep -c` for how many lines of
+each file mention the query's words; then the first 40 lines of the best few dozen), and
+sends only the best `maxCandidates` to the decision model, as redacted cards, about 40 to a
+request, packed by encoded size as compaction's turns are. Every failure (no key, private mode,
+the budget, the cool-off, a timeout) answers with the local ranking, labelled as such.
 
 ## Failure
 

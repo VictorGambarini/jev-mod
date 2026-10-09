@@ -36,6 +36,9 @@
    - A command of its own? Prefer a word under `/jev-mod` (`features/command/parse.ts`'s
      `WORDS`, and a case in `features/command/index.ts`). A separate command is registered in
      `session.start` and answered by a `command.run` hook whose matcher names it by literal.
+   - A tool the model calls? Register it with `$.tool.register` in `session.start` when its mode
+     is on (as `find-files` does), and answer it with a `tool.call` hook matched on its full name
+     (`mcp__jev-mod__<name>`), registered before the general one, that never calls `next`.
    - Something the IO cannot do yet? Add it to `core/io.ts` and `ioOf` in `register.tsx`, with
      the literal names the validator wants.
 8. **Fail open.** If the feature cannot decide, return null and let the hook pass the event on;

@@ -7,6 +7,7 @@ import type { IO } from './core/io'
 import * as memory from './core/memory'
 import * as command from './features/command'
 import * as compact from './features/compact'
+import * as findFiles from './features/find-files'
 import * as routing from './features/routing'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
@@ -139,6 +140,22 @@ function ioOf($: any): IO {
   }
 }
 
+/** Whether find-files' tool has been offered to the model in this process. */
+let findFilesOffered = false
+
+/**
+ * find-files' tool, registered once it is on: at session start, or at the first prompt after it
+ * was turned on. Registering is for the session; turned off, the tool stays and answers so.
+ */
+async function offerFindFiles($: any): Promise<void> {
+  if (findFilesOffered) return
+  try {
+    if (!(await findFiles.offered(ioOf($)))) return
+    await $.tool.register(findFiles.SPEC)
+    findFilesOffered = true
+  } catch { /* not offered: Glob and Grep as ever */ }
+}
+
 /**
  * A failed call's answer with a shorter error text. Core takes a hook's `result` only in the
  * tool's own record shape and reads no `isError` from a hook, so a record would reach the model
@@ -154,6 +171,7 @@ export const register: Register = (on, given) => {
   options = { ...(given ?? {}) }
   on('session.start', async ($, e, next) => {
     await $.command.register(command.command)
+    await offerFindFiles($)
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -163,7 +181,8 @@ export const register: Register = (on, given) => {
     if (!text.trim() || text.trimStart().startsWith('/')) return next(e)
     const io = ioOf($)
     await memory.load(io)
-    const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text)])
+    const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text),
+      offerFindFiles($)])
     await refresh($)
     return next(suggestion ? { ...e, context: [...(e.context ?? []), suggestion] } : e)
   }).catch(($, e, next) => next(e))
@@ -220,6 +239,16 @@ export const register: Register = (on, given) => {
     await refresh($)
     return compacted
   }).catch(($, e, next) => next(e))
+
+  // find-files' own tool: answered here, before the hook below, so screening never reads it as
+  // an MCP result. Its answer is always text; a failure says so and points at Glob and Grep.
+  on('tool.call', { tool: 'mcp__jev-mod__find_files' }, async ($, e) => {
+    const io = ioOf($)
+    await memory.load(io)
+    const result = await findFiles.find(io, e as unknown as { query?: unknown; path?: unknown; limit?: unknown })
+    await refresh($)
+    return { result }
+  }).catch(() => ({ result: 'find_files failed before it finished; use Glob and Grep.' }))
 
   // Screening first, on what the tool returned; then output trimming, on what screening left.
   on('tool.call', async ($, e, next) => {

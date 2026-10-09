@@ -128,6 +128,29 @@ export const FEATURES: readonly Feature[] = [
     },
   },
   {
+    id: 'find-files',
+    title: 'Find files',
+    summary: 'A tool the model calls to find the files that implement something described in plain words',
+    help: 'on: the model is offered a find_files tool (mcp__jev-mod__find_files). Given a query such as "where retries '
+      + 'with backoff are done", it lists the files under the project (git\'s list, so .gitignore is honoured), scores '
+      + 'them locally by the query\'s words in each path, its first lines and how many lines mention them, and sends the '
+      + 'best maxCandidates as short cards (path, header comment, the names it defines, a few matching lines, redacted) '
+      + 'for the decision model to judge: implements, related or unrelated. The model gets a ranked list of paths, each '
+      + 'with a reason. No key, private mode, the daily budget, a backend cool-off or no answer within timeoutMs: the '
+      + 'local ranking comes back, labelled as such. A card or query that looks like it holds a secret is not sent. '
+      + 'off: the tool is not offered (a session started while it was on keeps it, and it answers that it is off). '
+      + 'There is no shadow: the model calls the tool by choice, so there is nothing to watch it do unasked.',
+    modes: ['off', 'on'], default: 'on',
+    knobs: {
+      maxCandidates: { type: 'int', title: 'Files judged', default: 60, min: 10, max: 200,
+        help: 'How many of the best local matches the decision model judges per query: more finds more, and costs more.' },
+      limit: { type: 'int', title: 'Files returned', default: 10, min: 1, max: 50,
+        help: 'How many files the tool returns when the model does not say.' },
+      timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 8000, min: 1000, max: 30000,
+        help: 'How long the tool waits for the decision model before it answers with the local ranking.' },
+    },
+  },
+  {
     id: 'band',
     title: 'jev-mod band',
     summary: 'A line above the prompt: what jev-mod decided, its cost, what screening withheld',

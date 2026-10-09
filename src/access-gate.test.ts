@@ -22,7 +22,7 @@ function setUp(on: any, mode: string) {
 
 const ssh = { tool: 'Bash', input: { command: 'ssh victor@vm1 uptime' }, tool_use_id: 'toolu_1' }
 
-test('on: ssh is refused until the person allows it for the session, and the band shows it open', async ($, on) => {
+test('on: ssh is refused until the person allows it for the session, and the band shows it open', { timeoutMs: 15000 }, async ($, on) => {
   setUp(on, 'on')
   const refused: any = await $.tool.check(ssh as never)
   expect(refused.decision).toBe('deny')

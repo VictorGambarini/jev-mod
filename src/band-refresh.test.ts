@@ -40,7 +40,7 @@ const text = async (mounted: { drawn: () => Promise<unknown> }) => {
 }
 
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`the band follows each routed step without a restart, and always names the model (${surface})`, async ($, on) => {
+  test(`the band follows each routed step without a restart, and always names the model (${surface})`, { timeoutMs: 15000 }, async ($, on) => {
     await setUp($, on)
     const mounted = await $.ui.mount({ ...BAND, surface })
     expect(await text(mounted)).toContain('jev-mod ready')

@@ -225,7 +225,7 @@ export async function install(io: IO): Promise<{ text: string }> {
     const why = tail(npm.stderr || npm.stdout) || `exit ${npm.exitCode}`
     return { text: `jev-mod browser: npm --version failed (${why}); install Node.js (it brings npm) or put it on PATH, then run this again.` }
   }
-  io.status(`jev-mod: installing Playwright ${PLAYWRIGHT_VERSION}…`)
+  io.status(`installing Playwright ${PLAYWRIGHT_VERSION}…`)
   const lines: string[] = []
   if (have !== PLAYWRIGHT_VERSION) {
     const got = await run(['npm', 'install', '--no-audit', '--no-fund', '--save-exact', `playwright@${PLAYWRIGHT_VERSION}`])
@@ -235,7 +235,7 @@ export async function install(io: IO): Promise<{ text: string }> {
     }
     lines.push(`installed Playwright ${PLAYWRIGHT_VERSION} in ${dir}`)
   } else lines.push(`Playwright ${PLAYWRIGHT_VERSION} was already in ${dir}`)
-  io.status('jev-mod: downloading Chromium for the browse tool…')
+  io.status('downloading Chromium for the browse tool…')
   const browsers = `${dir}/ms-playwright`
   const chromium = await run(['npx', '--no-install', 'playwright', 'install', 'chromium'], { PLAYWRIGHT_BROWSERS_PATH: browsers })
   io.status(undefined)

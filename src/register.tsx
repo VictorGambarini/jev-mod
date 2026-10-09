@@ -12,6 +12,7 @@ import * as compact from './features/compact'
 import * as findFiles from './features/find-files'
 import * as reviewTriage from './features/review-triage'
 import * as routing from './features/routing'
+import * as rulesGate from './features/rules-gate'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
 import * as toolGate from './features/tool-gate'
@@ -356,6 +357,20 @@ export const register: Register = (on, given) => {
     return gate
   }).catch(($, e, next) => next(e))
   // ── end tool-call gate ──
+
+  // ── rules gate (features/rules-gate) ──
+  // An edit inside the project that Claude Code would allow or ask about may be refused, with the
+  // project rule it breaks as the error the model reads. A deny already made stands, and a plugin's
+  // `$.tool.check` query is not judged. Edits outside the project are the tool gate's.
+  on('tool.check', { tool: ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'] }, async ($, e, next) => {
+    const verdict = await next(e)
+    if (verdict.decision === 'deny' || e.tool_use_id === undefined) return verdict
+    const gate = await rulesGate.check(ioOf($), e)
+    if (!gate) return verdict
+    await refresh($)
+    return gate
+  }).catch(($, e, next) => next(e))
+  // ── end rules gate ──
 
   // The band above the prompt; next(e) (nothing of the mod's) until it has done something.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

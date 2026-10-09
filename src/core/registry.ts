@@ -113,6 +113,33 @@ export const FEATURES: readonly Feature[] = [
     },
   },
   {
+    id: 'rules-gate',
+    title: 'Rules gate',
+    summary: "Refuses an edit the decision model judges breaks the project's written rules",
+    help: 'Before Write, Edit, MultiEdit or NotebookEdit changes a file inside the project, the decision model reads the change '
+      + 'and the rules that apply to that file (list items and short directives in CLAUDE.md, AGENTS.md and CLAUDE.local.md '
+      + 'from the project root down to the file\'s folder, and .claude/rules/*.md whose paths: match it), one question per '
+      + 'rule: does this change break it? on: when it is at least minConfidence (0.8) sure one is broken, the edit is refused '
+      + 'and the agent is told which rule, quoting it and its file, and asked to fix the change or tell you why the rule '
+      + 'should not apply. shadow: judged in the background and counted (would-block, passed, skipped); no edit waits for it '
+      + 'or is refused. off: nothing is sent. Only edits inside the project are judged (outside it is the tool gate\'s). '
+      + 'No answer within timeoutMs, no key, private mode, a secret in the change, the daily budget or a backend cool-off: '
+      + 'the edit goes on. The thresholds are not yet tested against real answers: run it in shadow first.',
+    modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
+    knobs: {
+      minConfidence: { type: 'number', title: 'Confidence to refuse', default: 0.8, min: 0.5, max: 1,
+        help: 'How sure the decision model must be that a change breaks a rule for the edit to be refused.' },
+      maxRules: { type: 'int', title: 'Rules per edit', default: 25, min: 5, max: 60,
+        help: 'The most rules judged per edit; past it, those whose words match the file\'s path and the change are kept, nearer files first.' },
+      timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 3000, min: 1000, max: 10000,
+        help: 'How long an edit waits for the decision before it goes on unjudged.' },
+      maxChangeChars: { type: 'int', title: 'Change sent', default: 6000, min: 1000, max: 20000,
+        help: 'About how many characters of the change are sent (redacted); a Write to an existing file sends the lines that differ.' },
+      subagents: { type: 'boolean', title: 'Subagents too', default: true,
+        help: 'true: a subagent\'s edits are judged as the agent\'s are. false: they go on unjudged.' },
+    },
+  },
+  {
     id: 'trim-output',
     title: 'Output trimming',
     summary: 'Cuts long Bash output down to what the current goal needs; the full output is kept in a file',

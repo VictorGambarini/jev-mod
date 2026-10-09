@@ -16,6 +16,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
 | **Tool-call gate** (off by default) | before a consequential tool call Claude Code would allow: Bash that pushes, deletes, rewrites history, publishes, installs, deploys, migrates or writes outside the project; Write/Edit outside the project; MCP tools that send, create, change or delete | Whether you asked for it, whether it breaks a limit you stated ("don't push"), and whether it is hard to undo. A doubtful call is put to you in the permission dialog with the reason, instead of running unasked. It only tightens Claude Code's decision, never loosens it. |
 | **Completion gate** (`stop-gate`, off by default) | when the main agent ends a turn claiming the work is done or checks pass | Whether the turn's evidence (edited files, the commands it ran and the tail of their output) shows each claim. In `on`, an unshown claim sends the agent back once more, naming it and asking it to verify or say plainly what is unverified, never to take a hard-to-undo step; at most twice per prompt. |
+| **Rules gate** (`rules-gate`, off by default) | before Write, Edit, MultiEdit or NotebookEdit changes a file inside the project | Whether the change breaks one of the project's written rules that apply to that file: list items and short directives in `CLAUDE.md`, `AGENTS.md` and `CLAUDE.local.md` from the root down to the file's folder, and `.claude/rules/*.md` whose `paths:` match it (one yes/no question per rule, at most 25). In `on`, a rule judged broken with confidence 0.8 or more refuses the edit, and the agent is told which rule, quoted with its file, and asked to fix the change or tell you why the rule should not apply. Edits outside the project are the tool-call gate's. |
 | **Output trimming** | after a Bash command prints 200 lines or more (off by default) | Runs of repeated and near-identical lines are folded locally; then each remaining chunk the current goal (your latest request and the command) no longer needs is replaced by a marker naming its lines. Errors, warnings, failures, stack traces, summaries and the first and last lines always stay. The full output is kept in `~/.cache/jev-mod/outputs/` (the last 50), and the trimmed output's first line names the file. Bash output that screening looked at is trimmed after screening, so only screened text reaches the model: a large output Claude Code kept in a file is screened whole before any of it is inlined, and left as Claude Code's preview when it cannot be. A failed command's trimmed output still reaches the model as an error. |
 | **Find files** (`find-files`) | when the model calls `find_files` (offered while it is on) | Which files implement what the model describes in plain words ("where retries with backoff are done"). The project's files (git's list, so `.gitignore` is honoured) are scored locally by the query's words in each path, its first lines and how many lines mention them; the best 60 go to the decision model as short redacted cards (path, header comment, the names it defines, a few matching lines) and it judges each *implements*, *related* or *unrelated*. The model gets a ranked list of paths with a reason each, in place of a chain of greps. No key, private mode, the daily budget or a failing backend: the local ranking, labelled as such. |
 | **Review triage** (`review-triage`, off by default) | when the model calls `review_triage` before a code review (offered while it is on) | How deep the first review pass should go. The git diff (uncommitted changes against HEAD, else the last commit, or the changes since a `base` the model names) goes to the decision model redacted and cut to 12,000 characters, with seven yes/no questions: security-sensitive code, hard-to-undo data changes, a public interface others rely on, runtime-only failures, a rule in the project's CLAUDE.md or AGENTS.md, behaviour changed without a test, and work beyond the stated intent. *quick* (one review pass is enough) only when every answer is a confident no; otherwise *full*, naming the questions and the files behind them (one more request asks which files). It never replaces the review. A hunk that looks like it holds or handles a secret is not sent and makes it *full*; so do no key, private mode, the daily budget, a failing backend or a diff too large to triage. |
@@ -89,7 +90,7 @@ they live in a JSON file:
 
 - `~/.config/jev-mod/config.json` for you (`$XDG_CONFIG_HOME` respected), and
 - `.claude/jev-mod.json` in a project, which overrides it there. A project's file comes with the
-  repository, so for the features that guard you (`screening`, `tool-gate`, `stop-gate`) it may
+  repository, so for the features that guard you (`screening`, `tool-gate`, `stop-gate`, `rules-gate`) it may
   only make the mode stricter (off < shadow < on) than your own file, an older switch or the
   default give, and their settings come from your file alone. A looser mode or a setting there is
   passed over and shown by `/jev-mod` ("project config may not lower screening"), and
@@ -130,6 +131,7 @@ the config file. Without bun or node it writes a read-only copy of the page inst
 | `skills` | on, shadow, off | off | suggests the installed skill that matches a prompt |
 | `screening` | on, shadow, off | on | withholds instructions aimed at the model in fetched text |
 | `tool-gate` | on, shadow, off | off | asks you before a consequential tool call the decision model doubts; settings `minConfidence` (0.7), `scope` (`bash`, `bash+edits`, `all-risky`), `timeoutMs` (2000) |
+| `rules-gate` | on, shadow, off | off | refuses an edit inside the project that breaks a written project rule; `minConfidence` (0.5-1, 0.8) to refuse, `maxRules` (5-60, 25) judged per edit, `timeoutMs` (1000-10000, 3000), `maxChangeChars` (1000-20000, 6000) of the change sent, `subagents` (true) |
 | `trim-output` | on, shadow, off | off | cuts long Bash output down to what the current goal needs; `minLines` (200), `keepThreshold` (0.35), `localOnly` (false) |
 | `find-files` | on, off | off | the `find_files` tool the model calls to find the files that implement something; `maxCandidates` (10-200, 60) judged per query, `limit` (1-50, 10) returned, `timeoutMs` (1000-30000, 8000) before the local ranking answers. No shadow: the model calls it by choice |
 | `review-triage` | on, off | off | the `review_triage` tool the model calls before a code review; `minConfidence` (0.5-1, 0.8) of each *no* for *quick*, `maxDiffChars` (2000-40000, 12000) of the diff sent (over ten times that: *full*, nothing sent), `timeoutMs` (1000-30000, 8000) before it answers *full*. No shadow: the model calls it by choice |
@@ -149,10 +151,37 @@ settles the ask (headless, it is refused with the gate's reason). Try it in `sha
 counts `would-ask`, `passed` and `skipped`, in the background, so no call waits for it; `on`
 counts `asked-person`.
 
+**The rules gate** sits on the same permission decision, for Write, Edit, MultiEdit and
+NotebookEdit on files inside the project. A deny already made stands; an edit Claude Code would
+allow or ask you about may be refused, and the refusal is the error the model reads. What is sent:
+the file's path in the project, the change (an Edit's old and new text, a MultiEdit's every edit, a
+Write's changed lines against the file, or the whole of a new file; redacted, about
+`maxChangeChars`), and one question per rule. A rule is a list item, a numbered item, or a short
+line that reads as a directive; headings (kept as each rule's context), code blocks, tables and
+long prose are not rules. Past `maxRules`, the rules whose words match the file's path and the
+change's identifiers are kept, nearer files first. A change or a rule that looks like it holds a
+secret is not sent; no answer within `timeoutMs`, no key, private mode, the daily budget or a
+backend cool-off: the edit goes on. Parsed rule files are cached by mtime. The 0.8 threshold has
+not been checked against real answers yet: run it in `shadow` first (it counts `would-block`,
+`passed` and `skipped`, in the background, so no edit waits for it); `on` counts `blocked`.
+A rule file it reads, for example `.claude/rules/tests.md`:
+
+```markdown
+---
+paths:
+  - "**/*.test.ts"
+---
+# Tests
+
+- Never touch the real `~/.config/jev-mod/config.json`; use a fake IO.
+- Use a fake backend; no test needs a real key.
+- Name each test after the behaviour it checks.
+```
+
 What wins, first to last: a kill file (`~/.config/jev-mod/OFF` for everything,
 `~/.config/jev-mod/<FEATURE>_OFF` for one, or jev-skills' `HOOK_SKILLS_OFF` / `HOOK_SCREEN_OFF`
 in `~/.config/jev`), then *jev-mod on* unticked in `/config`, then the project file (for
-`screening`, `tool-gate` and `stop-gate` only when it is stricter), then yours, then the older
+`screening`, `tool-gate`, `stop-gate` and `rules-gate` only when it is stricter), then yours, then the older
 switches (the `/config` fields below, then jev-skills' `jev switches`), then the
 default.
 

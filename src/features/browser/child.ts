@@ -81,14 +81,23 @@ function featureDir(io: IO): string {
   return `${io.pluginRoot().replace(/\/\.claude-plugin\/?$/, '').replace(/\/+$/, '')}/src/features/browser`
 }
 
-/** node, else bun: Playwright is made for node. */
-async function runtime(io: IO): Promise<string | null> {
+function errorText(error: unknown): string {
+  return (error instanceof Error ? error.message : String(error)).trim().split('\n').slice(0, 2).join(' ').slice(0, 200)
+}
+
+/** node, else bun: Playwright is made for node. Else what each probe said. */
+async function runtime(io: IO): Promise<{ bin: string } | { problem: string }> {
+  const said: string[] = []
   for (const name of ['node', 'bun']) {
     try {
-      if ((await io.run([name, '--version'], { timeoutMs: 5000 })).exitCode === 0) return name
-    } catch { /* not there */ }
+      const ran = await io.run([name, '--version'], { timeoutMs: 5000 })
+      if (ran.exitCode === 0) return { bin: name }
+      said.push(`${name} --version exited ${ran.exitCode}${ran.stderr.trim() ? `: ${errorText(ran.stderr)}` : ''}`)
+    } catch (error) {
+      said.push(`${name} could not be run: ${errorText(error)}`)
+    }
   }
-  return null
+  return { problem: said.join('; ') }
 }
 
 const READY_MS = 45_000
@@ -100,8 +109,11 @@ export const launchChild: Launch = async (io, o) => {
   if (!dir || !(await installed(io, dir))) {
     return { status: 'not_installed', reason: `Playwright is not installed for jev-mod; the person runs ${INSTALL_COMMAND} (it downloads Playwright ${PLAYWRIGHT_VERSION} and Chromium, about 150 MB, into ${dir ?? '~/.cache/jev-mod/browser'}).` }
   }
-  const bin = await runtime(io)
-  if (!bin) return { status: 'failed', reason: 'neither node nor bun is on PATH, and the browser runs under one of them' }
+  const found = await runtime(io)
+  if ('problem' in found) {
+    return { status: 'failed', reason: `the browser runs under node (or bun), and neither could be started (${found.problem}); install Node.js or put it on PATH` }
+  }
+  const bin = found.bin
   const here = featureDir(io)
   const start = JSON.stringify({ ...o, runDir: `${dir}/run` })
   // Chromium is where the install put it; a copy named by JEV_MOD_BROWSER_DIR without one uses Playwright's own default.
@@ -195,12 +207,23 @@ export async function install(io: IO): Promise<{ text: string }> {
     }
   }
   const tail = (text: string) => text.trim().split('\n').slice(-6).join('\n')
-  const npm = await run(['npm', '--version'])
-  if (npm.exitCode !== 0) return { text: 'jev-mod browser: npm is not on PATH; install Node.js (it brings npm), then run this again.' }
+  // The folder first (writing package.json makes it): a command run with a cwd that does not
+  // exist fails to spawn, which once read as "npm is not on PATH".
   try {
     await io.writeFile(`${dir}/package.json`, JSON.stringify({ name: 'jev-mod-browser', private: true, description: 'Playwright for jev-mod\'s browse tool; delete this folder to remove it.' }, null, 2) + '\n')
   } catch (error) {
     return { text: `jev-mod browser: could not write ${dir}: ${error instanceof Error ? error.message : String(error)}` }
+  }
+  // npm's own probe runs with no cwd, so only npm itself can make it fail.
+  let npm: { exitCode: number; stdout: string; stderr: string }
+  try {
+    npm = await io.run(['npm', '--version'], { timeoutMs: 30_000 })
+  } catch (error) {
+    npm = { exitCode: 1, stdout: '', stderr: error instanceof Error ? error.message : String(error) }
+  }
+  if (npm.exitCode !== 0) {
+    const why = tail(npm.stderr || npm.stdout) || `exit ${npm.exitCode}`
+    return { text: `jev-mod browser: npm --version failed (${why}); install Node.js (it brings npm) or put it on PATH, then run this again.` }
   }
   io.status(`jev-mod: installing Playwright ${PLAYWRIGHT_VERSION}…`)
   const lines: string[] = []

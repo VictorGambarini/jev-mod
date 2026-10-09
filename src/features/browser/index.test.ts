@@ -111,8 +111,12 @@ class FakeDriver implements Driver {
   }
   view(): Observation {
     const page = SITE[this.url.split('?')[0]!] ?? { title: 'Missing', text: '', elements: [] }
-    const elements = page.elements.map(e => (e.fillable ? { ...e, filled: !!this.typed[e.id] } : e))
-    return { url: this.url, title: page.title, text: page.text, elements, sensitive: page.sensitive, more: false, canGoBack: false }
+    // as the real driver does: whether a field holds text, and which input's value it is (by name)
+    const holds = (id: string) => Object.entries(this.values).find(([, v]) => v === this.typed[id])?.[0]
+    const elements = page.elements.map(e => (e.fillable ? { ...e, filled: !!this.typed[e.id], ...(holds(e.id) ? { holds: holds(e.id) } : {}) } : e))
+    const q = new URL(this.url).searchParams.get('q')
+    const text = q ? `${page.text} You searched for ${q}.` : page.text
+    return { url: this.url, title: q ? `${page.title}: ${q}` : page.title, text, elements, sensitive: page.sensitive, more: false, canGoBack: false }
   }
   async observe() { return this.view() }
   async act(w: Wire): Promise<ActResult> {
@@ -241,7 +245,7 @@ test('consequential and named by the goal: done when the decision model is sure 
 })
 
 test('blocked: under the step floor, the top three come back with their probabilities and can be approved', async () => {
-  const probs = { 'click-e1': 0.4, 'click-e3': 0.3, 'fill-e4': 0.2 }
+  const probs = { 'click-e1': 0.35, 'click-e3': 0.3, 'fill-e4': 0.25 }
   const fake = io({})
   const { launched, launch } = site()
   // fill the rest of the table's probabilities so they sum to one
@@ -257,14 +261,15 @@ test('blocked: under the step floor, the top three come back with their probabil
       const total = Object.values(filled).reduce((a, b) => a + b, 0)
       for (const o of Object.keys(filled)) filled[o] = filled[o]! / total
       fake.sent.push(body)
-      return { status: 200, ok: true, text: JSON.stringify({ answers: { next_action: { type: 'choice', choice: Object.entries(filled).sort((a, b) => b[1] - a[1])[0]![0], probabilities: filled, confidence: 0.4 } }, model: 'jev-test', usage: {} }) }
+      return { status: 200, ok: true, text: JSON.stringify({ answers: { next_action: { type: 'choice', choice: Object.entries(filled).sort((a, b) => b[1] - a[1])[0]![0], probabilities: filled, confidence: 0.35 } }, model: 'jev-test', usage: {} }) }
     }
     return real(url, init)
   }
   const text = await browse(fake, { goal: 'Find something vague', startUrl: 'https://shop.test/' }, { launch })
   expect(statusOf(text)).toBe('status: blocked')
-  expect(text).toContain('its top choices were click-e1 (0.40), click-e3 (0.30), fill-e4 (0.20)')
-  expect(text).toContain('- click-e1 (0.40): click link "Pricing"')
+  expect(text).toContain('its top choices were click-e1 (0.35), click-e3 (0.30), fill-e4 (0.25)')
+  expect(text).toContain('no step is sure enough to take (the floor is 0.4)')
+  expect(text).toContain('- click-e1 (0.35): click link "Pricing"')
   const again = await browse(fake, { goal: 'Find something vague', resumeId: resumeOf(text), approve: 'click-e1' }, { launch })
   expect(launched[0]!.url).toBe('https://shop.test/pricing') // the approved click was taken
   expect(again).toContain('2. clicked link "Pricing" → shop.test/pricing')
@@ -277,7 +282,7 @@ test('needs_input names the field; a resume with the value types it, and no valu
   const QUERY = 'rosetta-zebra-stone'
   const fake = io({ picks: [
     { choice: 'type-query-e4', p: 0.9 }, { choice: 'fill-e5', p: 0.9 },
-    { choice: 'type-coupon_code-e5', p: 0.9 }, { choice: 'enter-e4', p: 0.9 }, { choice: 'done', p: 0.9 },
+    { choice: 'type-coupon_code-e5', p: 0.9 }, { choice: 'submit-e4', p: 0.9 }, { choice: 'done', p: 0.9 },
   ], achieved: [0.9] })
   const { launched, launch } = site()
   const first = await browse(fake, { goal: 'Search the shop with my query and apply my coupon', startUrl: 'https://shop.test/', inputs: { query: QUERY } }, { launch })
@@ -290,15 +295,53 @@ test('needs_input names the field; a resume with the value types it, and no valu
   expect(statusOf(second)).toBe('status: done')
   expect(launched[0]!.added).toEqual([{ coupon_code: SECRET }])
   expect(launched[0]!.acts.map(a => `${a.kind}:${a.input ?? ''}`)).toEqual(['type:query', 'type:coupon_code', 'enter:'])
-  // the search results page repeats nothing, but the steps name inputs only
+  // the steps name inputs only
   expect(second).toContain('typed input "coupon_code" in textbox "Coupon code"')
-  expect(launched[0]!.url).toContain('rosetta-zebra-stone') // the search URL carries the query; the answer does not
-  expect(second).toContain('url: https://shop.test/search?q=[input]')
+  expect(launched[0]!.url).toContain('rosetta-zebra-stone')
+  // the model's own answer shows the page as it is: the search URL, title and text carry the query it gave
+  expect(second).toContain('url: https://shop.test/search?q=rosetta-zebra-stone')
+  expect(second).toContain('title: Search results: rosetta-zebra-stone')
+  expect(second).toContain('You searched for rosetta-zebra-stone.')
+  // the decision model saw the input's name where the value was
+  const results = fake.sent.filter(b => b.questions.achieved).pop()!
+  expect(results.state.page.title).toBe('Search results: [input:query]')
   for (const v of [SECRET, QUERY]) {
     expect(fake.sent.some(b => JSON.stringify(b).includes(v))).toBe(false)
-    expect(first.includes(v) || second.includes(v)).toBe(false)
     expect(JSON.stringify(fake.store).includes(v)).toBe(false)
   }
+  expect(first.includes(SECRET) || second.includes(SECRET)).toBe(false)
+})
+
+test('a secret-named input stays scrubbed in the answer too, as [input:<name>]', async () => {
+  const PIN = 'zebra-pin-4417'
+  const fake = io({ picks: [{ choice: 'type-pin-e4', p: 0.9 }, { choice: 'submit-e4', p: 0.9 }, { choice: 'done', p: 0.9 }], achieved: [0.9] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Search the shop for my pin', startUrl: 'https://shop.test/', inputs: { pin: PIN } }, { launch })
+  expect(statusOf(text)).toBe('status: done')
+  expect(launched[0]!.url).toContain(PIN)
+  expect(text).toContain('url: https://shop.test/search?q=[input:pin]')
+  expect(text).toContain('You searched for [input:pin].')
+  expect(text.includes(PIN)).toBe(false)
+  expect(fake.sent.some(b => JSON.stringify(b).includes(PIN))).toBe(false)
+  expect(JSON.stringify(fake.store).includes(PIN)).toBe(false)
+})
+
+test('a filled field: the decision model reads which input it holds; submit is offered and fill and the same type are not', async () => {
+  const fake = io({ picks: [{ choice: 'type-query-e4', p: 0.45 }, { choice: 'submit-e4', p: 0.42 }, { choice: 'done', p: 0.9 }], achieved: [0.9] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Find Clonostachys rosea', startUrl: 'https://shop.test/', inputs: { query: 'Clonostachys rosea' } }, { launch })
+  expect(statusOf(text)).toBe('status: done') // 0.45 and 0.42 clear the default step floor (0.4)
+  const steps = fake.sent.filter(b => b.questions.next_action)
+  const after = steps[1]!
+  expect(after.state.on_screen).toContain('e4 searchbox "Search" — holds input "query"')
+  expect(after.state.on_screen).toContain('e5 textbox "Coupon code" — empty')
+  const ids = Object.keys(after.questions.next_action.criteria)
+  expect(ids).toContain('submit-e4')
+  expect(ids).not.toContain('type-query-e4')
+  expect(ids).not.toContain('fill-e4')
+  expect(launched[0]!.acts.map(a => a.kind)).toEqual(['type', 'enter'])
+  expect(text).toContain('You searched for Clonostachys rosea.')
+  expect(JSON.stringify(fake.sent).includes('Clonostachys')).toBe(false)
 })
 
 test('done needs the page check: a "not yet" carries on, and at the end of the budget it is unverified', async () => {

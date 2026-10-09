@@ -174,8 +174,10 @@ export const FEATURES: readonly Feature[] = [
       confirmConfidence: { type: 'number', title: 'Confidence to act', default: 0.85, min: 0.5, max: 1,
         help: 'How sure the decision model must be that the goal asks for a consequential step for it to be taken without you, '
           + 'and that the page shows the goal achieved for done.' },
-      stepFloor: { type: 'number', title: 'Step floor', default: 0.65, min: 0.3, max: 0.95,
-        help: 'A step the decision model is less sure of than this is not taken: the call stops as blocked with the top three.' },
+      stepFloor: { type: 'number', title: 'Step floor', default: 0.4, min: 0.3, max: 0.95,
+        help: 'A step the decision model is less sure of than this is not taken: the call stops as blocked with the top three. '
+          + 'An ordinary step (click, type, scroll) scores 0.35-0.55 on a real site; a consequential one still needs '
+          + 'confirmConfidence and a goal that names it.' },
       headed: { type: 'boolean', title: 'Show the browser', default: false,
         help: 'true: the Chromium window is shown (needs a display).' },
       allowAttach: { type: 'boolean', title: 'Allow your Chrome', default: false,

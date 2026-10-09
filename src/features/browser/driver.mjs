@@ -10,13 +10,14 @@
 //   {"ready":true,"pid":…,"socket":"<path>","token":"<random>"}     or     {"error":"<code>","message":"…"}
 // and then answers commands, one JSON line each, on that Unix socket (mode 0600, in a 0700
 // folder), every one carrying the token:
-//   {"op":"observe"}                                   → {"ok":true,"obs":{…}}
+//   {"op":"observe"}                                   → {"ok":true,"obs":{…}}  (once the page is not loading)
 //   {"op":"act","action":{kind,ref,input,expect}}      → {"ok":true,"obs":{…}} | {"left":"<url>"} | {"stale":true,"obs":{…}}
 //   {"op":"inputs","inputs":{name:value}}              → {"ok":true}
 //   {"op":"close"}                                     → {"ok":true}, then it exits
 //
 // Input values arrive on standard input or in an inputs command, are typed with fill(), and are
-// never printed, logged or written anywhere. A main-frame navigation off the allowed hosts is
+// never printed, logged or written anywhere. A field that holds one is reported by the input's
+// name (`holds`), never by its value. A main-frame navigation off the allowed hosts is
 // aborted before it loads; a redirect that lands off them is reported as left. Default: a
 // headless Chromium on a throwaway profile, closed at the end. With cdp: the person's own
 // Chrome over the DevTools protocol, in a new tab of theirs that is the only one touched, and
@@ -133,6 +134,26 @@ function inPage(arg) {
     window.scrollBy(0, Math.round(window.innerHeight * 0.8))
     return {}
   }
+  if (arg.op === 'quiet') {
+    // Resolves once the DOM has not changed for quietMs (a same-URL update has landed), or at capMs.
+    return new Promise(resolve => {
+      let timer = null
+      const done = () => { observer.disconnect(); clearTimeout(timer); clearTimeout(cap); resolve(true) }
+      const observer = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(done, arg.quietMs) })
+      observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true })
+      timer = setTimeout(done, arg.quietMs)
+      const cap = setTimeout(done, arg.capMs)
+    })
+  }
+  if (arg.op === 'busy') {
+    // Still loading: something marked aria-busy, a visible spinner, or a line of the main text that says so.
+    for (const el of document.querySelectorAll('[aria-busy=true],[class*=spinner i],[class*=loader i]')) {
+      if (visible(el) && !el.closest('nav,footer,[role=navigation],[role=contentinfo]')) return true
+    }
+    const root = document.querySelector('main,[role=main]') || document.body
+    const text = root ? String(root.innerText || '').slice(0, 20000) : ''
+    return /^\s*(loading|please wait|fetching|searching)\b[^\n]{0,40}$/im.test(text)
+  }
 
   // observe
   for (const el of document.querySelectorAll('[data-jev-id]')) el.removeAttribute('data-jev-id')
@@ -165,16 +186,28 @@ function inPage(arg) {
     if (fillable) {
       row.fillable = true
       row.filled = tag === 'select' ? el.selectedIndex > 0 : el.isContentEditable ? clean(el.innerText) !== '' : String(el.value || '') !== ''
+      // What it holds, for the driver to match against the inputs by name; removed before the observation leaves it.
+      if (row.filled) {
+        row._value = tag === 'select' ? [el.value, el.selectedOptions?.[0]?.label ?? ''] : [el.isContentEditable ? el.innerText : el.value]
+      }
     }
+    const ownWords = `${el.getAttribute('placeholder') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('name') || ''} ${el.id || ''}`
+    const searchy = role === 'searchbox' || !!el.closest('[role=search]') || (fillable && /search|filter|find|query/i.test(ownWords))
     const form = el.form || el.closest('form')
     if (form) {
       const words = `${form.getAttribute('action') || ''} ${form.id} ${form.className} ${form.getAttribute('name') || ''}`
+      const secretive = !!form.querySelector('input[type=password],input[type=email],textarea,input[autocomplete^="cc-"]')
+      const textFields = [...form.querySelectorAll('input,textarea')]
+        .filter(f => f.tagName === 'TEXTAREA' || ['text', 'search', ''].includes((f.getAttribute('type') || 'text').toLowerCase()))
+      // A search: marked so, or a GET form, or a form of one text field (neither with a password, email or text area).
       const search = form.getAttribute('role') === 'search' || !!form.closest('[role=search]') || /search/i.test(words)
-        || !!form.querySelector('input[type=search]')
+        || !!form.querySelector('input[type=search]') || searchy
+        || (!secretive && (form.getAttribute('method') || '').toLowerCase() === 'get')
+        || (!secretive && textFields.length === 1)
       const submits = (tag === 'button' && (el.getAttribute('type') || 'submit').toLowerCase() === 'submit')
         || (tag === 'input' && ['submit', 'image'].includes((el.type || '').toLowerCase()))
       row.form = { search, submits }
-    } else if (role === 'searchbox' || el.closest('[role=search]')) {
+    } else if (searchy) {
       row.form = { search: true, submits: false }
     }
     return row
@@ -242,16 +275,50 @@ function guard(p) {
   }).catch(() => {})
 }
 
+const IDLE_CAP_MS = 3000
+const LOADING_CAP_MS = 5000
+
+/**
+ * After an action: the navigation's load and the network going quiet (each capped at 3s), then
+ * the page itself: the DOM still for a moment (a same-URL update has landed), and while it says
+ * it is loading ("Loading…", aria-busy, a spinner), more polling, up to 5s.
+ */
 async function settle() {
   if (!page) return
+  await page.waitForTimeout(100).catch(() => {}) // a click's navigation has started by now, if it makes one
   await page.waitForLoadState('domcontentloaded', { timeout: NAV_MS }).catch(() => {})
-  await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => {})
-  await page.waitForTimeout(150).catch(() => {})
+  await page.waitForLoadState('load', { timeout: IDLE_CAP_MS }).catch(() => {})
+  await page.waitForLoadState('networkidle', { timeout: IDLE_CAP_MS }).catch(() => {})
+  await ready()
 }
+
+/** The DOM still for 300ms (capped), then, while the page says it is loading, polled up to LOADING_CAP_MS. */
+async function ready() {
+  if (!page) return
+  const end = Date.now() + LOADING_CAP_MS
+  await page.evaluate(inPage, { op: 'quiet', quietMs: 300, capMs: 1500 }).catch(() => {})
+  while (page && Date.now() < end) {
+    const busy = await page.evaluate(inPage, { op: 'busy' }).catch(() => false)
+    if (!busy) return
+    await page.waitForTimeout(250).catch(() => {})
+    await page.waitForLoadState('networkidle', { timeout: 1000 }).catch(() => {})
+  }
+}
+
+const squash = v => String(v ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
 
 async function observe() {
   if (!page) throw new Error('the page was closed')
-  return page.evaluate(inPage, { op: 'observe', maxRows: cfg.maxRows, textChars: cfg.textChars })
+  const obs = await page.evaluate(inPage, { op: 'observe', maxRows: cfg.maxRows, textChars: cfg.textChars })
+  // A field's value never leaves this process: it becomes the name of the input it matches, if any.
+  for (const row of obs.elements) {
+    if (!('_value' in row)) continue
+    const seen = (Array.isArray(row._value) ? row._value : [row._value]).map(squash).filter(Boolean)
+    delete row._value
+    const name = Object.keys(values).find(k => squash(values[k]) && seen.includes(squash(values[k])))
+    if (name !== undefined) row.holds = name
+  }
+  return obs
 }
 
 async function act(a) {
@@ -379,6 +446,7 @@ async function main() {
     if (msg.op === 'observe') {
       if (leftTo) return { left: leftTo }
       if (page && !allowed(page.url())) return { left: page.url() }
+      await ready()
       return { ok: true, obs: await observe() }
     }
     if (msg.op === 'act') return act(msg.action ?? {})

@@ -4,22 +4,25 @@
 that need clicking, typing, or several steps. The model states a goal; a small decision model
 picks every step from what the page offers; a real Chromium does it. The model gets one answer
 with a status, the final URL and title, one line per step, and about 4,000 characters of the
-final page's text (screened).
+final page's text (screened). The answer shows the page as it is, the input values it typed
+included, except an input that looks secret (below).
 
 It is **off by default**. Turn it on with `/jev-mod browser on`.
 
 ## Setting it up
 
-1. `/jev-mod browser install` (once). It runs `npm install playwright@1.62.1` in
-   `~/.cache/jev-mod/browser/` (`$XDG_CACHE_HOME` respected) and `npx playwright install chromium`
-   with the browsers kept in that same folder (`ms-playwright/`). About 150 MB; it needs `npm`.
+1. `/jev-mod browser install` (once). It makes `~/.cache/jev-mod/browser/` (`$XDG_CACHE_HOME`
+   respected), runs `npm install playwright@1.62.1` there and `npx playwright install chromium`
+   with the browsers kept in that same folder (`ms-playwright/`). About 150 MB; it needs `npm`,
+   and says what `npm --version` answered when that fails.
    Nothing else ever installs it: a `browse` call with nothing installed answers `not_installed`
    and names this command. To remove it, delete the folder. On Linux, a Chromium that will not
    start may need system libraries: `npx playwright install-deps chromium` (asks for sudo).
 2. `/jev-mod browser on`. The tool is offered from the next session, or from the next prompt in
    this one.
 
-The browser runs under `node` (else `bun`), which must be on PATH.
+The browser runs under `node` (else `bun`), which must be on PATH; when neither starts, the
+`failed` answer says what each said.
 
 ## The tool
 
@@ -71,24 +74,33 @@ status closes it at once, and every browser closes when the session ends.
 
 ## Each step
 
-1. **Observe.** The page's visible links, buttons, fields, checkboxes and the like (up to 80, those
-   in view first): role, label, the nearest heading above, a link's target. The page's main
+1. **Observe**, once the page is ready: after an action, the navigation's load and the network
+   going quiet (each capped at 3 seconds), the DOM still for a moment (so a single-page app's
+   same-URL update has landed), and while the page says it is loading (a line such as "Loading"
+   or "Loading data...", something `aria-busy="true"`, a visible spinner), more waiting, up to 5
+   seconds. Then the page's visible links, buttons, fields, checkboxes and the like (up to 80,
+   those in view first): role, label, the nearest heading above, a link's target, and for a field
+   what it holds, never its value: `holds input "query"` (the driver matched it against the
+   inputs, in its own process), `holds text (not from inputs)`, or `empty`. The page's main
    text: `<main>` (or the body without its header), with navigation, asides and footers left out,
    up to `textChars` characters.
-2. **Prepare the text.** Input values are cut out (as typed, and as a URL carries them), then
+2. **Prepare the text.** Input values are cut out (as typed, and as a URL carries them, each as
+   `[input:<name>]`), then
    the text is redacted (emails, phones, cards, tokens) and screened: passages carrying
    instructions aimed at an AI are withheld, by the same screen as WebFetch's, whatever the
    screening feature's own mode. A page with a password, card or one-time-code field, or text that
    looks like it holds secrets, is sent as its elements only. Labels have the values cut out, are
    redacted, and are screened locally (a label that looks like an injection or a secret is replaced).
-3. **The table.** `click-<id>` per element; per field that takes text, `type-<input>-<id>` per
-   input name, `fill-<id>` (none of the inputs fits: stops as `needs_input`), and once it holds
-   text `enter-<id>`; then `scroll-down`, `back`, `done`, `abstain`. Links off the allowed hosts
+3. **The table.** `click-<id>` per element; per field that takes text, once it holds text
+   `submit-<id>` (press Enter: runs a search box's search), `type-<input>-<id>` per input name
+   (not the input the field holds already), and `fill-<id>` (none of the inputs fits: stops as
+   `needs_input`; not offered for a field that holds an input); then `scroll-down`, `back`,
+   `done`, `abstain`. Links off the allowed hosts
    (and `mailto:`, `tel:` and the like) are not offered. An action seen twice to change nothing on
    a page is not offered there again.
 4. **Pick.** One choice question: "Which single action should be taken next to move toward the
-   goal?" over the goal, the page, the elements and the last ten steps. Below `stepFloor`, or
-   `abstain`: `blocked`.
+   goal?" over the goal, the page, the elements and the last ten steps. Below `stepFloor` (0.4: an
+   ordinary step on a real site scores 0.35-0.55), or `abstain`: `blocked`.
 5. **Check, where a step needs it.** *done* asks a second yes/no over the page's own text: "From
    this page, the goal is achieved now, without waiting for another person." Under
    `confirmConfidence` it carries on (and *done* is not offered on that same page again). A
@@ -103,9 +115,15 @@ status closes it at once, and every browser closes when the session ends.
 - **Input values are never sent to the decision model, never logged, never stored.** They are
   handed to the browser's own process once (its standard input) or in a resume (a socket
   command); the mod holds them in memory only while that browser lives, to cut them out of
-  everything it sends and returns. Requests and answers carry the input's name. (The values are
-  in the conversation already, since the model wrote them; and other plugins' `process` hooks
-  could see a child's input, as they could any command's.)
+  everything it sends and keeps (requests, the band, the step lines). Requests carry the input's
+  name (`[input:query]`). (The values are in the conversation already, since the model wrote
+  them; and other plugins' `process` hooks could see a child's input, as they could any
+  command's.)
+- **The answer to the model shows the values it gave**: the URL, title and page text read as
+  the page does ("Results for Clonostachys rosea", not "Results for [input:query]"). Except an
+  input that looks secret: its name says password, pass, pin, otp, token, secret, key, card or
+  cvv (and the like), or its value looks like a secret. That one stays `[input:<name>]`
+  everywhere, the answer included.
 - **Allowed hosts.** The start URL's host without `www.`, its subdomains, and `allowHosts`. A
   main-frame navigation elsewhere is aborted before it loads; a redirect that lands elsewhere
   stops the run (`left_allowlist`), and that page's text is not read.
@@ -115,7 +133,11 @@ status closes it at once, and every browser closes when the session ends.
   **both** hold: the goal's own words name that kind of action, and the decision model answers at
   least `confirmConfidence` (0.85) that the goal asks for it ("Does the goal ask for this action to
   be done, or does it clearly follow from what the goal asks?", the tool gate's question put to the
-  goal). Otherwise it stops as `needs_confirm`. A cookie banner is not consequential.
+  goal). Otherwise it stops as `needs_confirm`. A cookie banner is not consequential. Enter is a
+  search, not a submit, in a search box: a field in no form, a search box or `role="search"`, a
+  field whose label, placeholder or name says search, filter, find or query, or a form that is
+  marked a search, is a `GET` form, or has a single text field (neither of those two with a
+  password, email or text-area field). Enter in any other form is gated like its submit button.
 - **Approve is explicit.** `approve` does exactly that one action, the one the answer named, if
   the element still says the same; it is the model's job to ask the person first. An approved
   step is not gated again.
@@ -159,7 +181,7 @@ an `attach` call fails and says how to turn it on.
 |---|---|---|
 | `maxSteps` | 20 (5-60) | the most steps one call takes; a call may ask for fewer |
 | `confirmConfidence` | 0.85 (0.5-1) | the bar for a consequential step and for *done* |
-| `stepFloor` | 0.65 (0.3-0.95) | under it, the call stops as `blocked` (Jev's measured floor for choices) |
+| `stepFloor` | 0.4 (0.3-0.95) | under it, the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (`confirmConfidence`, and the goal naming the action) |
 | `headed` | false | show the Chromium window |
 | `allowAttach` | false | let a call drive your own Chrome |
 | `textChars` | 6000 (1000-20000) | page text per step |
@@ -184,5 +206,7 @@ becomes the page. A site that changes its elements' labels as it renders can rea
 `claude plugin test .` runs the rules (`rules.test.ts`) and the loop with a fake decision backend
 and a fake driver (`index.test.ts`): the table, the allowlist, the consequential gate, blocked,
 needs_input, the done check, resume and approve, screening and redaction, and that no input
-value reaches any request. The real driver against a local page: `node
-src/features/browser/driver.check.mjs` (skips without Playwright).
+value reaches any request or the store (and a secret-named one the answer). The real driver
+against local pages: `node src/features/browser/driver.check.mjs` (skips without Playwright),
+including a single-page search box submitted by Enter whose results say "Loading data..." for a
+second, a page whose text arrives late, and which input a field holds.

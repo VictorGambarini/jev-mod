@@ -84,6 +84,12 @@ Known differences that are not fixture answers, and why:
   `jev-hooks-sessions.json`, and the mod writes no `jev-hooks.jsonl` row per prompt.
 - **backends.json that cannot be read** (a permissions error, say) reads as no file at all,
   rather than as a misconfiguration; a file that is not JSON is still a misconfiguration.
+- **Phones in identifiers.** privacy.py's phone rule ate the digits of a DOI
+  (`10.1186/s13568-017-0448-4` became `10.1186/s[phone]-4`), a URL path and a bare ISBN-13.
+  privacy.ts holds DOIs aside from the digit rules, skips a run right after `/` or `.` or one
+  that goes on as `-4`, `.5`, `/2`, and keeps a bare run of 12 or more digits; it also masks a
+  bracketed two-to-four digit area code (`(09) 373 7599`). No captured fixture's answer changes,
+  so divergences.ts has no entry; privacy.test.ts pins the new cases.
 
 A port may fix what the original got wrong, but only visibly: the fixture keeps Python's
 answer, `test/parity/divergences.ts` gives the new one and why, and the parity test fails if

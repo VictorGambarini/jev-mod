@@ -73,3 +73,22 @@ test('look-alike disguises fold to Latin; ordinary Russian and Greek text does n
   expect(redact(russian)).toBe(russian)
   expect(isSensitive(greek)).toBe(false)
 })
+
+// Phone redaction left identifiers whole, and still masks phones (divergence from privacy.py).
+test('digits inside a DOI, an ISBN or a URL are not a phone', () => {
+  expect(redact('see 10.1186/s13568-017-0448-4 for the method')).toBe('see 10.1186/s13568-017-0448-4 for the method')
+  expect(redact('https://doi.org/10.1007/s00253-017-8505-5')).toBe('https://doi.org/10.1007/s00253-017-8505-5')
+  expect(redact('doi:10.1000/8505550134')).toBe('doi:10.1000/8505550134')
+  expect(redact('ISBN 9780306406157 and 978-0-306-40615-7')).toBe('ISBN 9780306406157 and 978-0-306-40615-7')
+  expect(redact('https://v2.plasticdb.org/records/8505550134/view')).toBe('https://v2.plasticdb.org/records/8505550134/view')
+  expect(redact('PMID 28585118, accession MN-415-555-0134-2')).toBe('PMID 28585118, accession MN-415-555-0134-2')
+})
+
+test('real phone numbers are still masked', () => {
+  expect(redact('call +64 21 123 4567 today')).toBe('call [phone] today')
+  expect(redact('office (09) 373 7599 ext')).toBe('office [phone] ext')
+  expect(redact('or 555-123-4567.')).toBe('or [phone].')
+  expect(redact('ring 021 123 4567')).toBe('ring [phone]')
+  expect(redact('x8505550134 and Tel:8505550134')).toBe('x[phone] and Tel:[phone]')
+  expect(redact('18505550134')).toBe('[phone]')
+})

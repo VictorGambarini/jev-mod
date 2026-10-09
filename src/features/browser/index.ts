@@ -13,7 +13,7 @@ import { screenResult, withholdText } from '../../engine/screen'
 import { launchChild, type Driver, type Launch, type Wire } from './child'
 import {
   actionKey, allowed, allowedHosts, bandText, buildTable, confirmRequest, describe, doneRequest, fieldName, fingerprint,
-  goalNames, MAX_ROWS, ranked, render, riskOf, said, scrub, shortHref, stepRequest, yes,
+  goalNames, MAX_ROWS, ranked, render, reveal, riskOf, said, scrub, shortHref, stepRequest, yes,
   type Action, type Observation, type Outcome, type Page, type Status, type Step,
 } from './rules'
 
@@ -163,7 +163,7 @@ async function askJev(ctx: Ctx, state: Record<string, unknown>, questions: Recor
 async function prepare(ctx: Ctx, s: Session, obs: Observation): Promise<Page> {
   const fp = fingerprint(obs)
   if (s.page?.fp === fp) return s.page.page
-  const values = Object.values(s.values)
+  const values = s.values
   const raw = obs.text ?? ''
   let page: Page
   if (obs.sensitive || isSensitive(raw)) {
@@ -214,8 +214,8 @@ function outcome(s: Session, status: Status, reason: string, extra: Partial<Outc
   const page = s.page && s.obs && s.page.fp === fingerprint(s.obs) ? s.page.page : null
   return {
     status, reason, steps: s.steps,
-    url: s.obs ? redact(scrub(s.obs.url, Object.values(s.values)), 500) : undefined,
-    title: s.obs ? redact(scrub(s.obs.title, Object.values(s.values)), 200) : undefined,
+    url: s.obs ? redact(scrub(s.obs.url, s.values), 500) : undefined,
+    title: s.obs ? redact(scrub(s.obs.title, s.values), 200) : undefined,
     text: page ? page.text : undefined,
     ...extra,
   }
@@ -223,7 +223,7 @@ function outcome(s: Session, status: Status, reason: string, extra: Partial<Outc
 
 /** Do one action; an outcome when the run must stop, else null. */
 async function perform(ctx: Ctx, s: Session, action: Action, confidence?: number): Promise<Outcome | null> {
-  const values = Object.values(s.values)
+  const values = s.values
   const before = s.obs
   const wire: Wire = { kind: action.kind as Wire['kind'], ref: action.ref, input: action.input,
     expect: action.el ? { tag: action.el.tag, label: action.el.label } : undefined }
@@ -270,7 +270,7 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
       return outcome(s, 'left_allowlist', `the page is at ${shortHref(obs.url).split('/')[0] || obs.url}, outside ${s.hosts.join(', ')}`)
     }
     ctx.step++
-    const values = Object.values(s.values)
+    const values = s.values
     const page = await prepare(ctx, s, obs)
     const table = buildTable(obs, { inputs: Object.keys(s.values), hosts: s.hosts, values, dead: s.dead,
       without: s.notDone === fingerprint(obs) ? new Set(['done']) : undefined })
@@ -431,7 +431,7 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
 
     const ctx: Ctx = {
       io, host: hostOf(io), deps, limits: await limitsOf(io),
-      confirm: knob('confirmConfidence', 0.85), floor: knob('stepFloor', 0.65), textChars: knob('textChars', 6000),
+      confirm: knob('confirmConfidence', 0.85), floor: knob('stepFloor', 0.4), textChars: knob('textChars', 6000),
       max, step: 0, screened: new Map(),
     }
 
@@ -501,7 +501,8 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
       try { out = { ...out, text: (await prepare(ctx, s, s.obs)).text } } catch { /* the steps say enough */ }
     }
     await finish(io, out.status)
-    return render(out)
+    // Everything above (what was sent, the band, the steps) carries [input:<name>]; the model's own answer gets the values back, secrets aside.
+    return reveal(render(out), s.values)
   } catch (error) {
     if (s) close(s)
     await finish(io, 'failed').catch(() => {})

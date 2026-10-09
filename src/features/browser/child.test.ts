@@ -57,3 +57,33 @@ test('a browse with nothing installed starts nothing and names the command', asy
   expect('reason' in got && got.reason).toContain('/jev-mod browser install')
   expect(fake.ran).toEqual([])
 })
+
+test('install: the folder is made before npm is probed, the probe has no cwd, and a failed probe says why', async () => {
+  const files: Record<string, string> = {}
+  const fake = io(files)
+  const order: string[] = []
+  const write = fake.writeFile
+  fake.writeFile = async (path: string, text: string) => { order.push(`write ${path}`); return write(path, text) }
+  const run = fake.run
+  fake.run = async (argv: string[], init?: any) => { order.push(argv.join(' ')); return run(argv, init) }
+  await install(fake)
+  expect(order.slice(0, 2)).toEqual(['write /cache/jev-mod/browser/package.json', 'npm --version'])
+  expect(fake.ran[0]!.init?.cwd).toBe(undefined)
+
+  const thrown = io({})
+  thrown.run = async () => { throw new Error('spawn npm ENOENT') }
+  const said = await install(thrown)
+  expect(said.text).toContain('npm --version failed (spawn npm ENOENT)')
+  const exited = await install(io({}, 'npm --version'))
+  expect(exited.text).toContain('npm --version failed (boom\nnetwork down)')
+})
+
+test('a browse with no node or bun says what could not be started', async () => {
+  const fake = io({ '/cache/jev-mod/browser/node_modules/playwright/package.json': JSON.stringify({ version: PLAYWRIGHT_VERSION }) })
+  fake.run = async (argv: string[]) => { throw new Error(`spawn ${argv[0]} ENOENT`) }
+  const got = await launchChild(fake, { startUrl: 'https://x.test/', hosts: ['x.test'], headed: false, cdp: null, values: {}, textChars: 6000, maxRows: 80 })
+  expect('status' in got && got.status).toBe('failed')
+  const reason = 'reason' in got ? got.reason : ''
+  expect(reason).toContain('node could not be run: spawn node ENOENT')
+  expect(reason).toContain('bun could not be run: spawn bun ENOENT')
+})

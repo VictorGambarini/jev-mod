@@ -42,14 +42,26 @@ const TOKEN_SHAPES_SOURCE =
 // Letters beyond ASCII on both sides of the @: privacy.py's ASCII-only local part let
 // "josé@example.com" and "Zoë.Smith@exämple.com" out whole. Divergence from privacy.py.
 const EMAIL = py('\\b[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}.-]+\\.\\p{L}{2,}\\b', 'g')
-const PHONE = py('(?<!\\d)(?:\\+?\\d{1,3}[\\s.-]?)?(?:\\(\\d{3}\\)|\\d{3})[\\s.-]?\\d{3}[\\s.-]?\\d{4}(?!\\d)', 'g')
+// Digits inside an identifier are not a phone: privacy.py's PHONE turned the DOI
+// 10.1186/s13568-017-0448-4 into "10.1186/s[phone]-4". A run right after "/" or "." (a URL
+// path, a DOI, a version) or that goes on as "-4", ".5", "/2" is part of something longer.
+// A letter in front still counts ("x8505550134" stays masked, as privacy.py pinned).
+// Divergence from privacy.py: no captured fixture changes (privacy.test.ts pins the new cases).
+const NOT_AFTER = '(?<![\\d/.])'
+const NOT_BEFORE = '(?!\\d|[-./]\\d)'
+const PHONE = py(`${NOT_AFTER}(?:\\+?\\d{1,3}[\\s.-]?)?(?:\\(\\d{3}\\)|\\d{3})[\\s.-]?\\d{3}[\\s.-]?\\d{4}${NOT_BEFORE}`, 'g')
+// A two-to-four digit area code in brackets, as New Zealand, Australia and Europe write it:
+// "(09) 373 7599" fit neither phone rule. Divergence from privacy.py.
+const AREA_PHONE = py(`${NOT_AFTER}\\(\\d{2,4}\\)[\\s.-]?\\d{3,4}[\\s.-]?\\d{3,4}${NOT_BEFORE}`, 'g')
+// A DOI (10.<registrant>/<suffix>) is held aside from the phone and card rules, as TRACKING is.
+const DOI = py('(?<![\\w.])10\\.\\d{4,9}/[A-Za-z0-9._;()/:-]*[A-Za-z0-9)]', 'g')
 // The keyword rules above only fire on a label. A bank alert or an order receipt carries
 // the card number with no trigger word anywhere near it, and "4111 1111 1111 1111" went
 // out verbatim. Luhn is what keeps this from eating order and reference numbers.
 const CARD = py('(?<![\\d.-])(?:\\d[ -]?){12,18}\\d(?![\\d.-])', 'g')
 // PHONE is a North American shape: three, three, four. Two lines of a European signature
 // ("+44 20 7946 0958", "+33 1 70 18 99 00") walked straight past it.
-const INTL_PHONE = py('(?<![\\d+])\\+\\d{1,3}[\\s.-]?(?:\\d[\\s.-]?){7,13}\\d(?!\\d)', 'g')
+const INTL_PHONE = py('(?<![\\d+/.])\\+\\d{1,3}[\\s.-]?(?:\\d[\\s.-]?){7,13}\\d(?!\\d)', 'g')
 // A credential with no label at all: an AWS secret access key is 40 base64 characters and
 // the word "secret" never appears beside it. Mixed case AND a digit is what separates it
 // from a word, a hex digest (already [hex] by the time this runs) or a slug.
@@ -104,6 +116,11 @@ function maskCard(match: string): string {
   const digits = match.replace(/\P{Nd}/gu, '')
   const n = [...digits].length
   return n >= 13 && n <= 19 && luhn(digits) ? '[card]' : match
+}
+
+/** A phone, unless it is a bare run of 12 or more digits with no "+" (an ISBN-13, an order number). */
+function maskPhone(match: string): string {
+  return /^\p{Nd}{12,}$/u.test(match) ? match : '[phone]'
 }
 
 function maskCredential(run: string): string {
@@ -216,10 +233,13 @@ export function redact(text: string, limit = 4000): string {
   // After [hex], so a digest stays a digest, and before the phone rules, so a spaced card
   // number is not shredded into a "phone" and a remainder.
   out = out.replace(HIGH_ENTROPY, maskCredential)
+  // DOIs are held aside after the secret rules (a key inside one is still masked), before the digit rules.
+  out = out.replace(DOI, m => { held.push(m); return `\0TRK${held.length - 1}\0` })
   out = out.replace(CARD, maskCard)
   out = out.replace(EMAIL, '[email]')
-  out = out.replace(PHONE, '[phone]')
+  out = out.replace(PHONE, maskPhone)
   out = out.replace(INTL_PHONE, '[phone]')
+  out = out.replace(AREA_PHONE, '[phone]')
   held.forEach((value, index) => { out = out.split(`\0TRK${index}\0`).join(value) })
   const points = [...out]
   if (points.length > limit) {

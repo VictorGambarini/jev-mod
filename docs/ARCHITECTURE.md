@@ -30,6 +30,9 @@ src/
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
     find-files/        the find_files tool: index.ts (glue: listing, git grep, the backend) · rank.ts (pure: terms,
                        scores, cards, ranking) · their tests; src/find-files.test.ts drives it through the kit
+    review-triage/     the review_triage tool: index.ts (glue: git, the backend) · triage.ts (pure: git's args, the
+                       diff split, the capped redacted summary, the questions, the verdict, the answer) · their tests;
+                       src/review-triage.test.ts drives it through the kit
     browser/           the browse tool: index.ts (glue: the loop, pauses) · rules.ts (pure: hosts, the action table,
                        consequential steps, questions, the answer) · child.ts (the driver process, the install) ·
                        driver.mjs and client.mjs (node, outside the mod) · their tests; driver.check.mjs (by hand)
@@ -149,6 +152,21 @@ each file mention the query's words; then the first 40 lines of the best few doz
 sends only the best `maxCandidates` to the decision model, as redacted cards, about 40 to a
 request, packed by encoded size as compaction's turns are. Every failure (no key, private mode,
 the budget, the cool-off, a timeout) answers with the local ranking, labelled as such.
+
+`review-triage` offers `mcp__jev-mod__review_triage` the same way (off by default), for the model
+to call before it reviews a change. It reads the change with git (`git diff HEAD` plus untracked
+files; with none, `HEAD~1 HEAD`; given a `base`, `git diff --merge-base <base>`, or the range as
+given), splits it per file and hunk, and builds a summary: hunks that look like they hold or handle
+a secret (`isSensitive`) are left out, the rest redacted and each cut to the same length so all of
+them fit `maxDiffChars`. One request asks seven `noul` questions about the whole change (the rules
+question only when the project's CLAUDE.md or AGENTS.md has list items or rule words to send, capped
+at 40 lines and 3000 characters). A confident no on all of them is `quick`; anything else is `full`,
+and when more than one file was sent a second request asks each yes or unsure question of each of
+the largest files (at most 40 questions) to name the files behind it. At most two requests, within
+one `timeoutMs`. A withheld hunk makes it `full`; a diff over ten times `maxDiffChars`, or a summary
+with less than half the changed lines left once secrets are out, is answered `full` without asking;
+every failure (no key, private mode, the budget, the cool-off, a timeout) answers `full` with the
+reason.
 
 ## The browser
 

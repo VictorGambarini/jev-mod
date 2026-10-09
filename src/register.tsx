@@ -10,6 +10,7 @@ import * as browser from './features/browser'
 import * as command from './features/command'
 import * as compact from './features/compact'
 import * as findFiles from './features/find-files'
+import * as reviewTriage from './features/review-triage'
 import * as routing from './features/routing'
 import * as screening from './features/screening'
 import * as skills from './features/skills'
@@ -161,6 +162,19 @@ async function offerFindFiles($: any): Promise<void> {
   } catch { /* not offered: Glob and Grep as ever */ }
 }
 
+/** Whether review-triage's tool has been offered to the model in this process. */
+let reviewTriageOffered = false
+
+/** review-triage's tool, registered once it is on, as find-files' tool is. */
+async function offerReviewTriage($: any): Promise<void> {
+  if (reviewTriageOffered) return
+  try {
+    if (!(await reviewTriage.offered(ioOf($)))) return
+    await $.tool.register(reviewTriage.SPEC)
+    reviewTriageOffered = true
+  } catch { /* not offered */ }
+}
+
 /** Whether the browser's browse tool has been offered to the model in this process. */
 let browseOffered = false
 
@@ -190,6 +204,7 @@ export const register: Register = (on, given) => {
   on('session.start', async ($, e, next) => {
     await $.command.register(command.command)
     await offerFindFiles($)
+    await offerReviewTriage($)
     await offerBrowse($)
     await onboard(ioOf($))
     await refresh($)
@@ -209,7 +224,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text),
-      offerFindFiles($), offerBrowse($)])
+      offerFindFiles($), offerReviewTriage($), offerBrowse($)])
     await refresh($)
     return next(suggestion ? { ...e, context: [...(e.context ?? []), suggestion] } : e)
   }).catch(($, e, next) => next(e))
@@ -276,6 +291,15 @@ export const register: Register = (on, given) => {
     await refresh($)
     return { result }
   }).catch(() => ({ result: 'find_files failed before it finished; use Glob and Grep.' }))
+
+  // review-triage's tool: answered as find-files' is. A failure still answers full.
+  on('tool.call', { tool: 'mcp__jev-mod__review_triage' }, async ($, e) => {
+    const io = ioOf($)
+    await memory.load(io)
+    const result = await reviewTriage.triage(io, e as unknown as { base?: unknown; paths?: unknown; intent?: unknown })
+    await refresh($)
+    return { result }
+  }).catch(() => ({ result: 'verdict: full\ndo the full review; start with these files.\nreasons:\n- review_triage failed before it finished' }))
 
   // The browse tool: answered here, before the hook below, never calling next. It screens the page
   // text it returns itself; the band shows each step while it runs.

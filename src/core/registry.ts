@@ -156,6 +156,32 @@ export const FEATURES: readonly Feature[] = [
     },
   },
   {
+    id: 'review-triage',
+    title: 'Review triage',
+    summary: 'A tool the model calls before a code review: quick (one pass is enough) or full, and which files first',
+    help: 'on: the model is offered a review_triage tool (mcp__jev-mod__review_triage) to call before it reviews a change. '
+      + 'It reads the git diff (the uncommitted changes against HEAD, or the last commit when there are none, or the changes '
+      + 'since a base the model names) and asks the decision model seven yes/no questions about it: security-sensitive code, '
+      + 'hard-to-undo data changes, a public interface others rely on, runtime-only failures, a rule in the project\'s '
+      + 'CLAUDE.md or AGENTS.md, behaviour changed without a test, and work beyond the stated intent. quick: every answer '
+      + 'is no with at least minConfidence. Anything else is full, naming the questions and the files behind them (one '
+      + 'more request asks which files). It never replaces the review; it only sets how deep the first pass goes. The '
+      + 'diff is sent redacted and cut to maxDiffChars; a part that looks like it holds a secret is not sent, and makes '
+      + 'the verdict full; a diff over ten times maxDiffChars is not sent at all (full). No key, private mode, the daily '
+      + 'budget, a backend cool-off or no answer within timeoutMs: full, with the reason. off: the tool is not offered '
+      + '(a session started while it was on keeps it, and it answers that it is off). There is no shadow: the model '
+      + 'calls the tool by choice, so there is nothing to watch it do unasked.',
+    modes: ['off', 'on'], default: 'off',
+    knobs: {
+      minConfidence: { type: 'number', title: 'Confidence for quick', default: 0.8, min: 0.5, max: 1,
+        help: 'How sure the decision model must be of each no for the verdict to be quick. Higher answers full more often.' },
+      maxDiffChars: { type: 'int', title: 'Diff sent', default: 12000, min: 2000, max: 40000,
+        help: 'About how many characters of the diff are sent; a larger diff is cut to fit, and one over ten times this is not triaged.' },
+      timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 8000, min: 1000, max: 30000,
+        help: 'How long the tool waits for the decision model before it answers full.' },
+    },
+  },
+  {
     id: 'browser',
     title: 'Browser',
     summary: 'A tool the model calls to drive a web page toward a goal; the decision model picks each step',

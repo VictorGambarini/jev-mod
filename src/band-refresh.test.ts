@@ -12,7 +12,11 @@ async function setUp($: any, on: any) {
   mock.store(on, { sessions: { 'band-test': { at: Date.now(), features: { routing: { previous: { lane: 'medium', at: Date.now(), corrections: 0 } } } } } })
   on('env.get', async (_$: unknown, e: { name: string }) =>
     ({ value: e.name === 'XDG_CONFIG_HOME' ? '/cfg' : e.name === 'HOME' ? '/home/t' : undefined }))
-  on('fs.read', async () => { throw new Error('no such file') })
+  // a config that turns routing on (it is off until chosen), which also means the install is configured
+  on('fs.read', async (_$: unknown, e: { path: string }) => {
+    if (e.path === '/cfg/jev-mod/config.json') return { value: JSON.stringify({ features: { routing: { mode: 'on' } } }) }
+    throw new Error('no such file')
+  })
   on('fs.list', async () => { throw new Error('no such dir') })
   on('http.fetch', async () => { throw new Error('no network in tests') })
   on('process.run', async () => ({ exitCode: 1, stdout: '', stderr: '' }))

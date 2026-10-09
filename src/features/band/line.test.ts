@@ -23,3 +23,10 @@ test('model names and money', () => {
     .toEqual(['sonnet 5.5', 'opus 5.5', 'fable 5.1', 'gpt-x'])
   expect([money(1.234), money(0.0123), money(0.00002)]).toEqual(['$1.23', '$0.0123', '$0.00002'])
 })
+
+test('before any config file exists the band says nothing is on yet, until a decision is recorded', () => {
+  const hint = '🧭 jev-mod: nothing on yet · /jev-mod dashboard to choose'
+  expect(plain(line({ mod: { configured: false } }, 0)!)).toBe(hint)
+  expect(plain(line({ mod: { configured: true } }, 0)!)).toBe('🧭 jev-mod ready · judges your next prompt')
+  expect(plain(line({ mod: { configured: false }, jev: { calls: 1, cost: 0 } }, 0)!)).toBe('🧭 not routed  $0.00000 (1)  🔌 jev')
+})

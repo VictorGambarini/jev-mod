@@ -1,6 +1,6 @@
 {
   "name": "jev-mod",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "A cheap decision model picks each turn's skill, model and effort, compacts on request, and withholds injected text",
   "author": {
     "name": "Victor Gambarini"
@@ -43,12 +43,13 @@
     "routing": {
       "type": "string",
       "title": "Routing",
-      "default": "on",
+      "default": "default",
       "options": [
+        "default",
         "on",
         "off"
       ],
-      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. Each turn's model and effort from the decision model's lane. off: every turn runs as Claude Code sends it."
+      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. default: off unless set elsewhere. on: each turn's model and effort from the decision model's lane. off: every turn runs as Claude Code sends it."
     },
     "skills": {
       "type": "string",
@@ -60,7 +61,7 @@
         "shadow",
         "off"
       ],
-      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. default: what jev-skills' `jev switches` set, or on if it set nothing. shadow: ask and count, change nothing."
+      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. default: what jev-skills' `jev switches` set, or the mod's own default if it set nothing. shadow: ask and count, change nothing."
     },
     "screening": {
       "type": "string",
@@ -72,7 +73,7 @@
         "shadow",
         "off"
       ],
-      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. default: what jev-skills' `jev switches` set, or on if it set nothing. shadow: ask and count, change nothing."
+      "description": "Older switch, still read when ~/.config/jev-mod/config.json and the project's .claude/jev-mod.json do not set this feature. default: what jev-skills' `jev switches` set, or the mod's own default if it set nothing. shadow: ask and count, change nothing."
     },
     "private": {
       "type": "boolean",

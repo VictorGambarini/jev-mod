@@ -15,12 +15,13 @@ const from = (source: Source) => LAYER[source]
 const origin = (source: Source) => (source === 'default' ? 'the default' : `from ${LAYER[source]}`)
 
 function value(v: KnobValue): string {
-  return typeof v === 'string' ? v : String(v)
+  return typeof v === 'string' ? (v === '' ? 'none' : v) : String(v)
 }
 
 function range(k: Knob): string {
   if (k.type === 'boolean') return 'true or false'
   if (k.type === 'choice') return k.options.join(', ')
+  if (k.type === 'list') return `any of ${k.options.join(', ')}, comma-separated, or none`
   return `${k.type === 'int' ? 'whole number' : 'number'} ${k.min} to ${k.max}`
 }
 
@@ -34,6 +35,7 @@ export function usage(problem?: string): string {
     '/jev-mod <feature> <setting> <value>  set one of its settings',
     '/jev-mod <feature> reset              clear what your file sets for it',
     '/jev-mod browser install              install Playwright and Chromium for the browse tool',
+    '/jev-mod access [<category> on|off [host]]  the access gate: what this session allows (all off closes every one)',
     'Add --project to write the project\'s .claude/jev-mod.json instead of yours.',
   ].join('\n')
 }

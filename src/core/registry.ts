@@ -9,6 +9,8 @@ export type Knob =
   | { type: 'int' | 'number'; title: string; help: string; default: number; min: number; max: number }
   | { type: 'boolean'; title: string; help: string; default: boolean }
   | { type: 'choice'; title: string; help: string; default: string; options: readonly string[] }
+  /** Any of `options`, none included: kept as their names joined by commas, in the options' order. */
+  | { type: 'list'; title: string; help: string; default: string; options: readonly string[] }
 
 export type KnobValue = number | boolean | string
 
@@ -137,6 +139,29 @@ export const FEATURES: readonly Feature[] = [
         help: 'About how many characters of the change are sent (redacted); a Write to an existing file sends the lines that differ.' },
       subagents: { type: 'boolean', title: 'Subagents too', default: true,
         help: 'true: a subagent\'s edits are judged as the agent\'s are. false: they go on unjudged.' },
+    },
+  },
+  {
+    id: 'access-gate',
+    title: 'Access gate',
+    summary: 'Blocks logging in to other machines (ssh, remote desktop, cloud shells, tunnels, remote databases, key reads) unless you allow it for this session',
+    help: 'Before a Bash command runs, it is read locally (no decision model: behind sudo, env, timeout, nohup, xargs, '
+      + '`bash -c` and eval too) for what reaches another machine: ssh, remote-desktop, cloud-shell, fleet, tunnels, '
+      + 'remote-db, legacy, scanning, and keys (reading private keys and credential stores, also through Read, Grep, Write '
+      + 'and Edit, or writing ~/.ssh/authorized_keys or ~/.ssh/config). An MCP tool whose name says ssh, rdp, vnc, remote, '
+      + 'shell, exec, kubectl or k8s counts too. on: a call in a category this session has not allowed is refused, and the '
+      + 'model is told to ask you to run it, or to allow it with /jev-mod access <category> on (only you can: the '
+      + 'command must be typed at the prompt). Allows last for the session; /jev-mod access shows them, '
+      + '/jev-mod access ssh on <host> allows only that host, /jev-mod access all off closes them all. shadow: counted as '
+      + 'would-block, nothing refused. A pattern gate, not a sandbox: a Python script, a compiled binary or an alias gets '
+      + 'round it. docs/ACCESS.md has the categories and the limits.',
+    modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
+    knobs: {
+      alwaysAllow: { type: 'list', title: 'Allowed in every session', default: '',
+        options: ['ssh', 'remote-desktop', 'cloud-shell', 'fleet', 'tunnels', 'remote-db', 'legacy', 'scanning', 'keys'],
+        help: 'Categories never blocked, comma-separated (for example remote-db,scanning). Read from your own file only, never a project\'s.' },
+      allowLocalhost: { type: 'boolean', title: 'This machine is fine', default: true,
+        help: 'true: a command whose every host is this machine (ssh localhost, telnet 127.0.0.1) is not blocked.' },
     },
   },
   {
@@ -276,6 +301,14 @@ export function checkKnob(f: Feature, name: string, value: unknown): { value: Kn
     if (value === 'true' || value === 'on') return { value: true }
     if (value === 'false' || value === 'off') return { value: false }
     return bad('true or false')
+  }
+  if (knob.type === 'list') {
+    const given = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[\s,]+/) : null
+    if (!given || !given.every(v => typeof v === 'string')) return bad(`a comma-separated list of ${knob.options.join(', ')}`)
+    const named = (given as string[]).map(v => v.trim().toLowerCase()).filter(v => v && v !== 'none')
+    const unknown = named.filter(v => !knob.options.includes(v))
+    if (unknown.length) return bad(`a comma-separated list of ${knob.options.join(', ')} (or none)`)
+    return { value: knob.options.filter(o => named.includes(o)).join(',') }
   }
   if (knob.type === 'choice') {
     return typeof value === 'string' && knob.options.includes(value) ? { value } : bad(`one of ${knob.options.join(', ')}`)

@@ -1,11 +1,12 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
-import type { BandFeatures } from '../types'
+import type { AccessState, BandFeatures } from '../types'
 import { onboard } from './features/band'
 import { line } from './features/band/line'
 import { configured, modeOf } from './core/config'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
+import * as accessGate from './features/access-gate'
 import * as browser from './features/browser'
 import * as command from './features/command'
 import * as compact from './features/compact'
@@ -74,6 +75,9 @@ const THEME = { yellow: 'warning', red: 'error', green: 'success' } as const
 
 const band = atom({ plugin: 'jev-mod', key: 'band' } as const, null as BandFeatures | null)
 
+/** The access gate's allows for this session: held by the host, never written to disk. */
+const access = atom({ plugin: 'jev-mod', key: 'access' } as const, null as AccessState | null)
+
 /** Whether the band is drawn: read from the config when an event comes, not on every draw. */
 let bandOn = true
 
@@ -81,8 +85,10 @@ let bandOn = true
 async function refresh($: any): Promise<void> {
   try {
     bandOn = await modeOf(ioOf($), 'band') !== 'off'
-    const mod = { configured: await configured(ioOf($)) }
-    await update($, band, () => ({ ...memory.snapshot(), mod }))
+    const io = ioOf($)
+    const mod = { configured: await configured(io) }
+    const open = await accessGate.open(io)
+    await update($, band, () => ({ ...memory.snapshot(), mod, ...(open.length ? { access: { open } } : {}) }))
   } catch { /* the band is cosmetic */ }
 }
 
@@ -138,6 +144,8 @@ function ioOf($: any): IO {
       return { contextTokens: context.tokens ?? 0, contextWindow: context.window, contextPercent: context.percent }
     },
     messages: () => $.session.messages(),
+    accessState: () => read($, access),
+    setAccessState: value => update($, access, () => value).then(() => undefined),
     storeGet: key => $.store.get(key),
     storeSet: (key, value) => $.store.set(key, value),
     status: text => $.ui.status(text),
@@ -262,7 +270,7 @@ export const register: Register = (on, given) => {
 
   // A setting changed here (the band itself switched on or off) shows at once.
   on('command.run', { command: 'jev-mod' }, async ($, e) => {
-    const answer = await command.run(ioOf($), e.args)
+    const answer = await command.run(ioOf($), e.args, e.origin)
     await refresh($)
     return answer
   })
@@ -342,21 +350,32 @@ export const register: Register = (on, given) => {
     return ran
   }).catch(($, e, next) => next(e))
 
-  // ── tool-call gate (features/tool-gate) ──
-  // At the permission decision, after Claude Code's own verdict: a consequential call it would
-  // allow may become an ask, with the reason in the dialog; nothing else changes. Its own hook,
-  // apart from tool.call's (screening, after the result), so the two never touch. A plugin's
-  // `$.tool.check` query (no tool_use_id) runs nothing and is not judged. The band is redrawn
-  // only when the gate asked: an allowed call costs one read of the config.
+  // ── access gate (features/access-gate) and tool-call gate (features/tool-gate) ──
+  // At the permission decision, after Claude Code's own verdict (and the rules gate's, beneath).
+  // First the access gate: a call that reaches another machine (ssh, a tunnel, a remote database,
+  // ...) or reads keys, in a category this session has not allowed, is refused, whatever the
+  // verdict was short of a deny: a deny, which no permission mode turns into a run. Deterministic,
+  // no decision model. Then the tool-call gate: a consequential call Claude Code would allow may
+  // become an ask, with the reason in the dialog. One hook for both (tool.check takes one hook
+  // without a matcher), apart from tool.call's (screening, after the result), so the two never
+  // touch. A plugin's `$.tool.check` query (no tool_use_id) runs nothing and is not judged. The
+  // band is redrawn only when a gate acted: an allowed call costs a read or two of the config.
   on('tool.check', async ($, e, next) => {
     const verdict = await next(e)
-    if (verdict.decision !== 'allow' || e.tool_use_id === undefined) return verdict
-    const gate = await toolGate.check(ioOf($), e)
+    if (verdict.decision === 'deny' || e.tool_use_id === undefined) return verdict
+    const io = ioOf($)
+    const refused = await accessGate.check(io, e)
+    if (refused) {
+      await refresh($)
+      return refused
+    }
+    if (verdict.decision !== 'allow') return verdict
+    const gate = await toolGate.check(io, e)
     if (!gate) return verdict
     await refresh($)
     return gate
   }).catch(($, e, next) => next(e))
-  // ── end tool-call gate ──
+  // ── end access gate and tool-call gate ──
 
   // ── rules gate (features/rules-gate) ──
   // An edit inside the project that Claude Code would allow or ask about may be refused, with the

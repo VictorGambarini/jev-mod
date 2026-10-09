@@ -1,5 +1,6 @@
 // The jev-mod band above the prompt: what jev-mod decided this turn, its cost this session, what
-// screening withheld, and which backend answers (red, with the reason, while it is failing).
+// screening withheld, which access categories this session has opened (🔓, so an open door is
+// always in sight), and which backend answers (red, with the reason, while it is failing).
 // Pure: the session's record in, coloured segments out; register.tsx draws them.
 
 export type Segment = { text: string; color?: 'yellow' | 'red' | 'green'; dim?: boolean }
@@ -36,9 +37,11 @@ export function line(features: Features, now: number): Segment[] | null {
   const routing = features.routing ?? {}
   const calls = features.jev ?? {}
   const screening = features.screening ?? {}
+  const opened: string[] = Array.isArray(features.access?.open) ? features.access.open.map(String) : []
+  const unlocked: Segment[] = opened.length ? [{ text: '  ' }, { text: `🔓 ${opened.join(', ')}`, color: 'yellow' }] : []
   if (!routing.lane && !calls.calls && !calls.error) {
-    if (features.mod?.configured === false) return [{ text: `🧭 ${ONBOARDING}`, dim: true }]
-    return [{ text: '🧭 jev-mod ready', dim: true }, { text: ' · judges your next prompt', dim: true }]
+    if (features.mod?.configured === false) return [{ text: `🧭 ${ONBOARDING}`, dim: true }, ...unlocked]
+    return [{ text: '🧭 jev-mod ready', dim: true }, { text: ' · judges your next prompt', dim: true }, ...unlocked]
   }
   const out: Segment[] = []
   const lane = routing.lane as string | undefined
@@ -51,6 +54,7 @@ export function line(features: Features, now: number): Segment[] | null {
   if (calls.calls) out.push({ text: '  ' }, { text: money(Number(calls.cost ?? 0)), color: 'yellow' }, { text: ` (${calls.calls})`, dim: true })
   if (screening.withheld) out.push({ text: '  ' }, { text: `🛡 withheld ${screening.withheld}`, color: 'red' })
   if (features.browser?.running && features.browser.line) out.push({ text: '  ' }, { text: String(features.browser.line) })
+  out.push(...unlocked)
   const where = `🔌 ${backend(calls.model)}`
   if (calls.error) {
     const left = Number(calls.retryAt ?? 0) - now

@@ -11,7 +11,7 @@ import type { Feature, KnobValue, Mode } from '../../core/registry'
 
 export type KnobView = {
   name: string
-  type: 'int' | 'number' | 'boolean' | 'choice'
+  type: 'int' | 'number' | 'boolean' | 'choice' | 'list'
   title: string
   help: string
   default: KnobValue
@@ -102,7 +102,7 @@ const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 function knobView(name: string, k: Feature['knobs'][string]): KnobView {
   const base = { name, type: k.type, title: k.title, help: k.help, default: k.default }
   if (k.type === 'int' || k.type === 'number') return { ...base, min: k.min, max: k.max }
-  if (k.type === 'choice') return { ...base, options: k.options }
+  if (k.type === 'choice' || k.type === 'list') return { ...base, options: k.options }
   return base
 }
 

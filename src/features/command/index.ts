@@ -2,6 +2,7 @@ import { killedBy, paths, problems, reset, resolve, snapshot, write } from '../.
 import type { IO } from '../../core/io'
 import { feature, FEATURES, type Feature } from '../../core/registry'
 import { VERSION } from '../../version'
+import * as accessGate from '../access-gate'
 import { install as installBrowser } from '../browser/child'
 import * as compact from '../compact'
 import * as dashboard from '../dashboard'
@@ -15,12 +16,15 @@ import { complete, parse } from './parse'
 export const command = {
   name: 'jev-mod',
   description: "jev-mod's features: list, set a mode or setting, status, compact, dashboard",
-  argumentHint: '[status|compact|dashboard [stop]|<feature> [on|off|shadow|reset|<setting> <value>] [--project]]',
+  argumentHint: '[status|compact|dashboard [stop]|access [<category> on|off [host]]|<feature> [on|off|shadow|reset|<setting> <value>] [--project]]',
 }
 
-export async function run(io: IO, args: string): Promise<{ text: string }> {
+/** `origin`: where the command came from (command.run's); only the person's own opens an access category. */
+export async function run(io: IO, args: string, origin?: accessGate.Origin): Promise<{ text: string }> {
   const action = parse(args, FEATURES)
   switch (action.kind) {
+    case 'access-show':
+    case 'access-set': return accessGate.command(io, action, origin)
     case 'status': return status.run(io)
     case 'compact': return compact.run(io)
     case 'dashboard': return dashboard.run(io, action.stop ? 'stop' : 'open')

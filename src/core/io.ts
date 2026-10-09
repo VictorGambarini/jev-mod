@@ -5,6 +5,8 @@
 // literal. So src/register.tsx is the one file that holds `$`; it builds an IO from it and hands
 // that to every feature, the engine and the core. A test hands them a fake IO instead.
 
+import type { AccessState } from '../../types'
+
 export type FetchInit = { method?: string; headers?: Record<string, string>; body?: string }
 export type FetchResponse = { status: number; ok: boolean; text: string; headers?: Record<string, string> }
 export type RunResult = { exitCode: number; stdout: string; stderr: string }
@@ -50,6 +52,9 @@ export interface IO {
   usage(): Promise<Usage>
   /** The main conversation so far (the newest 4096 messages). */
   messages(): Promise<TranscriptMessage[]>
+  // the access gate's allows: session state the host holds ($.state), never on disk
+  accessState(): Promise<AccessState | null>
+  setAccessState(value: AccessState): Promise<void>
   // the mod's own store (a JSON file Claude Code keeps per plugin)
   storeGet(key: string): Promise<unknown>
   storeSet(key: string, value: unknown): Promise<void>

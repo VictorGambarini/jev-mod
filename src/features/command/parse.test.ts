@@ -60,3 +60,18 @@ test('/jev-mod browser install, and the typeahead offers it', () => {
   expect(parse('skills install', FEATURES).kind).toBe('usage')
   expect(complete('/jev-mod browser in', 'in', FEATURES).map(s => s.text)).toEqual(['install'])
 })
+
+test('/jev-mod access: show, a category on or off with an optional host, all off; the typeahead offers each word', () => {
+  expect(parse('access', FEATURES)).toEqual({ kind: 'access-show' })
+  expect(parse('access ssh on', FEATURES)).toEqual({ kind: 'access-set', category: 'ssh', on: true })
+  expect(parse('access SSH on vm1.lab', FEATURES)).toEqual({ kind: 'access-set', category: 'ssh', on: true, host: 'vm1.lab' })
+  expect(parse('access keys off', FEATURES)).toEqual({ kind: 'access-set', category: 'keys', on: false })
+  expect(parse('access all off', FEATURES)).toEqual({ kind: 'access-set', category: 'all', on: false })
+  expect(parse('access ftp on', FEATURES).kind).toBe('usage')
+  expect(parse('access ssh on "vm1; rm"', FEATURES).kind).toBe('usage')
+  expect(parse('access-gate on', FEATURES)).toEqual({ kind: 'set', feature: 'access-gate', key: 'mode', value: 'on', scope: 'user' })
+  expect(complete('/jev-mod acc', 'acc', FEATURES).map(r => r.text)).toEqual(['access', 'access-gate'])
+  expect(complete('/jev-mod access tu', 'tu', FEATURES).map(r => r.text)).toEqual(['tunnels'])
+  expect(complete('/jev-mod access ssh o', 'o', FEATURES).map(r => r.text)).toEqual(['on', 'off'])
+  expect(complete('/jev-mod access all o', 'o', FEATURES).map(r => r.text)).toEqual(['off'])
+})

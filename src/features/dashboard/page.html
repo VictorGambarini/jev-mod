@@ -96,7 +96,8 @@ main.wrap { padding-top: 22px; padding-bottom: 60px; }
 .knob { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; }
 .knob label { font-weight: 550; font-size: 14px; display: flex; gap: 8px; align-items: center; }
 .knob .field { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
-.knob input[type="number"], .knob select { width: 120px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
+.knob input[type="number"], .knob input[type="text"], .knob select { width: 120px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); }
+.knob input[type="text"] { width: 220px; max-width: 100%; }
 .knob input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
 .knob .meta { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
 .knob .help { grid-column: 1 / -1; margin: 0; }
@@ -313,6 +314,7 @@ function knobField(f, k) {
   const data = `data-feature="${h(f.id)}" data-knob="${h(k.name)}" data-type="${k.type}" id="${id}" data-k="${id}"`
   if (k.type === 'boolean') return `<input type="checkbox" ${data}${now.value ? ' checked' : ''}${dis}>`
   if (k.type === 'choice') return `<select ${data}${dis}>${k.options.map(o => `<option${o === now.value ? ' selected' : ''}>${h(o)}</option>`).join('')}</select>`
+  if (k.type === 'list') return `<input type="text" ${data} placeholder="none" value="${h(now.value)}"${dis}>`
   return `<input type="number" inputmode="${k.type === 'int' ? 'numeric' : 'decimal'}" ${data} min="${k.min}" max="${k.max}" step="${k.type === 'int' ? 1 : 'any'}" value="${h(now.value)}"${dis}>`
 }
 
@@ -321,7 +323,7 @@ function knobRow(f, k) {
   const mine = f.files[scope] && k.name in f.files[scope]
   const hid = `help-${f.id}-${k.name}`
   const shown = open.has(hid)
-  const range = k.type === 'int' || k.type === 'number' ? ` · ${k.min} to ${k.max}` : k.type === 'choice' ? ` · ${k.options.join(', ')}` : ''
+  const range = k.type === 'int' || k.type === 'number' ? ` · ${k.min} to ${k.max}` : k.type === 'choice' ? ` · ${k.options.join(', ')}` : k.type === 'list' ? ` · any of ${k.options.join(', ')}, comma-separated` : ''
   return `<div class="knob">
     <label for="k-${h(f.id)}-${h(k.name)}">${h(k.title)} <code>${h(k.name)}</code>
       <button type="button" class="q" data-help="${hid}" data-k="q-${hid}" aria-expanded="${shown}" aria-controls="${hid}" aria-label="About ${h(k.title)}">?</button></label>
@@ -491,7 +493,7 @@ document.addEventListener('change', e => {
   const type = t.dataset.type
   let value
   if (type === 'boolean') value = t.checked
-  else if (type === 'choice') value = t.value
+  else if (type === 'choice' || type === 'list') value = t.value
   else {
     if (t.value.trim() === '' || !t.checkValidity()) { toast(`${t.dataset.knob} must be ${type === 'int' ? 'a whole number' : 'a number'} from ${t.min} to ${t.max}`, true); return }
     value = Number(t.value)

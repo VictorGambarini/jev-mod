@@ -28,6 +28,9 @@ src/
     trim-output/       index.ts (glue, archive) · trim.ts (fold, chunk, drop: pure) · their tests
     compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
+    access-gate/       index.ts (glue: the session's allows in $.state, /jev-mod access) · rules.ts (pure: the
+                       categories, hosts, keys, the verdict, the refusal) · their tests; src/access-gate.test.ts
+                       drives it through the kit
     rules-gate/        index.ts (glue, on tool.check: rule files by mtime) · rules.ts (pure: rule extraction, globs,
                        selection, the change, one question per rule, the refusal) · their tests
     find-files/        the find_files tool: index.ts (glue: listing, git grep, the backend) · rank.ts (pure: terms,
@@ -139,6 +142,22 @@ after the tool ran is what the model reads as an error result. Each step is self
 returns its own result or null; a step that returns null leaves the result as the step before it
 made it, and a hook that changed nothing hands core the very object `next(e)` gave it.
 
+## The access gate
+
+`access-gate` shares the tool gate's `tool.check` hook (the engine takes one without a matcher)
+and goes first in it: after Claude Code's verdict (and the rules gate's, beneath), a call short of
+a deny that falls in a category the session has not allowed becomes `{ decision: 'deny', reason }`.
+A deny, not an ask: in `bypassPermissions`, `auto` and `dontAsk` an ask would be settled without
+the person. It calls no decision model: `rules.ts` reads Bash with the tool gate's `commandsIn`
+(sudo, env, timeout, nohup, xargs, `bash -c`, eval) and matches each command's name and arguments;
+Read, Grep, Write, Edit, MultiEdit and NotebookEdit by their path; an MCP tool by the words of its
+name. The session's allows are `$.state` (`{ plugin: 'jev-mod', key: 'access' }` in
+`types/index.d.ts`), stamped with the session id: the host keeps them for the session, through
+hot reloads, and nothing writes them to disk, so a new session (or `--resume`) starts blocked.
+`/jev-mod access <category> on` opens one only when `command.run`'s `origin` is the person's
+(`composer` or `bridge`); closing one needs no such check. `refresh` puts the open ones in the
+band's record (`access.open`), which draws them as `🔓 ssh`.
+
 ## The rules gate
 
 `rules-gate` has its own `tool.check` hook, matched on Write, Edit, MultiEdit and NotebookEdit,
@@ -223,7 +242,7 @@ dropped. `on` waits for the answer, as it must.
 
 ## Protective features
 
-`screening`, `tool-gate`, `stop-gate` and `rules-gate` are marked `protective` in the registry. A project's
+`screening`, `tool-gate`, `stop-gate`, `rules-gate` and `access-gate` are marked `protective` in the registry. A project's
 `.claude/jev-mod.json` comes with a cloned repository, so for these `config.resolve` takes the
 project's mode only when it is no looser (off < shadow < on) than what the layers beneath it give
 (the user's file, the older switches, the default), and reads their knobs from the user's file

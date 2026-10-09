@@ -36,3 +36,12 @@ test('before any config file exists the band says nothing is on yet, until a dec
   expect(plain(line({ mod: { configured: true } }, 0)!)).toBe('🧭 jev-mod ready · judges your next prompt')
   expect(plain(line({ mod: { configured: false }, jev: { calls: 1, cost: 0 } }, 0)!)).toBe('🧭 not routed  $0.00000 (1)  🔌 jev')
 })
+
+test('an access category open this session shows as a warning, on the ready line too', () => {
+  const ready = line({ access: { open: ['ssh (vm1)', 'keys'] } }, 0)!
+  expect(plain(ready)).toBe('🧭 jev-mod ready · judges your next prompt  🔓 ssh (vm1), keys')
+  expect(ready.find(s => s.text.startsWith('🔓'))!.color).toBe('yellow')
+  const busy = line({ jev: { calls: 1, cost: 0 }, access: { open: ['ssh'] } }, 0)!
+  expect(plain(busy)).toBe('🧭 not routed  $0.00000 (1)  🔓 ssh  🔌 jev')
+  expect(plain(line({ access: { open: [] } }, 0)!)).toBe('🧭 jev-mod ready · judges your next prompt')
+})

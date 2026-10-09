@@ -56,5 +56,5 @@ test('a write says what it left, and warns when a layer above still decides', ()
 
 test('usage leads with the problem', () => {
   expect(usage('no feature x').split('\n')[0]).toBe('no feature x')
-  expect(usage()).toContain('/jev-mod status | compact | dashboard | help')
+  expect(usage()).toContain('/jev-mod status | compact | dashboard | access | help')
 })

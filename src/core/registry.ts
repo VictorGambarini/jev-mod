@@ -50,8 +50,8 @@ export const FEATURES: readonly Feature[] = [
     summary: "Each turn's model and effort from the decision model's lane",
     help: 'on: the decision model reads each prompt and picks the smallest model and effort that should still get it right. '
       + 'off: every turn runs as Claude Code sends it. Subagents keep the model their definition names.',
-    modes: ['off', 'on'], default: 'on', knobs: {},
-    legacy: { option: 'routing', unset: 'on' },
+    modes: ['off', 'on'], default: 'off', knobs: {},
+    legacy: { option: 'routing', unset: 'default' },
   },
   {
     id: 'skills',
@@ -59,7 +59,7 @@ export const FEATURES: readonly Feature[] = [
     summary: 'Suggests the installed skill that matches a prompt',
     help: 'on: a matching skill is named beside the prompt, once per skill per session. '
       + 'shadow: the match is made and counted, nothing is added.',
-    modes: ['off', 'shadow', 'on'], default: 'on', knobs: {},
+    modes: ['off', 'shadow', 'on'], default: 'off', knobs: {},
     legacy: { option: 'skills', unset: 'default', state: 'hook_skills' },
   },
   {
@@ -84,7 +84,7 @@ export const FEATURES: readonly Feature[] = [
       + 'Reads, builds, tests and edits inside the project are never sent. No answer in time, private mode, a secret '
       + 'in the call, the daily budget or a backend cool-off: the call goes on as Claude Code decided. In '
       + 'bypassPermissions, auto and dontAsk modes the mode settles the ask (it may allow or refuse it without you).',
-    modes: ['off', 'shadow', 'on'], default: 'shadow', protective: true,
+    modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
       minConfidence: { type: 'number', title: 'Confidence', default: 0.7, min: 0, max: 1,
         help: 'How sure the decision model must be that you asked for a hard-to-undo call for it to run unasked, '
@@ -105,7 +105,7 @@ export const FEATURES: readonly Feature[] = [
       + 'claims are shown. on: when it is sure enough they are not, the agent is told which claim is unshown and asked to verify '
       + 'it or say plainly what is unverified, never to take a destructive step; at most maxNudges times per prompt. '
       + 'shadow: the same judgement, in the background, counted as would-nudge or passed; the agent is never stopped or kept waiting. off: nothing is read or sent.',
-    modes: ['off', 'shadow', 'on'], default: 'shadow', protective: true,
+    modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
       maxNudges: { type: 'int', title: 'Nudges per prompt', help: 'How many times one prompt\'s turn may be sent back to verify; 0 never sends it back.', default: 2, min: 0, max: 5 },
       minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown before the agent is sent back.', default: 0.7, min: 0, max: 1 },
@@ -123,7 +123,7 @@ export const FEATURES: readonly Feature[] = [
       + '~/.cache/jev-mod/outputs/ (the last 50) and the trimmed output names the file. '
       + 'shadow: what would be cut is computed in the background and counted; nothing is changed and the command never waits for it. '
       + 'Subagents, private profiles and localOnly get the local folding only.',
-    modes: ['off', 'shadow', 'on'], default: 'shadow',
+    modes: ['off', 'shadow', 'on'], default: 'off',
     knobs: {
       minLines: { type: 'int', title: 'Minimum lines', help: 'Outputs shorter than this are left alone.', default: 200, min: 20, max: 100_000 },
       keepThreshold: { type: 'number', title: 'Keep threshold',
@@ -145,7 +145,7 @@ export const FEATURES: readonly Feature[] = [
       + 'local ranking comes back, labelled as such. A card or query that looks like it holds a secret is not sent. '
       + 'off: the tool is not offered (a session started while it was on keeps it, and it answers that it is off). '
       + 'There is no shadow: the model calls the tool by choice, so there is nothing to watch it do unasked.',
-    modes: ['off', 'on'], default: 'on',
+    modes: ['off', 'on'], default: 'off',
     knobs: {
       maxCandidates: { type: 'int', title: 'Files judged', default: 60, min: 10, max: 200,
         help: 'How many of the best local matches the decision model judges per query: more finds more, and costs more.' },

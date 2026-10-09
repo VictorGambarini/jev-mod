@@ -1,7 +1,7 @@
 # Adding a feature
 
 1. **Declare it** in `src/core/registry.ts`: its id, title, one-line summary, help, the modes it
-   has, its default, and any knobs (type, default, range). New features default to `shadow`.
+   has, its default, and any knobs (type, default, range). New features ship `off` (a person turns them on from the dashboard or `/jev-mod`); give them a `shadow` mode where watching first means something.
    Ask `modeOf(io, '<id>')` before acting, and read knobs with `setting(io, '<id>')`; never
    read a file or a /config field for a switch of its own. That is all `/jev-mod` needs:
    `/jev-mod` lists it, `/jev-mod <id>` shows its help, and `/jev-mod <id> on|off|shadow` and

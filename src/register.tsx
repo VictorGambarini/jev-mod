@@ -1,8 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 import type { BandFeatures } from '../types'
+import { onboard } from './features/band'
 import { line } from './features/band/line'
-import { modeOf } from './core/config'
+import { configured, modeOf } from './core/config'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
 import * as browser from './features/browser'
@@ -78,7 +79,8 @@ let bandOn = true
 async function refresh($: any): Promise<void> {
   try {
     bandOn = await modeOf(ioOf($), 'band') !== 'off'
-    await update($, band, () => memory.snapshot())
+    const mod = { configured: await configured(ioOf($)) }
+    await update($, band, () => ({ ...memory.snapshot(), mod }))
   } catch { /* the band is cosmetic */ }
 }
 
@@ -189,6 +191,8 @@ export const register: Register = (on, given) => {
     await $.command.register(command.command)
     await offerFindFiles($)
     await offerBrowse($)
+    await onboard(ioOf($))
+    await refresh($)
     return next(e)
   }).catch(($, e, next) => next(e))
 

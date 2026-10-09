@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { problems, reset, resolve, snapshot, write } from './config'
+import { configured, problems, reset, resolve, snapshot, write } from './config'
 import type { IO } from './io'
 import { checkKnob, FEATURES, feature, type Feature } from './registry'
 import { isPrivate } from './settings'
@@ -30,7 +30,7 @@ async function at(options: Record<string, string | boolean>, files: Record<strin
 
 test('a mode: kill file, then /config off, then the project, then the user, then older switches, then the default', async () => {
   const state = { [`${JEV}/state.json`]: JSON.stringify({ hook_skills: 'shadow', hook_screen: 'bogus' }) }
-  expect(await at({}, {})).toBe('on default')
+  expect(await at({}, {})).toBe('off default')
   expect(await at({}, state)).toBe('shadow older setting')
   expect(await at({}, state, feature('screening'))).toBe('off older setting') // what jev-skills reads as off stays off
   expect(await at({ skills: 'default' }, state)).toBe('shadow older setting')
@@ -41,14 +41,19 @@ test('a mode: kill file, then /config off, then the project, then the user, then
   expect(await at({}, { [PROJECT]: conf({ skills: { mode: 'on' } }), [`${JEV}/HOOK_SKILLS_OFF`]: '' })).toBe('off kill file')
   expect(await at({}, { [PROJECT]: conf({ skills: { mode: 'on' } }), '/home/u/.config/jev-mod/SKILLS_OFF': '' })).toBe('off kill file')
   expect(await at({}, { '/home/u/.config/jev-mod/OFF': '' }, routing)).toBe('off kill file')
-  expect(await at({ routing: 'on' }, {}, routing)).toBe('on default') // a /config field at its default sets nothing
+  expect(await at({ routing: 'default' }, {}, routing)).toBe('off default') // a /config field left unset sets nothing
+  expect(await at({}, {}, routing)).toBe('off default')
+  expect(await at({ routing: 'on' }, {}, routing)).toBe('on older setting') // chosen in /config, so it wins
   expect(await at({ routing: 'off' }, {}, routing)).toBe('off older setting')
+  expect(await at({ skills: 'on' }, {})).toBe('on older setting')
+  expect(await at({}, { [`${JEV}/state.json`]: JSON.stringify({ hook_skills: 'on' }) })).toBe('on older setting')
+  expect(await at({}, { [`${JEV}/state.json`]: JSON.stringify({ hook_skills: 'on' }), [USER]: conf({ skills: { mode: 'shadow' } }) })).toBe('shadow user')
 })
 
 test('a typo never turns a feature off: what does not check is passed over and reported', async () => {
   const files = { [USER]: conf({ skills: { mode: 'shadow' }, routing: { mode: 'shadow' }, skils: { mode: 'on' } }), [PROJECT]: '{' }
   const snap = await snapshot(io({}, files))
-  expect(`${resolve(snap, routing).mode} ${resolve(snap, routing).source}`).toBe('on default') // routing has no shadow
+  expect(`${resolve(snap, routing).mode} ${resolve(snap, routing).source}`).toBe('off default') // routing has no shadow
   expect(resolve(snap, skills).mode).toBe('shadow')
   expect(problems(snap)).toEqual([
     `${PROJECT} is not JSON; its settings are passed over`,
@@ -135,15 +140,16 @@ test('a project file may only tighten a protective feature: a looser mode and it
   expect(feature('skills')?.protective).toBe(undefined)
   // a cloned repo that turns safety off
   const cloned = { [PROJECT]: conf({ screening: { mode: 'off' }, 'tool-gate': { mode: 'off', minConfidence: 0, scope: 'bash' }, 'stop-gate': { mode: 'shadow' } }) }
+  const fromUser = { [USER]: conf({ 'tool-gate': { mode: 'shadow' } }), [PROJECT]: cloned[PROJECT] }
+  expect(await at({}, fromUser, toolGate)).toBe('shadow user') // a user's shadow floor holds against the clone
   expect(await at({}, cloned, screening)).toBe('on default')
-  expect(await at({}, cloned, toolGate)).toBe('shadow default')
-  expect(await at({}, cloned, stopGate)).toBe('shadow project') // the same mode is no looser
+  expect(await at({}, cloned, toolGate)).toBe('off project') // off is no looser than the default, so it stands
+  expect(await at({}, cloned, stopGate)).toBe('shadow project') // stricter than the default off
   const snap = await snapshot(io({}, cloned))
   expect(resolve(snap, toolGate).knobs.minConfidence).toEqual({ value: 0.7, source: 'default' })
   expect(resolve(snap, toolGate).knobs.scope).toEqual({ value: 'all-risky', source: 'default' })
   expect(problems(snap)).toEqual([
     'project config may not lower screening: off is looser than on (default), and a project may only make it stricter; it is passed over',
-    'project config may not lower tool-gate: off is looser than shadow (default), and a project may only make it stricter; it is passed over',
     'project config may not set tool-gate.minConfidence: tool-gate guards you, so only your own file sets its settings; it is passed over',
     'project config may not set tool-gate.scope: tool-gate guards you, so only your own file sets its settings; it is passed over',
   ])
@@ -162,8 +168,10 @@ test('writing a looser protective mode, or its knobs, to the project file is ref
   const fake = io({}, files)
   expect(await write(fake, 'project', 'screening', 'mode', 'off')).toEqual({
     problem: 'project config may not lower screening: off is looser than on (default), and a project may only make it stricter' })
+  files[USER] = conf({ 'tool-gate': { mode: 'shadow' } })
   expect(await write(fake, 'project', 'tool-gate', 'mode', 'off')).toEqual({
-    problem: 'project config may not lower tool-gate: off is looser than shadow (default), and a project may only make it stricter' })
+    problem: 'project config may not lower tool-gate: off is looser than shadow (user), and a project may only make it stricter' })
+  delete files[USER]
   expect(await write(fake, 'project', 'tool-gate', 'timeoutMs', 1000)).toEqual({
     problem: 'project config may not set tool-gate.timeoutMs: tool-gate guards you, so only your own file sets its settings' })
   expect(PROJECT in files).toBe(false)
@@ -171,4 +179,15 @@ test('writing a looser protective mode, or its knobs, to the project file is ref
   expect(await write(fake, 'project', 'tool-gate', 'timeoutMs', undefined)).toEqual({ ok: true, path: PROJECT })
   expect(await write(fake, 'user', 'tool-gate', 'mode', 'off')).toEqual({ ok: true, path: USER })
   expect(await write(fake, 'project', 'skills', 'mode', 'off')).toEqual({ ok: true, path: PROJECT })
+})
+
+test('only screening and band default on; every other feature defaults off', () => {
+  expect(Object.fromEntries(FEATURES.map(f => [f.id, f.default]))).toEqual({
+    routing: 'off', skills: 'off', screening: 'on', 'tool-gate': 'off', 'stop-gate': 'off', 'trim-output': 'off', 'find-files': 'off', browser: 'off', band: 'on' })
+})
+
+test('configured: the user file exists or it does not', async () => {
+  expect(await configured(io({}, {}))).toBe(false)
+  expect(await configured(io({}, { [PROJECT]: '{}' }))).toBe(false)
+  expect(await configured(io({}, { [USER]: '{}' }))).toBe(true)
 })

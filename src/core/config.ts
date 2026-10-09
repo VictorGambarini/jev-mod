@@ -51,6 +51,12 @@ export async function paths(io: IO): Promise<Partial<Record<Scope, string>>> {
   return { user: `${await modDir(io)}/config.json`, ...(root ? { project: `${root}/.claude/jev-mod.json` } : {}) }
 }
 
+/** Whether the user's config file exists yet: it is written by the first save from /jev-mod or the dashboard. */
+export async function configured(io: IO): Promise<boolean> {
+  const path = (await paths(io)).user
+  return !path || (await hostOf(io).readFile(path)) !== undefined
+}
+
 /** The kill files that would turn a feature off, checked in this order. */
 function killFiles(f: Feature, mod: string, jev: string): string[] {
   return [`${mod}/OFF`, `${mod}/${f.id.toUpperCase().replace(/-/g, '_')}_OFF`,

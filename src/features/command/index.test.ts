@@ -19,8 +19,9 @@ function io(files: Record<string, string>): IO {
 test('/jev-mod and the dashboard refuse to lower a protective feature in the project file', async () => {
   const files: Record<string, string> = {}
   const fake = io(files)
+  files['/home/u/.config/jev-mod/config.json'] = JSON.stringify({ features: { 'tool-gate': { mode: 'shadow' } } })
   const said = await run(fake, 'tool-gate off --project')
-  expect(said.text).toBe('project config may not lower tool-gate: off is looser than shadow (default), and a project may only make it stricter')
+  expect(said.text).toBe('project config may not lower tool-gate: off is looser than shadow (user), and a project may only make it stricter')
   expect(await apply(fake, { id: 'op-1', op: 'set', scope: 'project', feature: 'screening', key: 'mode', value: 'shadow' })).toEqual({
     ok: false, error: 'project config may not lower screening: shadow is looser than on (default), and a project may only make it stricter' })
   expect(await apply(fake, { id: 'op-2', op: 'set', scope: 'project', feature: 'stop-gate', key: 'maxNudges', value: 5 })).toEqual({

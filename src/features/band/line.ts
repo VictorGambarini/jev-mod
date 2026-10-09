@@ -28,12 +28,18 @@ function backend(model: string | undefined): string {
   return owner ? `${short} · ${owner}` : short
 }
 
-/** The band's segments; a dim "ready" line until the mod has done something this session. */
+/** What a new install is told until its config file exists: the band line and the once-per-session toast. */
+export const ONBOARDING = 'jev-mod: nothing on yet · /jev-mod dashboard to choose'
+
+/** The band's segments; a dim "ready" line (or, before any config file exists, the onboarding hint) until the mod has done something this session. */
 export function line(features: Features, now: number): Segment[] | null {
   const routing = features.routing ?? {}
   const calls = features.jev ?? {}
   const screening = features.screening ?? {}
-  if (!routing.lane && !calls.calls && !calls.error) return [{ text: '🧭 jev-mod ready', dim: true }, { text: ' · judges your next prompt', dim: true }]
+  if (!routing.lane && !calls.calls && !calls.error) {
+    if (features.mod?.configured === false) return [{ text: `🧭 ${ONBOARDING}`, dim: true }]
+    return [{ text: '🧭 jev-mod ready', dim: true }, { text: ' · judges your next prompt', dim: true }]
+  }
   const out: Segment[] = []
   const lane = routing.lane as string | undefined
   if (lane && DIFFICULTY[lane]) {

@@ -2,6 +2,7 @@ import { killedBy, paths, problems, reset, resolve, snapshot, write } from '../.
 import type { IO } from '../../core/io'
 import { feature, FEATURES, type Feature } from '../../core/registry'
 import { VERSION } from '../../version'
+import { install as installBrowser } from '../browser/child'
 import * as compact from '../compact'
 import * as dashboard from '../dashboard'
 import * as status from '../status'
@@ -24,6 +25,7 @@ export async function run(io: IO, args: string): Promise<{ text: string }> {
     case 'compact': return compact.run(io)
     case 'dashboard': return dashboard.run(io, action.stop ? 'stop' : 'open')
     case 'help': return { text: usage() }
+    case 'browser-install': return installBrowser(io)
     case 'usage': return { text: usage(action.problem) }
     case 'list': {
       const snap = await snapshot(io)

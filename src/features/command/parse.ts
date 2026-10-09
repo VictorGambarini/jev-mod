@@ -9,6 +9,7 @@ import { MODES, type Feature } from '../../core/registry'
 //   /jev-mod <feature> on|off|shadow         set its mode
 //   /jev-mod <feature> <setting> <value>     set one of its settings
 //   /jev-mod <feature> reset                 clear what the file sets for it
+//   /jev-mod browser install                 install Playwright and Chromium for the browse tool
 //
 // --project, anywhere, writes the project's file instead of yours.
 
@@ -18,6 +19,7 @@ export type Action =
   | { kind: 'show'; feature: string }
   | { kind: 'set'; feature: string; key: string; value: string; scope: Scope }
   | { kind: 'reset'; feature: string; scope: Scope }
+  | { kind: 'browser-install' }
   | { kind: 'usage'; problem: string }
 
 export const WORDS = ['list', 'status', 'compact', 'dashboard', 'help'] as const
@@ -45,6 +47,7 @@ export function parse(args: string, features: readonly Feature[]): Action {
   if (!f) return { kind: 'usage', problem: `no feature or command ${first} (features: ${features.map(x => x.id).join(', ')})` }
   if (second === undefined) return { kind: 'show', feature: f.id }
   const what = second.toLowerCase()
+  if (f.id === 'browser' && what === 'install' && !rest.length) return { kind: 'browser-install' }
   if (what === 'reset' && !rest.length) return { kind: 'reset', feature: f.id, scope }
   if ((MODES as readonly string[]).includes(what) && !rest.length) return { kind: 'set', feature: f.id, key: 'mode', value: what, scope }
   if (second in f.knobs) {
@@ -77,6 +80,7 @@ export function complete(before: string, token: string, features: readonly Featu
   if (!f) return []
   if (done.length === 1) {
     return starts([...f.modes.map(m => ({ text: m, description: `mode ${m}` })), { text: 'reset', description: 'clear what the file sets' },
+      ...(f.id === 'browser' ? [{ text: 'install', description: 'install Playwright and Chromium (about 150 MB)' }] : []),
       ...Object.entries(f.knobs).map(([name, k]) => ({ text: name, description: k.title }))])
   }
   const knob = done.length === 2 ? f.knobs[done[1] ?? ''] : undefined

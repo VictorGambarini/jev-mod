@@ -53,3 +53,10 @@ test('the typeahead offers the next word only after /jev-mod', () => {
   expect(texts('please s', 's')).toEqual([])
   expect(texts('/compact s', 's')).toEqual([])
 })
+
+test('/jev-mod browser install, and the typeahead offers it', () => {
+  expect(parse('browser install', FEATURES)).toEqual({ kind: 'browser-install' })
+  expect(parse('browser allowAttach true', FEATURES)).toEqual({ kind: 'set', feature: 'browser', key: 'allowAttach', value: 'true', scope: 'user' })
+  expect(parse('skills install', FEATURES).kind).toBe('usage')
+  expect(complete('/jev-mod browser in', 'in', FEATURES).map(s => s.text)).toEqual(['install'])
+})

@@ -21,12 +21,13 @@ export interface IO {
   /** One of the mod's settings (plugin.json userConfig): a secret field's value only ever goes to key lookup. */
   option(name: string): string | boolean | undefined
   // the outside world
-  run(argv: string[], init?: { stdin?: string; timeoutMs?: number }): Promise<RunResult>
+  run(argv: string[], init?: { stdin?: string; timeoutMs?: number; cwd?: string; env?: Record<string, string> }): Promise<RunResult>
   /**
    * Start a long-lived child and stream its output; the loop over it is the child's life
-   * (leaving it, `return()`, or the module unloading ends the child).
+   * (leaving it, `return()`, or the module unloading ends the child). `input` is written to its
+   * standard input once, which is then closed.
    */
-  spawn(argv: string[], init?: { cwd?: string; env?: Record<string, string> }): AsyncIterable<SpawnPiece>
+  spawn(argv: string[], init?: { cwd?: string; env?: Record<string, string>; input?: string }): AsyncIterable<SpawnPiece>
   fetch(url: string, init?: FetchInit): Promise<FetchResponse>
   readFile(path: string): Promise<string>
   /** The folders directly inside `path`, links to folders included; [] when it is not a folder. */

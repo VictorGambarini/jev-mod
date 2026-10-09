@@ -44,6 +44,7 @@ export function line(features: Features, now: number): Segment[] | null {
   } else out.push({ text: '🧭 not routed', dim: true })
   if (calls.calls) out.push({ text: '  ' }, { text: money(Number(calls.cost ?? 0)), color: 'yellow' }, { text: ` (${calls.calls})`, dim: true })
   if (screening.withheld) out.push({ text: '  ' }, { text: `🛡 withheld ${screening.withheld}`, color: 'red' })
+  if (features.browser?.running && features.browser.line) out.push({ text: '  ' }, { text: String(features.browser.line) })
   const where = `🔌 ${backend(calls.model)}`
   if (calls.error) {
     const left = Number(calls.retryAt ?? 0) - now

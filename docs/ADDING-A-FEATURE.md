@@ -8,7 +8,9 @@
    `/jev-mod <id> <knob> <value>` set it, with nothing added to the command, and
    `/jev-mod dashboard` shows it with a control for its mode and each knob. A feature that
    guards the person (a screen, a gate) is `protective: true`: a project's file may then only
-   make its mode stricter, and never sets its knobs.
+   make its mode stricter, and never sets its knobs. One that acts for the person beyond the
+   machine (the browser) is `risky: true`: a project's file may only turn it off, and never sets
+   its knobs.
 2. **A folder:** `src/features/<name>/`.
 3. **The decision, pure:** `src/features/<name>/<rules>.ts`, plain functions with no IO, and
    `<rules>.test.ts` beside it (`import { test, expect } from 'claude-code/testing'`). Everything

@@ -28,6 +28,11 @@ export type Feature = {
    * repo, may only make its mode stricter (off < shadow < on), and its knobs are not read.
    */
   protective?: true
+  /**
+   * It acts for the person beyond this machine (the browser): the reverse of protective. A
+   * project's file may only turn it off (on is the looser mode here), and its knobs are not read.
+   */
+  risky?: true
   /** Where earlier versions kept its switch, still read below the config files. */
   legacy?: {
     /** The /config field, and the value that meant "not set". */
@@ -148,6 +153,36 @@ export const FEATURES: readonly Feature[] = [
         help: 'How many files the tool returns when the model does not say.' },
       timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 8000, min: 1000, max: 30000,
         help: 'How long the tool waits for the decision model before it answers with the local ranking.' },
+    },
+  },
+  {
+    id: 'browser',
+    title: 'Browser',
+    summary: 'A tool the model calls to drive a web page toward a goal; the decision model picks each step',
+    help: 'on: the model is offered a browse tool (mcp__jev-mod__browse) for pages that need clicking or typing. A headless '
+      + 'Chromium on a throwaway profile opens startUrl; each step the page\'s links, buttons and fields become a table of '
+      + 'actions and the decision model picks one (it never writes text: what to type comes from the call\'s inputs, sent '
+      + 'to it by name only). The page text it reads is redacted and screened first. It stays on the start site; a '
+      + 'consequential step (buy, pay, send, delete, post, sign up, submit a form) is taken only when the goal names it and '
+      + 'the decision model is at least confirmConfidence sure the goal asks for it, else it stops for you; "done" needs a '
+      + 'second check over the page\'s own text. Needs Playwright: /jev-mod browser install (once; about 150 MB). '
+      + 'A project file may turn it off, never on, and sets none of its settings. docs/BROWSER.md has the rules.',
+    modes: ['off', 'on'], default: 'off', risky: true,
+    knobs: {
+      maxSteps: { type: 'int', title: 'Steps per call', default: 20, min: 5, max: 60,
+        help: 'The most steps one browse call takes; a call may ask for fewer, never more.' },
+      confirmConfidence: { type: 'number', title: 'Confidence to act', default: 0.85, min: 0.5, max: 1,
+        help: 'How sure the decision model must be that the goal asks for a consequential step for it to be taken without you, '
+          + 'and that the page shows the goal achieved for done.' },
+      stepFloor: { type: 'number', title: 'Step floor', default: 0.65, min: 0.3, max: 0.95,
+        help: 'A step the decision model is less sure of than this is not taken: the call stops as blocked with the top three.' },
+      headed: { type: 'boolean', title: 'Show the browser', default: false,
+        help: 'true: the Chromium window is shown (needs a display).' },
+      allowAttach: { type: 'boolean', title: 'Allow your Chrome', default: false,
+        help: 'true: a call may ask to drive your own Chrome over remote debugging (JEV_MOD_BROWSER_CDP, default '
+          + 'http://127.0.0.1:9222), with your sign-ins, in a new tab it closes after. Only your own file sets it.' },
+      textChars: { type: 'int', title: 'Page text sent', default: 6000, min: 1000, max: 20000,
+        help: 'About how many characters of each page\'s main text the decision model reads per step.' },
     },
   },
   {

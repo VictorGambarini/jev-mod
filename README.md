@@ -18,6 +18,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Completion gate** (`stop-gate`, shadow by default) | when the main agent ends a turn claiming the work is done or checks pass | Whether the turn's evidence (edited files, the commands it ran and the tail of their output) shows each claim. In `on`, an unshown claim sends the agent back once more, naming it and asking it to verify or say plainly what is unverified, never to take a hard-to-undo step; at most twice per prompt. |
 | **Output trimming** | after a Bash command prints 200 lines or more (shadow by default) | Runs of repeated and near-identical lines are folded locally; then each remaining chunk the current goal (your latest request and the command) no longer needs is replaced by a marker naming its lines. Errors, warnings, failures, stack traces, summaries and the first and last lines always stay. The full output is kept in `~/.cache/jev-mod/outputs/` (the last 50), and the trimmed output's first line names the file. Bash output that screening looked at is trimmed after screening, so only screened text reaches the model: a large output Claude Code kept in a file is screened whole before any of it is inlined, and left as Claude Code's preview when it cannot be. A failed command's trimmed output still reaches the model as an error. |
 | **Find files** (`find-files`) | when the model calls `find_files` (offered while it is on) | Which files implement what the model describes in plain words ("where retries with backoff are done"). The project's files (git's list, so `.gitignore` is honoured) are scored locally by the query's words in each path, its first lines and how many lines mention them; the best 60 go to the decision model as short redacted cards (path, header comment, the names it defines, a few matching lines) and it judges each *implements*, *related* or *unrelated*. The model gets a ranked list of paths with a reason each, in place of a chain of greps. No key, private mode, the daily budget or a failing backend: the local ranking, labelled as such. |
+| **Browser** (`browser`, off by default) | when the model calls `browse` (offered while it is on) | Drives a web page toward a goal the model states as an end state. A headless Chromium on a throwaway profile (Playwright, installed once with `/jev-mod browser install`) opens the page; each step its links, buttons and fields become a table of actions and the decision model picks one. It never writes text: what to type comes from the call's `inputs`, sent to it by name only. Page text is redacted and screened first. It stays on the start site; a consequential step (buy, pay, send, delete, post, sign up, submit a form) waits for you unless the goal names it and the decision model is sure the goal asks for it; *done* needs a second check over the page's own text. Details and the safety rules: [docs/BROWSER.md](docs/BROWSER.md). |
 | **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
 | **`/jev-mod compact`** | when you type it | A compaction with no summary: only the turns the decision model marks *keep* stay, plus the last few. `/compact` is left as Claude Code has it. |
 
@@ -33,6 +34,7 @@ One command manages the mod; the typeahead offers each word after it:
 | `/jev-mod <feature> on\|off\|shadow` | Sets its mode in your config file (`--project`: the project's). |
 | `/jev-mod <feature> <setting> <value>` | Sets one of its settings. |
 | `/jev-mod <feature> reset` | Clears what the file sets for it. |
+| `/jev-mod browser install` | Installs Playwright (a pinned version) and its Chromium into `~/.cache/jev-mod/browser/` for the `browse` tool; about 150 MB, needs `npm`. Only ever run when you ask. |
 
 After a change it shows the value that now holds, and warns when a kill file, `/config` or the
 project file still overrides what was just written.
@@ -88,7 +90,9 @@ they live in a JSON file:
   only make the mode stricter (off < shadow < on) than your own file, an older switch or the
   default give, and their settings come from your file alone. A looser mode or a setting there is
   passed over and shown by `/jev-mod` ("project config may not lower screening"), and
-  `/jev-mod <feature> ... --project` and the dashboard refuse to write one.
+  `/jev-mod <feature> ... --project` and the dashboard refuse to write one. The `browser`, which
+  acts for you on the web, is the other way round: a project's file may only turn it off, and its
+  settings (`allowAttach` among them) come from your file alone.
 
 ```json
 {"features": {"skills": {"mode": "shadow"}, "band": {"mode": "off"}}}
@@ -125,6 +129,7 @@ the config file. Without bun or node it writes a read-only copy of the page inst
 | `tool-gate` | on, shadow, off | shadow | asks you before a consequential tool call the decision model doubts; settings `minConfidence` (0.7), `scope` (`bash`, `bash+edits`, `all-risky`), `timeoutMs` (2000) |
 | `trim-output` | on, shadow, off | shadow | cuts long Bash output down to what the current goal needs; `minLines` (200), `keepThreshold` (0.35), `localOnly` (false) |
 | `find-files` | on, off | on | the `find_files` tool the model calls to find the files that implement something; `maxCandidates` (10-200, 60) judged per query, `limit` (1-50, 10) returned, `timeoutMs` (1000-30000, 8000) before the local ranking answers. No shadow: the model calls it by choice |
+| `browser` | on, off | off | the `browse` tool; `maxSteps` (5-60, 20) per call, `confirmConfidence` (0.5-1, 0.85) to take a consequential step or accept *done*, `stepFloor` (0.3-0.95, 0.65) below which it stops as blocked, `headed` (false), `allowAttach` (false: let a call drive your own Chrome), `textChars` (1000-20000, 6000) of page text per step. A project file may turn it off, never on, and sets none of these |
 | `band` | on, off | on | the line above the prompt |
 | `stop-gate` | on, shadow, off | shadow | checks a turn's "done" against its evidence; `maxNudges` (0-5, 2) per prompt, `minConfidence` (0-1, 0.7) to send it back, `evidenceChars` (1000-20000, 6000) sent with each check |
 

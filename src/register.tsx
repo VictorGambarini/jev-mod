@@ -5,6 +5,7 @@ import { line } from './features/band/line'
 import { modeOf } from './core/config'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
+import * as browser from './features/browser'
 import * as command from './features/command'
 import * as compact from './features/compact'
 import * as findFiles from './features/find-files'
@@ -51,6 +52,8 @@ async function envOf($: any, name: string): Promise<string | undefined> {
     case 'OPENCODE_ZEN_API_KEY': return read(await $.env.get('OPENCODE_ZEN_API_KEY'))
     case 'JEV_PROXY_API_KEY': return read(await $.env.get('JEV_PROXY_API_KEY'))
     case 'JEV_MOD_DASHBOARD': return read(await $.env.get('JEV_MOD_DASHBOARD'))
+    case 'JEV_MOD_BROWSER_CDP': return read(await $.env.get('JEV_MOD_BROWSER_CDP'))
+    case 'JEV_MOD_BROWSER_DIR': return read(await $.env.get('JEV_MOD_BROWSER_DIR'))
     default: {
       if (!/^[A-Z][A-Z0-9_]{0,63}$/.test(name)) return undefined
       try {
@@ -156,6 +159,19 @@ async function offerFindFiles($: any): Promise<void> {
   } catch { /* not offered: Glob and Grep as ever */ }
 }
 
+/** Whether the browser's browse tool has been offered to the model in this process. */
+let browseOffered = false
+
+/** The browse tool, registered once the browser feature is on, as find-files' tool is. */
+async function offerBrowse($: any): Promise<void> {
+  if (browseOffered) return
+  try {
+    if (!(await browser.offered(ioOf($)))) return
+    await $.tool.register(browser.SPEC)
+    browseOffered = true
+  } catch { /* not offered */ }
+}
+
 /**
  * A failed call's answer with a shorter error text. Core takes a hook's `result` only in the
  * tool's own record shape and reads no `isError` from a hook, so a record would reach the model
@@ -172,6 +188,13 @@ export const register: Register = (on, given) => {
   on('session.start', async ($, e, next) => {
     await $.command.register(command.command)
     await offerFindFiles($)
+    await offerBrowse($)
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  // Every browser the browse tool holds (a paused one included) closes with the session.
+  on('session.end', async ($, e, next) => {
+    browser.closeAll()
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -182,7 +205,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text),
-      offerFindFiles($)])
+      offerFindFiles($), offerBrowse($)])
     await refresh($)
     return next(suggestion ? { ...e, context: [...(e.context ?? []), suggestion] } : e)
   }).catch(($, e, next) => next(e))
@@ -249,6 +272,19 @@ export const register: Register = (on, given) => {
     await refresh($)
     return { result }
   }).catch(() => ({ result: 'find_files failed before it finished; use Glob and Grep.' }))
+
+  // The browse tool: answered here, before the hook below, never calling next. It screens the page
+  // text it returns itself; the band shows each step while it runs.
+  on('tool.call', { tool: 'mcp__jev-mod__browse' }, async ($, e, next) => {
+    const io = ioOf($)
+    await memory.load(io)
+    const result = await browser.browse(io, e as unknown as Record<string, unknown>, {
+      progress: () => refresh($),
+      aborted: () => next.signal.aborted,
+    })
+    await refresh($)
+    return { result }
+  }).catch(() => ({ result: 'status: failed\nreason: browse failed before it finished; the browser was closed.' }))
 
   // Screening first, on what the tool returned; then output trimming, on what screening left.
   on('tool.call', async ($, e, next) => {

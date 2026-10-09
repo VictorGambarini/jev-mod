@@ -30,6 +30,9 @@ src/
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
     find-files/        the find_files tool: index.ts (glue: listing, git grep, the backend) · rank.ts (pure: terms,
                        scores, cards, ranking) · their tests; src/find-files.test.ts drives it through the kit
+    browser/           the browse tool: index.ts (glue: the loop, pauses) · rules.ts (pure: hosts, the action table,
+                       consequential steps, questions, the answer) · child.ts (the driver process, the install) ·
+                       driver.mjs and client.mjs (node, outside the mod) · their tests; driver.check.mjs (by hand)
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
 statusline/            the two-line status line (reads core/memory.ts's records)
 test/parity/           fixtures captured from jev-skills; the engine port must match them
@@ -147,6 +150,32 @@ sends only the best `maxCandidates` to the decision model, as redacted cards, ab
 request, packed by encoded size as compaction's turns are. Every failure (no key, private mode,
 the budget, the cool-off, a timeout) answers with the local ranking, labelled as such.
 
+## The browser
+
+`browser` offers `mcp__jev-mod__browse`, registered and answered as find-files' tool is (off by
+default). Playwright is not bundled: `/jev-mod browser install` puts a pinned copy and its
+Chromium in `<cache>/jev-mod/browser/`, and nothing else installs it. The browser runs in a child
+(`driver.mjs` under node, else bun), because a mod cannot hold one. A spawned child's standard input is
+written once and closed, so the start goes there (URL, hosts, the input values, which then live
+only in that process) and every command after is one short `node client.mjs <socket>` run, through
+the Unix socket the driver made (0600, in a 0700 folder) with the token it printed once:
+
+```
+mod → driver stdin     {startUrl, hosts, headed, cdp, values, textChars, maxRows, runDir}     once
+driver stdout → mod    {"ready":true,"socket":…,"token":…} | {"error":"not_installed"|"no_browser"|…}
+mod → client stdin     {"token":…,"op":"observe"} | {"op":"act","action":{kind,ref,input,expect}} | inputs | close
+client stdout → mod    {"ok":true,"obs":{url,title,text,elements[],sensitive,more}} | {"left":url} | {"stale":true,…}
+```
+
+Each step: observe, build the table (rules.ts), redact and screen the page text (the injection
+screen, whatever screening's own mode; a page with a password field or text that looks secret is
+sent as its elements only), ask one choice, then a yes/no where a step needs one (done, or a
+consequential step the goal names), then act. The driver aborts a main-frame navigation off the
+hosts before it loads and reports a redirect that lands off them. A pause keeps the session (and
+its child) in the module for 5 minutes under a random resumeId; `session.end` closes them all, and
+the child also ends with the spawn loop, its parent, or 6 minutes without a command. The band
+shows the step while it runs (`memory.space('browser')`). docs/BROWSER.md has the rules.
+
 ## Failure
 
 Every feature fails open: an answer it cannot get, or cannot trust, leaves the request as Claude
@@ -168,6 +197,10 @@ project's mode only when it is no looser (off < shadow < on) than what the layer
 (the user's file, the older switches, the default), and reads their knobs from the user's file
 alone. `problems()` reports what was passed over ("project config may not lower screening"), and
 `config.write` refuses to write it, so `/jev-mod ... --project` and the dashboard both refuse it.
+
+`browser` is marked `risky`, the reverse: it acts for the person on the web, so a project's file
+may only turn it off (a mode no further on than the layers beneath give), and its knobs
+(`allowAttach`, `confirmConfidence`, `stepFloor` among them) come from the user's file alone.
 
 ## Seams kept for what comes next
 

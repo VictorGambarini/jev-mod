@@ -33,6 +33,7 @@ export function usage(problem?: string): string {
     '/jev-mod <feature> on|off|shadow      set its mode',
     '/jev-mod <feature> <setting> <value>  set one of its settings',
     '/jev-mod <feature> reset              clear what your file sets for it',
+    '/jev-mod browser install              install Playwright and Chromium for the browse tool',
     'Add --project to write the project\'s .claude/jev-mod.json instead of yours.',
   ].join('\n')
 }
@@ -59,6 +60,7 @@ export function show({ feature: f, resolved: r }: Shown): string {
     f.help,
     `modes: ${f.modes.join(', ')} (default ${f.default})`,
     ...(f.protective ? ['It guards you: a project file may only make its mode stricter (off < shadow < on), and its settings come from your own file alone.'] : []),
+    ...(f.risky ? ['It acts for you: a project file may only turn it off, and its settings come from your own file alone.'] : []),
   ]
   const knobs = Object.entries(f.knobs)
   if (!knobs.length) lines.push('settings: none')

@@ -23,3 +23,9 @@ test('model names and money', () => {
     .toEqual(['sonnet 5.5', 'opus 5.5', 'fable 5.1', 'gpt-x'])
   expect([money(1.234), money(0.0123), money(0.00002)]).toEqual(['$1.23', '$0.0123', '$0.00002'])
 })
+
+test('a running browse shows its step', () => {
+  const got = line({ jev: { calls: 2, cost: 0.0001 }, browser: { running: true, line: '🌐 step 4/20 · clicked "Pricing"' } }, 0)!
+  expect(plain(got)).toBe('🧭 not routed  $0.00010 (2)  🌐 step 4/20 · clicked "Pricing"  🔌 jev')
+  expect(plain(line({ jev: { calls: 2, cost: 0.0001 }, browser: { running: false, line: 'old' } }, 0)!)).not.toContain('old')
+})

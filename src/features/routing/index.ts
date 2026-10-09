@@ -135,7 +135,6 @@ export async function step(
   if (first) remember(decisions, e.turnId, await decide(io, prompts.get(e.turnId) ?? '', mine))
   const lane = decisions.get(e.turnId) ?? null
   if (!lane) {
-    io.status('jev-mod: as is')
     Object.assign(mine, { lastModel: e.model, lane: 'as is', changed: false, effort: e.effort === undefined ? undefined : String(e.effort) })
     if (first) await Promise.all([memory.save(io), activity.count(io, 'routing', 'kept')])
     return null
@@ -151,6 +150,5 @@ export async function step(
   Object.assign(mine, { lastModel: model, lane: lane.lane, changed, effort: effort === undefined ? undefined : String(effort) })
   // What it did: the lane that changed the turn, or "kept" when the turn runs as it came.
   if (first) await Promise.all([memory.save(io), activity.count(io, 'routing', changed ? lane.lane : 'kept')])
-  io.status(`jev-mod: ${lane.lane} · ${model.replace('claude-', '')}${effort ? ' · ' + effort : ''}`)
   return { model, effort }
 }

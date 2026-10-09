@@ -442,6 +442,7 @@ function backend() {
 function render() {
   if (!state) { $('panel').innerHTML = '<p class="empty">Waiting for the session…</p>'; return }
   const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null
+  const y = window.scrollY
   $('ver').textContent = state.version
   $('chips').innerHTML = chips()
   $('scope').innerHTML = scopeSwitch()
@@ -450,7 +451,9 @@ function render() {
   $('tabs').innerHTML = TABS.map(([id, label]) => `<button type="button" role="tab" id="tab-${id}" data-tab="${id}" data-k="tab-${id}" aria-selected="${tab === id}" aria-controls="panel" tabindex="${tab === id ? 0 : -1}">${label}</button>`).join('')
   $('panel').setAttribute('aria-labelledby', `tab-${tab}`)
   $('panel').innerHTML = tab === 'features' ? features() : tab === 'activity' ? activity() : tab === 'budget' ? budget() : backend()
-  if (focused) { const el = document.querySelector(`[data-k="${CSS.escape(focused)}"]`); if (el) el.focus() }
+  // Put focus back without scrolling to it: a refresh must leave the page where the person scrolled.
+  if (focused) { const el = document.querySelector(`[data-k="${CSS.escape(focused)}"]`); if (el) el.focus({ preventScroll: true }) }
+  if (window.scrollY !== y) window.scrollTo(0, y)
 }
 
 // ---- input ----

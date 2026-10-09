@@ -183,7 +183,7 @@ test('writing a looser protective mode, or its knobs, to the project file is ref
 
 test('only screening and band default on; every other feature defaults off', () => {
   expect(Object.fromEntries(FEATURES.map(f => [f.id, f.default]))).toEqual({
-    routing: 'off', skills: 'off', screening: 'on', 'tool-gate': 'off', 'stop-gate': 'off', 'trim-output': 'off', 'find-files': 'off', browser: 'off', band: 'on' })
+    routing: 'off', skills: 'off', screening: 'on', 'tool-gate': 'off', 'stop-gate': 'off', 'rules-gate': 'off', 'trim-output': 'off', 'find-files': 'off', browser: 'off', band: 'on' })
 })
 
 test('configured: the user file exists or it does not', async () => {

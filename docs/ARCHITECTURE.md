@@ -28,6 +28,8 @@ src/
     trim-output/       index.ts (glue, archive) · trim.ts (fold, chunk, drop: pure) · their tests
     compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
+    rules-gate/        index.ts (glue, on tool.check: rule files by mtime) · rules.ts (pure: rule extraction, globs,
+                       selection, the change, one question per rule, the refusal) · their tests
     find-files/        the find_files tool: index.ts (glue: listing, git grep, the backend) · rank.ts (pure: terms,
                        scores, cards, ranking) · their tests; src/find-files.test.ts drives it through the kit
     browser/           the browse tool: index.ts (glue: the loop, pauses) · rules.ts (pure: hosts, the action table,
@@ -134,6 +136,18 @@ after the tool ran is what the model reads as an error result. Each step is self
 returns its own result or null; a step that returns null leaves the result as the step before it
 made it, and a hook that changed nothing hands core the very object `next(e)` gave it.
 
+## The rules gate
+
+`rules-gate` has its own `tool.check` hook, matched on Write, Edit, MultiEdit and NotebookEdit,
+beside the tool gate's (the engine refuses two `tool.check` hooks without a matcher). After
+Claude Code's verdict, an edit it would allow or ask about, to a file inside the project, may
+become `{ decision: 'deny', reason }`: nothing has run, and the reason is the error the model reads
+(the rule quoted, with its file). The rule files are found per edit: `CLAUDE.md`, `AGENTS.md` and
+`CLAUDE.local.md` in each folder from the root down to the file's (`.claude/CLAUDE.md` at the
+root), and `.claude/rules/**/*.md` whose front-matter `paths:` globs match the file (none: every
+file). Each file is parsed once per mtime. Edits outside the project are left to the tool gate,
+which only asks about them. In shadow everything past the config read runs in `inBackground`.
+
 ## A tool of the mod's own
 
 `find-files` offers the model a tool, `mcp__jev-mod__find_files`: `$.tool.register` at
@@ -191,7 +205,7 @@ dropped. `on` waits for the answer, as it must.
 
 ## Protective features
 
-`screening`, `tool-gate` and `stop-gate` are marked `protective` in the registry. A project's
+`screening`, `tool-gate`, `stop-gate` and `rules-gate` are marked `protective` in the registry. A project's
 `.claude/jev-mod.json` comes with a cloned repository, so for these `config.resolve` takes the
 project's mode only when it is no looser (off < shadow < on) than what the layers beneath it give
 (the user's file, the older switches, the default), and reads their knobs from the user's file

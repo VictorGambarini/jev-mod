@@ -2,7 +2,7 @@ import { test, expect } from 'claude-code/testing'
 import { keepOnly } from './keep'
 
 
-test('jev-mod compact keeps what Jev marks keep, the tail, and both halves of a tool call', () => {
+test('jev-mod compact drops only what Jev marks drop, keeps the rest, the tail, and both halves of a tool call', () => {
   const m = (role: string, text: string, extra: object = {}) => ({ role, text, ...extra })
   const messages = [
     m('user', 'set up the project'),                                        // 0 keep
@@ -26,6 +26,12 @@ test('jev-mod compact never keeps half a tool pair from the tail', () => {
     ...Array.from({ length: 5 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: `t${i}`,
       ...(i === 0 ? { toolResults: [{ tool_use_id: 'x' }] } : {}) })),
   ]
-  const kept = keepOnly(messages, [0, 2, 3, 4, 5, 6], {}).map(x => messages.indexOf(x))
+  const kept = keepOnly(messages, [0, 2, 3, 4, 5, 6], { '0': 'drop' }).map(x => messages.indexOf(x))
   expect(kept).toEqual([1, 2, 3, 4, 5, 6])
+})
+
+test('jev-mod compact keeps a turn with no fate', () => {
+  const messages = Array.from({ length: 10 }, (_, i) => ({ role: 'user', text: `t${i}` }))
+  const kept = keepOnly(messages, messages.map((_, i) => i), { '1': 'drop' }).map(x => messages.indexOf(x))
+  expect(kept).toEqual([0, 2, 3, 4, 5, 6, 7, 8, 9])
 })

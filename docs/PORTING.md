@@ -33,7 +33,7 @@ record both the request sent and the decision reached:
 | `lane_policy.json`, `lane_targets.json` | the shipped lane policy; `lanes.targets` with lanes.json files laid on top | 1, 22 |
 | `skill_text.json` | `looks_trivial` on every string the skill tests use plus Unicode, apostrophes, question marks in four scripts; `_front_matter` on block scalars, CRLF, Python's line ends and whitespace | 449 + 51 |
 | `skill_catalogs.json`, `skills.json` | `pick` end to end over 11, 130 and 1,000 skills: every request with the reply it got (the batches go out side by side, so the test answers by body), the result; every branch (trivial, sensitive, no skills, one batch lost, stage 2 lost, the cap, ties, `round()`'s ties) | 50 runs |
-| `compact_convos.json`, `compact.json` | `compact.select` end to end: every request with its reply, in order; several batches, batches cut by encoded size (Japanese), system, empty, list and secret turns, drops either side of 0.7, `keep_last` from 0 past the length, one batch lost, all lost, a refusal | 23 runs |
+| `compact_convos.json` | the conversations compact.select was captured on (inputs only; `compact.json` and its replay test were retired, see the keep-or-drop divergence below) | 6 convos |
 
 To regenerate (while a jev-skills checkout exists), then refresh the `.ts` copies the tests
 import (the plugin test runner loads code files only; CI checks the copies are current):
@@ -90,6 +90,14 @@ Known differences that are not fixture answers, and why:
   that goes on as `-4`, `.5`, `/2`, and keeps a bare run of 12 or more digits; it also masks a
   bracketed two-to-four digit area code (`(09) 373 7599`). No captured fixture's answer changes,
   so divergences.ts has no entry; privacy.test.ts pins the new cases.
+- **Compaction asks keep or drop, never summarize.** compact.py offers keep / summarize / drop.
+  The mod has no summariser, so every summarize turn (and every turn left unjudged, which
+  defaulted to summarize, and every low-confidence drop) was deleted. `engine/compact.ts` asks
+  keep or drop only (the keep criterion also covers background whose gist later work needs),
+  drops a turn only on a drop at confidence 0.7 or more, and keeps everything else, unjudged
+  turns included; `counts` is keep/drop. The request bodies therefore differ from Python's, so
+  `compact.json` (recorded requests) is retired along with its replay test; `compact.test.ts`
+  runs scripted fake backends instead. `compact_convos.json` stays as the test inputs.
 
 A port may fix what the original got wrong, but only visibly: the fixture keeps Python's
 answer, `test/parity/divergences.ts` gives the new one and why, and the parity test fails if
@@ -103,7 +111,7 @@ an entry stops differing.
 | `engine/screen.ts` | `rerank.local_screen`, `webscreen.py`, `hooks.screen_text` | screening | **done and wired in** (five deliberate mutations each caught) |
 | `engine/client.ts` | `client.py`, `ledger.cost` | everything | **done** (six deliberate mutations each caught) |
 | `engine/backends.ts`, `engine/keys.ts` | `backends.py`, `tuning.check`, `keystore.py` (reading) | client | **done** (`systemone`, the only protocol jev-skills has) |
-| `engine/skills.ts` | `skillpick.py`, `hooks.user_prompt` | skills | **done and wired in** (nine deliberate mutations caught; the tenth, `trim` for `strip` in the gate, cannot change an answer) |
+| `engine/skills.ts` | `skillpick.py`, `hooks.user_prompt` | skills | **done and wired in**; keep/drop only, a deliberate divergence (see above) (nine deliberate mutations caught; the tenth, `trim` for `strip` in the gate, cannot change an answer) |
 | `engine/lanes.ts`, `engine/policy.ts`, `core/limits.ts` | `lanes.classify`/`targets`, `decide.decide`, `policy.py` (load, lint, readings, rules, drift), `limits.py` | routing | **done and wired in** (thirteen deliberate mutations caught, after adding cases for two the first run missed) |
-| `engine/compact.ts` | `compact.select` | /jev-mod compact | **done and wired in** (nine deliberate mutations caught; the tenth, clipping at 701, cuts at the same 350 as 700 and cannot change an answer; 702 is caught) |
+| `engine/compact.ts` | `compact.select` | /jev-mod compact | **done and wired in**; keep/drop only, a deliberate divergence (see above) (nine deliberate mutations caught; the tenth, clipping at 701, cuts at the same 350 as 700 and cannot change an answer; 702 is caught) |
 | key setup | `key_setup.py`, `jev doctor`, `jev switches` | first run | **done, differently**: the key is a sensitive `userConfig` field Claude Code keeps in its credential store (Keychain on macOS, a 0600 file on Linux) and hands only to the mod (`/plugin` or `claude plugin configure`), so no page or terminal prompt is needed; `/jev-mod status` checks it with key_setup's own verification question; the switches and private mode are `/config` settings |

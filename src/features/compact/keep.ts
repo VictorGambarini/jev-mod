@@ -1,4 +1,4 @@
-// /jev-mod compact's selection: which messages survive a compaction with no summariser.
+// /jev-mod compact's selection: which messages survive a compaction with no summariser: all but those Jev confidently marked drop.
 
 export type Msg = {
   role: string
@@ -10,15 +10,17 @@ export type Msg = {
 export const ALWAYS_KEEP_LAST = 6
 
 /**
- * The messages `/jev-mod compact` keeps, in order: those Jev marked keep, the last
+ * The messages `/jev-mod compact` keeps, in order: every one but those marked drop (a message
+ * with no fate is kept; the engine already turns a low-confidence drop into keep), the last
  * ALWAYS_KEEP_LAST, and whatever completes a kept tool call (its result) or a kept result
  * (its call), since a request with one half of a pair is refused. `fates` is indexed by
  * position in `sent`, the messages that had text to send; a message without text (a tool
- * call or result alone) stays only as the other half of a kept pair or in the tail.
+ * call or result alone) stays only as the other half of a kept pair or in the tail, and a
+ * kept message's text-less partner is pulled in.
  */
 export function keepOnly<M extends Msg>(messages: readonly M[], sent: readonly number[], fates: Record<string, string>): M[] {
   const keep = new Set<number>()
-  sent.forEach((index, j) => { if (fates[String(j)] === 'keep') keep.add(index) })
+  sent.forEach((index, j) => { if (fates[String(j)] !== 'drop') keep.add(index) })
   for (let i = Math.max(0, messages.length - ALWAYS_KEEP_LAST); i < messages.length; i++) keep.add(i)
   const callAt = new Map<string, number>()
   const resultAt = new Map<string, number>()

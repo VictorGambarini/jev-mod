@@ -785,29 +785,7 @@ ODD = [{"role": "system", "content": "You are a helpful assistant."}, {"role": "
        {"role": "user", "content": "caf\u00e9 \U0001f600 " * 120}, {"role": "tool", "content": "exit 1\nTraceback: KeyError 'x'"}]
 CONVOS = {"short": convo(5), "plain": convo(24), "long": convo(95, 3), "japanese": [{"role": "user", "content": JAPANESE}] * 30 + convo(4),
           "odd": ODD + convo(8), "empty": []}
-COMPACT_RUNS = []
-
-
-def compact_run(name, values, keep_last=6, fail_when=None, fail=None, **scripted):
-    fake = Recorded(values, fail_when=fail_when, fail=fail)
-    fake.inner = Scripted(values, fail=fail, **scripted)
-    result = compact.select(CONVOS[name], keep_last=keep_last, transport=fake)
-    COMPACT_RUNS.append({"convo": name, "keep_last": keep_last, "values": values, "scripted": scripted,
-                         "exchanges": fake.exchanges, "result": result})
-
-
-DROPS = {f"t{i}": ("drop" if i % 3 == 0 else "summarize" if i % 3 == 1 else "keep") for i in range(100)}
-for name in CONVOS:
-    compact_run(name, {})
-    compact_run(name, DROPS)
-compact_run("plain", DROPS, confidence=0.69)
-compact_run("plain", DROPS, confidence=0.7)
-for keep_last in (0, 1, 23, 24, 30):
-    compact_run("plain", DROPS, keep_last=keep_last)
-compact_run("long", DROPS, fail_when='"t3"')
-compact_run("long", DROPS, fail="network")
-compact_run("plain", DROPS, fail="auth_failed")
-compact_run("japanese", DROPS, fail_when='"t20"')
-save("compact", COMPACT_RUNS)
+# compact.json (recorded requests) is retired: engine/compact.ts asks keep or drop only, a deliberate
+# divergence from compact.select (docs/PORTING.md). Only the conversations are still captured.
 save("compact_convos", CONVOS)
 print(f"fixtures in {OUT}")

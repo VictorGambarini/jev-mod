@@ -1,9 +1,14 @@
-// Compaction without a summary: the decision model marks each turn keep, summarize or drop.
+// Compaction without a summary: the decision model marks each turn keep or drop, and in doubt a
+// turn is kept.
 //
-// Ported from jev-skills' jevkit/compact.py `select`, the part /jev-mod compact uses. One request
+// Ported from jev-skills' jevkit/compact.py `select`, the part /jev-mod compact uses, with one
+// deliberate divergence (docs/PORTING.md): jev-skills also offers "summarize", and the mod has no
+// summariser, so a summarize turn would be deleted. Here the question is keep or drop only, the
+// keep criterion also covers background whose gist later work needs, and an unjudged turn is kept.
+// One request
 // per batch of up to 40 turns, packed by encoded size; a long turn is judged on its first and
 // last 350 characters, redacted. Dropping is the only fate that cannot be undone, so it needs a
-// confident answer. The digest and handoff prompts are for jev-skills' handoff writer, which
+// confident answer: a drop below DROP_CONFIDENCE is a keep. The digest and handoff prompts are for jev-skills' handoff writer, which
 // the mod does not have.
 
 import { ask, choice, JevError, type Asked, type Host } from './client'
@@ -20,8 +25,7 @@ const PER_TURN_OVERHEAD = 16
 export const DROP_CONFIDENCE = 0.7
 export const FATE = {
   keep: 'Carries a decision, a constraint, a user preference, an unfinished task, an exact value, path, id, '
-    + 'command or error that later work depends on',
-  summarize: 'Useful background whose gist matters but whose exact wording does not',
+    + 'command or error that later work depends on, or is background whose gist later work needs',
   drop: 'Chatter, acknowledgements, superseded attempts, repeated output, or detail nothing later depends on',
 }
 export type Fate = keyof typeof FATE
@@ -77,8 +81,8 @@ export async function select(host: Host, messages: readonly Message[], opts: { k
   const fates = new Map<number, Fate>()
   for (let i = Math.max(0, total - keepLast); i < total; i++) fates.set(i, 'keep')
   let judged = [...Array(total).keys()].filter(i => !fates.has(i))
-  for (const i of judged) fates.set(i, messages[i]!.role === 'system' ? 'keep' : 'summarize') // nothing is dropped unless the model says so
-  judged = judged.filter(i => fates.get(i) !== 'keep' && strip(textOf(messages[i]!)) !== '')
+  for (const i of judged) fates.set(i, 'keep') // nothing is dropped unless the model says so
+  judged = judged.filter(i => messages[i]!.role !== 'system' && strip(textOf(messages[i]!)) !== '')
 
   const calls: Asked[] = []
   const errors: string[] = []
@@ -106,7 +110,7 @@ export async function select(host: Host, messages: readonly Message[], opts: { k
       fates.set(i, answer.choice)
     }
   }
-  const counts = { keep: 0, summarize: 0, drop: 0 }
+  const counts = { keep: 0, drop: 0 }
   for (const fate of fates.values()) counts[fate]++
   // One good batch must not hide the failed ones: "ok" only when every batch was judged.
   const status = !judged.length ? 'ok' : !calls.length ? 'fail_open' : errors.length ? 'partial' : 'ok'

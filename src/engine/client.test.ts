@@ -127,3 +127,29 @@ test('retry-after is read in ms, numeric only, capped at a minute', () => {
   expect(retryAfterMs({ 'retry-after': 'Wed, 21 Oct 2026 07:28:00 GMT' })).toBe(null)
   expect(retryAfterMs({})).toBe(null)
 })
+
+test("the mod's backend key reaches only the default backend's URL, never one JEV_BACKEND picks", async () => {
+  const config = JSON.stringify({ default: 'alpha', backends: {
+    alpha: { url: 'https://alpha.example/v1/systemone', model: 'a' },
+    beta: { url: 'https://beta.example/v1/systemone', model: 'b' },
+  } })
+  const reply = JSON.stringify({ answers: { ok: true } })
+  const run = async (env: Record<string, string>) => {
+    const sent: { url: string; headers: Record<string, string> }[] = []
+    const all: Record<string, string> = { ...env, XDG_CONFIG_HOME: '/cfg' }
+    const host: Host = {
+      env: async name => all[name], readFile: async path => (path === '/cfg/jev/backends.json' ? config : undefined),
+      secret: async () => undefined, home: async () => '/home/x', now: () => 0, sleep: async () => {},
+      setting: async name => (name === 'backend_api_key' ? 'alpha-settings-0001' : undefined),
+      post: async (url, _body, headers) => { sent.push({ url, headers }); return { status: 200, text: reply, headers: {} } },
+    }
+    try { await ask(host, {}, { ok: { type: 'noul', instructions: 'The text reports a success' } }) } catch { /* only what was sent matters */ }
+    return sent
+  }
+  const beta = await run({ JEV_BACKEND: 'beta' })
+  expect(beta.map(s => s.url)).toEqual(['https://beta.example/v1/systemone'])
+  expect(beta.map(s => s.headers.Authorization)).toEqual([undefined])
+  const alpha = await run({})
+  expect(alpha.map(s => s.url)).toEqual(['https://alpha.example/v1/systemone'])
+  expect(alpha.map(s => s.headers.Authorization)).toEqual(['Bearer alpha-settings-0001'])
+})

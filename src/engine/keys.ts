@@ -4,13 +4,14 @@
 // mod's own settings (kept in Claude Code's credential store, for the provider picked there), the
 // OS secret store (macOS Keychain or secret-tool), then a 0600 file under ~/.config/jev. A named backend's
 // key is read the same way under its own name, so it can never be mistaken for a provider key
-// and a provider key can never be read as a backend's.
+// and a provider key can never be read as a backend's. The mod's backend key setting is only
+// for the backend backends.json names as its default.
 //
 // Ported from jev-skills' jevkit/keystore.py, reading the same names and files, so keys stored
 // by `jev setup-key` are found where they are. Nothing here prints, logs or returns a key to
 // anything but the request that needs it.
 
-import { keyVariable, type Backend } from './backends'
+import { keyVariable, readFile as readBackends, type Backend } from './backends'
 import { splitlines, strip } from './pyre'
 
 /** What key lookup needs from the outside world. */
@@ -108,19 +109,40 @@ export async function provider(host: KeyHost): Promise<Provider | 'absent'> {
   return 'absent'
 }
 
+/** Where backends.json is: JEV_BACKENDS, else ~/.config/jev/backends.json. */
+export async function backendsPath(host: KeyHost): Promise<string> {
+  const explicit = strip((await host.env('JEV_BACKENDS')) ?? '')
+  return explicit ? (explicit.startsWith('~') ? (await host.home()) + explicit.slice(1) : explicit)
+    : `${await configDir(host)}/backends.json`
+}
+
+/** The backend backends.json names as its default, read now; undefined when there is none. */
+async function fileDefault(host: KeyHost): Promise<string | undefined> {
+  const path = await backendsPath(host)
+  try {
+    const name = readBackends(await host.readFile(path), path).default
+    return typeof name === 'string' ? name : undefined
+  } catch {
+    return undefined
+  }
+}
+
 async function backendLookup(host: KeyHost, backend: Backend): Promise<[string | undefined, KeySource]> {
   const variable = keyVariable(backend)
   const env = await envKey(host, variable)
   if (env) return [env, 'environment']
+  // The setting holds one key with no name beside it, so it belongs to the backend the file
+  // names as default when it is read, and to no other: JEV_BACKEND picking another backend, or
+  // the default changing, must not send it to that backend's URL.
   const set = await settingKey(host, 'backend_api_key')
-  if (set) return [set, 'settings']
+  if (set && await fileDefault(host) === backend.name) return [set, 'settings']
   const stored = await host.secret(`Jev backend ${backend.name}`, variable)
   if (stored) return [stored, 'keychain']
   const file = await fromFile(host, `${await configDir(host)}/credentials-backend-${backend.name}`, variable)
   return file ? [file, 'file'] : [undefined, 'none']
 }
 
-/** A named backend's key, under its own name in every store (the mod's setting is for the active one). */
+/** A named backend's key, under its own name in every store (the mod's setting is the file default's only). */
 export async function backendKey(host: KeyHost, backend: Backend): Promise<string | undefined> {
   return (await backendLookup(host, backend))[0]
 }

@@ -32,7 +32,7 @@
       "title": "Named backend key",
       "sensitive": true,
       "required": false,
-      "description": "The key for the decision server named as default in ~/.config/jev/backends.json, if you use one. Kept in Claude Code's credential store (the Keychain on macOS; ~/.claude/.credentials.json, a 0600 file, on Linux); none stops using it."
+      "description": "The key for the decision server named as default in ~/.config/jev/backends.json, if you use one; never sent to any other backend, including one JEV_BACKEND picks. Kept in Claude Code's credential store (the Keychain on macOS; ~/.claude/.credentials.json, a 0600 file, on Linux); none stops using it."
     },
     "enabled": {
       "type": "boolean",

@@ -20,8 +20,8 @@ type Sent = { state: any; questions: Record<string, any> }
 
 type Fake = IO & { sent: Sent[]; store: Record<string, unknown> }
 
-function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: boolean; options?: Record<string, unknown> } = {}): Fake {
-  const files: Record<string, string> = { [USER]: JSON.stringify({ features: { browser: { mode: 'on', ...(opts.settings ?? {}) } } }) }
+function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: boolean; options?: Record<string, unknown>; files?: Record<string, string> } = {}): Fake {
+  const files: Record<string, string> = { [USER]: JSON.stringify({ features: { browser: { mode: 'on', ...(opts.settings ?? {}) } } }), ...(opts.files ?? {}) }
   const store: Record<string, unknown> = {}
   const sent: Sent[] = []
   const picks = [...(brain.picks ?? [])]
@@ -279,6 +279,26 @@ test('blocked: under the step floor, the top three come back with their probabil
   expect(launched[0]!.url).toBe('https://shop.test/pricing') // the approved click was taken
   expect(again).toContain('2. clicked link "Pricing" → shop.test/pricing')
   expect(statusOf(again)).toBe('status: blocked')
+  closeAll()
+})
+
+test("a named backend's choose.min_confidence is the step floor; without one the knob's stays", async () => {
+  const backend = (tuning: Record<string, number>) => ({ '/home/u/.config/jev/backends.json': JSON.stringify({ default: 'own',
+    backends: { own: { url: 'https://own.example/v1/systemone', model: 'own-model', tuning } } }) })
+  // jev-skills bounds the value to 0.5-0.99, so a backend can raise the floor, never lower it.
+  const sure = site()
+  await browse(io({ picks: [{ choice: 'click-e1', p: 0.55 }] }, { files: backend({ 'choose.min_confidence': 0.5 }) }),
+    { goal: 'Reach pricing', startUrl: 'https://shop.test/', maxSteps: 1 }, { launch: sure.launch })
+  expect(sure.launched[0]!.url).toBe('https://shop.test/pricing') // 0.55 clears the backend's 0.5
+  const high = site()
+  const stopped = await browse(io({ picks: [{ choice: 'click-e1', p: 0.45 }] }, { files: backend({ 'choose.min_confidence': 0.5 }) }),
+    { goal: 'Reach pricing', startUrl: 'https://shop.test/' }, { launch: high.launch })
+  expect(statusOf(stopped)).toBe('status: blocked')
+  expect(stopped).toContain('(the floor is 0.5)') // 0.45 clears the knob's 0.4, not the backend's 0.5
+  const untuned = site()
+  await browse(io({ picks: [{ choice: 'click-e1', p: 0.45 }] }, { files: backend({}) }),
+    { goal: 'Reach pricing', startUrl: 'https://shop.test/', maxSteps: 1 }, { launch: untuned.launch })
+  expect(untuned.launched[0]!.url).toBe('https://shop.test/pricing') // not Jev's 0.65: the knob's 0.4
   closeAll()
 })
 

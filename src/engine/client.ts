@@ -392,9 +392,7 @@ export type Asked = {
 
 /** The backend decisions go to, or null for the providers; BackendError when misconfigured. */
 export async function activeBackend(host: Host): Promise<Backend | null> {
-  const explicit = strip((await host.env('JEV_BACKENDS')) ?? '')
-  const path = explicit ? (explicit.startsWith('~') ? (await host.home()) + explicit.slice(1) : explicit)
-    : `${await keys.configDir(host)}/backends.json`
+  const path = await keys.backendsPath(host)
   const text = await host.readFile(path)
   return backends.active(await host.env('JEV_BACKEND'), () => backends.readFile(text, path), path)
 }

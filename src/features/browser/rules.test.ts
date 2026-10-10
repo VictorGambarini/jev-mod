@@ -63,6 +63,14 @@ test('an action seen to do nothing twice on a page is not offered there again; d
   expect(again.map(a => a.id)).toContain('abstain')
 })
 
+test("a backend's choose.dead_repeats moves how often an action may do nothing before it goes", () => {
+  const hosts = allowedHosts(PAGE.url)
+  const click = buildTable(PAGE, { inputs: [], hosts }).find(a => a.id === 'click-e1')!
+  const dead = new Map([[actionKey(PAGE.url, click), DEAD_REPEATS]])
+  expect(buildTable(PAGE, { inputs: [], hosts, dead, deadRepeats: DEAD_REPEATS + 1 }).map(a => a.id)).toContain('click-e1')
+  expect(buildTable(PAGE, { inputs: [], hosts, dead: new Map([[actionKey(PAGE.url, click), 1]]), deadRepeats: 1 }).map(a => a.id)).not.toContain('click-e1')
+})
+
 test('consequential: buying, sending, deleting, a non-search form; not a search, a link, typing or a cookie banner', () => {
   const table = buildTable(PAGE, { inputs: ['email'], hosts: allowedHosts(PAGE.url) })
   const row = (id: string) => table.find(a => a.id === id)!

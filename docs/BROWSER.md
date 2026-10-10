@@ -182,7 +182,7 @@ an `attach` call fails and says how to turn it on.
 |---|---|---|
 | `maxSteps` | 20 (5-60) | the most steps one call takes; a call may ask for fewer |
 | `confirmConfidence` | 0.85 (0.5-1) | the bar for a consequential step and for *done* |
-| `stepFloor` | 0.4 (0.3-0.95) | under it, the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (`confirmConfidence`, and the goal naming the action) |
+| `stepFloor` | 0.4 (0.3-0.95) | under it, the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (`confirmConfidence`, and the goal naming the action). A named backend that sets `choose.min_confidence` in its `tuning` uses that instead, and `choose.dead_repeats` for how often a step may change nothing on a page before it is no longer offered (2) |
 | `headed` | false | show the Chromium window |
 | `allowAttach` | false | let a call drive your own Chrome |
 | `textChars` | 6000 (1000-20000) | page text per step |

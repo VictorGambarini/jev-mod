@@ -1,0 +1,55 @@
+# Output trimming (`trim-output`)
+
+Cuts a long Bash output down to what the current goal needs. The full output is kept in a file.
+
+Modes: `on`, `shadow`, `off`. Default: `off`.
+
+## What it decides
+
+Which parts of a long Bash output the model still needs to read. Repeats are folded locally; the decision model then says which remaining chunks the goal no longer needs, and each of those is replaced by a marker naming its lines.
+
+## When it runs
+
+After a Bash command prints 200 lines or more (`minLines`), on the output before the model reads it. Outputs over 1,000,000 characters pass as they came.
+
+## How it decides
+
+**Folding, with no model.**
+
+- Runs of repeated and near-identical lines are folded (3 or more similar lines in a run).
+- A block of several lines (4 or more, and at least 60 characters) that comes again verbatim, such as a repeated stack trace or diff: the first copy stays, each later one becomes a marker naming the lines it repeats.
+- For a test run (vitest, jest, pytest, go test, cargo test, bun test, node --test, mocha), a failure identical to the same failure in the previous run of the same command in this session becomes `[still failing with the same output as the previous run: <test names>]`. That memory is small, kept as hashes (for at most 20 commands), and forgotten at any compaction, because the model may no longer have the earlier output. It is not used for a subagent, and only written when the output reached the model whole.
+
+**Judging chunks.** What is still long is cut into chunks (about 40 lines or 1,200 characters), and one request per batch asks of each whether the current goal (your latest request, and the command) still needs it. A chunk the decision model scores under `keepThreshold` is replaced by a marker naming its lines. Errors, warnings, failures, stack traces, summaries and the first and last lines always stay, and a chunk with any of these is never sent. The decision model may add at most 4 seconds in all to one command's wait.
+
+**Test runs.** A test run is instead split into passing tests, other output, failures and the summary. Failures and the summary are never sent. Every other block goes to the decision model in one request, and is dropped only when "not needed" is at least 90% likely (`keepThreshold` does not apply).
+
+**The archive.** The full output is kept in `~/.cache/jev-mod/outputs/` (kept 7 days, never one from the running session, at most 500), and the trimmed output's first line names the file.
+
+**With screening.** Bash output that screening looked at is trimmed after screening, so only screened text reaches the model: a large output Claude Code kept in a file is screened whole before any of it is inlined, and left as Claude Code's preview when it cannot be. A failed command's trimmed output still reaches the model as an error.
+
+**Shadow.** What would be cut is computed in the background and counted; nothing is changed and the command never waits for it.
+
+## Settings
+
+| Setting | Default | Range | What it does |
+|---|---|---|---|
+| `minLines` | 200 | 20-100000 | Outputs shorter than this are left alone. |
+| `keepThreshold` | 0.35 | 0-1 | A chunk is dropped when the decision model's probability that the goal needs it is under this. |
+| `localOnly` | false | true / false | true: fold repeats only (repeated lines, repeated blocks, unchanged test failures), and never send output to the decision model. |
+
+## Failing open, privacy and budget
+
+Private profiles, `localOnly`, a subagent's output (its goal is its own task prompt, which this hook does not see), a backend cooling off, the daily budget, and a goal or command that looks like it holds a secret get the folding alone. A chunk that looks like it holds a secret is never sent or dropped. What is sent is redacted. Folding loses nothing a marker does not point back to.
+
+## Limits
+
+- Judged against your latest request, not a subagent's own task, so subagents are folded only.
+- Output over 1,000,000 characters is not touched.
+- The archive is pruned at 7 days and 500 files.
+
+## Benchmarks
+
+<!-- bench:start -->
+No benchmark has been run yet for output trimming. How benchmarks are run and recorded: [src/bench/README.md](../../bench/README.md).
+<!-- bench:end -->

@@ -3,6 +3,7 @@ import { problems, setting, snapshot } from '../../core/config'
 import type { FetchInit, IO } from '../../core/io'
 import * as memory from '../../core/memory'
 import type { ActResult, Driver, Launch, LaunchOptions, Wire } from './child'
+import { coolingOff } from '../../core/jev'
 import { browse, closeAll, openCount } from './index'
 import { allowed, type Element, type Observation } from './rules'
 
@@ -270,6 +271,10 @@ test('blocked: under the step floor, the top three come back with their probabil
   expect(text).toContain('its top choices were click-e1 (0.35), click-e3 (0.30), fill-e4 (0.25)')
   expect(text).toContain('no step is sure enough to take (the floor is 0.4)')
   expect(text).toContain('- click-e1 (0.35): click link "Pricing"')
+  expect(text).not.toContain('- fill-e4') // only what can be approved is offered as an option
+  const bad = await browse(fake, { goal: 'Find something vague', resumeId: resumeOf(text), approve: 'fill-e4' }, { launch })
+  expect(bad).toContain('names no action that is waiting')
+  expect(bad).toContain('waiting: click-e1, click-e3')
   const again = await browse(fake, { goal: 'Find something vague', resumeId: resumeOf(text), approve: 'click-e1' }, { launch })
   expect(launched[0]!.url).toBe('https://shop.test/pricing') // the approved click was taken
   expect(again).toContain('2. clicked link "Pricing" → shop.test/pricing')
@@ -289,6 +294,8 @@ test('needs_input names the field; a resume with the value types it, and no valu
   expect(statusOf(first)).toBe('status: needs_input')
   expect(first).toContain('the field textbox "Coupon code"')
   expect(first).toContain('{"coupon_code": "<the text>"}')
+  expect(first).toContain('input needed: coupon_code:')
+  expect(first).not.toContain('options:') // an input name is not an approvable row
   expect(launched[0]!.o.values).toEqual({ query: QUERY }) // the driver holds the values
   const second = await browse(fake, { goal: 'Search the shop with my query and apply my coupon', resumeId: resumeOf(first),
     inputs: { query: QUERY, coupon_code: SECRET } }, { launch })
@@ -415,4 +422,30 @@ test('a project file may turn the browser off, never on, and sets none of its se
   expect(resolved.knobs.allowAttach!.value).toBe(false)
   expect((await setting(fake, 'browser')).knobs.confirmConfidence!.value).toBe(0.85)
   expect((problems(await snapshot(fake))).join('\n')).toContain('project config may not turn browser on')
+})
+
+test('budget pauses: it returns a resumeId, keeps the browser, and a resume gets a fresh step budget', async () => {
+  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'done', p: 0.9 }], achieved: [0.95] })
+  const { launched, launch } = site()
+  const first = await browse(fake, { goal: 'Reach pricing', startUrl: 'https://shop.test/', maxSteps: 1 }, { launch })
+  expect(statusOf(first)).toBe('status: budget')
+  expect(resumeOf(first)).not.toBe('')
+  expect(openCount()).toBe(1)
+  expect(launched[0]!.closed).toBe(false)
+  const second = await browse(fake, { goal: 'Reach pricing', resumeId: resumeOf(first), maxSteps: 1 }, { launch })
+  expect(statusOf(second)).toBe('status: done')
+  expect(launched).toHaveLength(1)
+  expect(openCount()).toBe(0)
+})
+
+test('a failure of the browser\'s own code does not start the global cool-off', async () => {
+  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }] })
+  const env = fake.env
+  let broken = false // the decision backend's settings cannot be read: not an outage
+  fake.env = async (name: string) => { if (broken && name.startsWith('TYPESAFE')) throw new Error('env gone'); return env(name) }
+  const { launch: inner } = site()
+  const launch: Launch = async (...args) => { const r = await inner(...args); broken = true; return r }
+  const text = await browse(fake, { goal: 'Reach pricing', startUrl: 'https://shop.test/' }, { launch })
+  expect(statusOf(text)).toBe('status: failed')
+  expect(coolingOff()).toBe(false)
 })

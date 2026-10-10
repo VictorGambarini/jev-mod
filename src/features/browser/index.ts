@@ -48,7 +48,8 @@ export const SPEC = {
     + 'buttons and fields; it never writes text: anything to type comes from `inputs`, which it sees by name only (values '
     + 'are never sent to it). Write `goal` as the END STATE plus what counts as progress ("Reach the team pricing page; '
     + 'the Pricing or Plans links count as progress"), not hop by hop, and name the kind of action when the goal needs '
-    + 'one (buy, send, submit, sign up, delete). It stays on startUrl\'s site and its subdomains (plus allowHosts). It '
+    + 'one (buy, send, submit, sign up, delete). It stays on startUrl\'s site and its subdomains (plus allowHosts). '
+    + 'startUrl, allowHosts and attach apply to a new call only; a call with resumeId ignores them. It '
     + 'answers with a status: done; unverified; needs_input (call again with resumeId and the missing inputs); '
     + 'needs_confirm (a consequential step: buy, pay, send, delete, post, sign up, submit a form. Ask the person, and '
     + 'only if they agree call again with resumeId and approve=<the action id>); blocked (no clear step: the top 3 with '
@@ -60,12 +61,12 @@ export const SPEC = {
     type: 'object',
     properties: {
       goal: { type: 'string', description: 'The end state, and what counts as progress toward it.' },
-      startUrl: { type: 'string', description: 'The http(s) page to start on. Required unless resumeId is given.' },
+      startUrl: { type: 'string', description: 'The http(s) page to start on. Required unless resumeId is given; ignored with resumeId.' },
       inputs: { type: 'object', additionalProperties: { type: 'string' },
         description: 'Text the browser may type, by name ({"email": "...", "query": "..."}). The decision model sees the names only.' },
-      allowHosts: { type: 'array', items: { type: 'string' }, description: 'More hosts it may visit (each with its subdomains).' },
+      allowHosts: { type: 'array', items: { type: 'string' }, description: 'More hosts it may visit (each with its subdomains). New call only; ignored with resumeId.' },
       maxSteps: { type: 'integer', minimum: 1, maximum: 60, description: 'Steps for this call; never more than the person\'s maxSteps setting.' },
-      attach: { type: 'boolean', description: 'Use the person\'s own Chrome (remote debugging) instead of a throwaway one; only when they turned allowAttach on.' },
+      attach: { type: 'boolean', description: 'Use the person\'s own Chrome (remote debugging) instead of a throwaway one; only when they turned allowAttach on. New call only; ignored with resumeId.' },
       approve: { type: 'string', description: 'An action id from a previous needs_confirm or blocked answer, to do now (with resumeId).' },
       resumeId: { type: 'string', description: 'Carry on in the browser a previous answer left waiting.' },
     },
@@ -152,7 +153,7 @@ async function askJev(ctx: Ctx, state: Record<string, unknown>, questions: Recor
     await Promise.all([recordCalls(ctx.io, [reply], [], ID), ctx.limits?.charge(costOf(reply))])
     return reply
   } catch (error) {
-    const code = error instanceof JevError ? error.code : 'network'
+    const code = error instanceof JevError ? error.code : 'client_error'
     await recordCalls(ctx.io, [], [code], ID)
     throw new Stop('failed', code === 'no_key'
       ? 'no decision backend key (the person runs `jev setup-key`, or sets one in /config); the browser was closed'
@@ -292,8 +293,8 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
         : `no step sure enough (best: ${pick} at ${confidence.toFixed(2)})` })
       return outcome(s, 'blocked', `${gaveUp ? 'the decision model judged that nothing on this page moves toward the goal'
         : `no step is sure enough to take (the floor is ${ctx.floor})`}; its top choices were `
-        + `${top.map(r => `${r.id} (${r.p.toFixed(2)})`).join(', ')}. Approve one with resumeId and approve=<id>, or call again with a goal that says what counts as progress.`,
-      { options: top.map(r => ({ id: r.id, p: r.p, text: table.find(a => a.id === r.id)?.text ?? r.id })) })
+        + `${top.map(r => `${r.id} (${r.p.toFixed(2)})`).join(', ')}. Only the listed options can be approved (with resumeId and approve=<id>); or call again with a goal that says what counts as progress.`,
+      { options: options.map(o => ({ id: o.id, p: o.p, text: o.action.text })) })
     }
 
     if (action.kind === 'done') {
@@ -318,7 +319,7 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
       s.steps.push({ n: s.steps.length + 1, line: `needs text for ${describe(action.el, values)}` })
       return outcome(s, 'needs_input', `the field ${describe(action.el, values)} needs text that none of the given inputs holds. `
         + `Call browse again with resumeId and inputs: {"${name}": "<the text>"} (any name; the value is never sent to the decision model).`,
-      { options: [{ id: name, text: describe(action.el, values) }] })
+      { input: { name, text: describe(action.el, values) } })
     }
 
     const risk = riskOf(action)
@@ -343,7 +344,7 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
   }
   return s.claimedDone
     ? outcome(s, 'unverified', `the step budget (${ctx.max}) ran out; the decision model judged the goal achieved but the page check did not agree`)
-    : outcome(s, 'budget', `the step budget (${ctx.max}) ran out before the goal was reached; call again with resumeId to carry on, or a goal that says what counts as progress`)
+    : outcome(s, 'budget', `the step budget (${ctx.max}) ran out before the goal was reached; call again with resumeId to carry on (a fresh step budget), or a goal that says what counts as progress`)
 }
 
 // ── pauses ───────────────────────────────────────────────────────────────────
@@ -381,10 +382,10 @@ export function openCount(): number {
 
 type Input = { goal?: unknown; startUrl?: unknown; inputs?: unknown; allowHosts?: unknown; maxSteps?: unknown; attach?: unknown; approve?: unknown; resumeId?: unknown }
 
-const PAUSES: readonly Status[] = ['needs_input', 'needs_confirm', 'blocked']
+const PAUSES: readonly Status[] = ['needs_input', 'needs_confirm', 'blocked', 'budget']
 
 function counted(status: Status): string {
-  return status === 'done' ? 'done' : PAUSES.includes(status) ? 'paused'
+  return status === 'done' ? 'done' : status === 'budget' ? 'budget' : PAUSES.includes(status) ? 'paused'
     : status === 'failed' || status === 'not_installed' ? 'failed' : status.replace(/_/g, '-')
 }
 

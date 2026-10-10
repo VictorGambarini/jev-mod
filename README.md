@@ -162,9 +162,12 @@ Write's changed lines against the file, or the whole of a new file; redacted, ab
 `maxChangeChars`), and one question per rule. A rule is a list item, a numbered item, or a short
 line that reads as a directive; headings (kept as each rule's context), code blocks, tables and
 long prose are not rules. Past `maxRules`, the rules whose words match the file's path and the
-change's identifiers are kept, nearer files first. A change or a rule that looks like it holds a
-secret is not sent; no answer within `timeoutMs`, no key, private mode, the daily budget or a
-backend cool-off: the edit goes on. Parsed rule files are cached by mtime. The 0.8 threshold has
+change's identifiers are kept, nearer files first. A change or a rule that only mentions a
+secret ("Never log API keys", `apiKey: config.apiKey`) is judged like any other; secret values in
+either (the literal after `password =` or `apiKey:`, a token, a bearer credential, a private key)
+are masked before anything is sent. A rule about other files or workflow steps (tests, a
+changelog, commits, reviews) is judged not broken by a single edit. No answer within `timeoutMs`,
+no key, private mode, the daily budget or a backend cool-off: the edit goes on. Parsed rule files are cached by mtime. The 0.8 threshold has
 not been checked against real answers yet: run it in `shadow` first (it counts `would-block`,
 `passed` and `skipped`, in the background, so no edit waits for it); `on` counts `blocked`.
 A rule file it reads, for example `.claude/rules/tests.md`:

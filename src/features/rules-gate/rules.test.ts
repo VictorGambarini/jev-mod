@@ -131,12 +131,16 @@ test('the change: Edit old and new, Write as a diff against the file or whole wh
   expect(changePieces('NotebookEdit', { new_source: 'print(1)', cell_id: 'c1' }, null)[1]).toEqual(['new_source', 'print(1)'])
 })
 
-test('the change is capped, shared between its pieces; a secret in it sends nothing', () => {
+test('the change is capped, shared between its pieces; secret values in it are masked, names kept', () => {
   const big = describeChange('a.ts', 'Edit', [['old_string', 'x'.repeat(10_000)], ['new_string', 'short one']], 2000)!
   expect(big.edit.new_string).toBe('short one')
   expect(big.edit.old_string!.length).toBeLessThan(2100)
-  expect(describeChange('a.ts', 'Edit', [['old_string', ''], ['new_string', 'const password = "hunter22"']], 2000)).toBe(null)
-  expect(describeChange('a.ts', 'Edit', [['old_string', ''], ['new_string', 'AKIAIOSFODNN7EXAMPLE']], 2000)).toBe(null)
+  expect(describeChange('a.ts', 'Edit', [['old_string', ''], ['new_string', 'const password = "hunter22"']], 2000)!.edit.new_string)
+    .toBe('const password = "[secret]"')
+  expect(describeChange('a.ts', 'Edit', [['old_string', ''], ['new_string', 'AKIAIOSFODNN7EXAMPLE']], 2000)!.edit.new_string).toBe('[secret]')
+  expect(describeChange('a.ts', 'Edit', [['old_string', ''], ['new_string', 'if (!opts.apiKey) throw new Error("no apiKey")']], 2000)!.edit.new_string)
+    .toBe('if (!opts.apiKey) throw new Error("no apiKey")')
+  expect(describeChange('a.ts', 'Edit', [['old_string', ''], ['new_string', '']], 2000)).toBe(null)
 })
 
 test('one yes/no question per rule, naming the rule, its file and heading', () => {

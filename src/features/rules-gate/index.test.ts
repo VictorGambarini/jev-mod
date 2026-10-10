@@ -161,12 +161,7 @@ test('subagents: judged by default, left alone when the knob is false', async ()
   expect(not.bodies.length).toBe(0)
 })
 
-test('fail open: a secret in the change, private mode, or no key lets the edit go on, counted skipped', async () => {
-  const secret = io('on', { broken: () => 1 })
-  expect(await check(secret, edit(`${ROOT}/src/a.ts`, '', 'const password = "hunter22"'))).toBe(null)
-  expect(secret.bodies.length).toBe(0)
-  expect(counts(secret).skipped).toBe(1)
-
+test('fail open: private mode or no key lets the edit go on, counted skipped', async () => {
   const quiet = io('on', { broken: () => 1, option: { private: true } })
   expect(await check(quiet, edit(`${ROOT}/src/a.ts`, 'const', 'var'))).toBe(null)
   expect(quiet.bodies.length).toBe(0)
@@ -178,13 +173,57 @@ test('fail open: a secret in the change, private mode, or no key lets the edit g
   expect(counts(keyless).skipped).toBe(1)
 })
 
-test('a rule that looks like it holds a secret is never sent; the others still are', async () => {
+test('a rule that holds a secret value is sent with the value masked; the others as they are', async () => {
   const fake = io('on')
   fake.disk[`${ROOT}/CLAUDE.md`] += '- The staging password is hunter22, never print it.\n'
   await check(fake, edit(`${ROOT}/src/a.ts`, 'const', 'let'))
   expect(fake.bodies.length).toBe(1)
   expect(JSON.stringify(fake.bodies[0]).includes('hunter22')).toBe(false)
-  expect(Object.keys(fake.bodies[0].questions).length).toBe(4)
+  const questions = Object.values(fake.bodies[0].questions as Record<string, { instructions: string }>).map(q => q.instructions)
+  expect(questions.length).toBe(5)
+  expect(questions.some(q => q.includes('The staging password is [secret], never print it.'))).toBe(true)
+})
+
+test('a rule that only mentions secrets is sent and enforced', async () => {
+  const fake = io('on', { broken: q => (q.includes('Never log API keys or passwords') ? 0.95 : 0.05) })
+  fake.disk[`${ROOT}/CLAUDE.md`] += '- Never log API keys or passwords.\n- Never commit .env files or API keys.\n'
+  const gate = await check(fake, edit(`${ROOT}/src/a.ts`, 'export const a = 1', 'console.log(opts.apiKey)'))
+  expect(gate?.decision).toBe('deny')
+  expect(gate!.reason).toContain('- "Never log API keys or passwords." (CLAUDE.md, under "Rules")')
+  const questions = Object.values(fake.bodies[0].questions as Record<string, { instructions: string }>).map(q => q.instructions)
+  expect(questions.some(q => q.includes('Never commit .env files or API keys.'))).toBe(true)
+})
+
+test('an edit to code that names apiKey or password, holding no secret value, is checked as it is', async () => {
+  const fake = io('on', { broken: breaksVar })
+  const code = 'export var client = connect({ apiKey: config.apiKey, password: opts.password })'
+  expect((await check(fake, edit(`${ROOT}/src/a.ts`, 'export const a = 1', code)))?.decision).toBe('deny')
+  expect(fake.bodies.length).toBe(1)
+  expect(fake.bodies[0].state.change.new_string).toBe(code)
+  expect(counts(fake).skipped).toBe(undefined)
+})
+
+test('an edit holding a literal secret is sent only with the values masked; the backend never sees them', async () => {
+  const fake = io('on', { broken: breaksVar })
+  const token = 'ghp_' + 'Ab3dEf6hIj9lMn2pQr5tUv8xYz1bCd4fGh7j'
+  const code = `const token = "${token}"\nconst password = "hunter22"\nconst apiKey: string = 'k-9f8e7d6c'\nexport var a = 1`
+  const gate = await check(fake, edit(`${ROOT}/src/a.ts`, 'export const a = 1', code))
+  expect(gate?.decision).toBe('deny')
+  expect(fake.bodies.length).toBe(1)
+  const sent = JSON.stringify(fake.bodies[0])
+  for (const value of [token, 'hunter22', 'k-9f8e7d6c']) expect(sent.includes(value)).toBe(false)
+  const shown = fake.bodies[0].state.change.new_string as string
+  expect(shown).toContain('const password = "[secret]"')
+  expect(shown).toContain("const apiKey: string = '[secret]'")
+  expect(shown).toContain('export var a = 1')
+})
+
+test('a process rule is said to be unbreakable by one edit, in the task and in each question', async () => {
+  const fake = io('on')
+  await check(fake, edit(`${ROOT}/src/a.ts`, 'const', 'let'))
+  const body = fake.bodies[0]
+  expect(body.state.task).toContain('cannot be broken by one edit to one file')
+  expect(body.questions.rule_1.criteria.false).toContain('a test, a changelog entry, a commit, a review')
 })
 
 test('a project file may make the gate stricter, never looser, and sets none of its knobs', async () => {

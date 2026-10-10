@@ -2,7 +2,7 @@ import { test, expect } from 'claude-code/testing'
 import cases from '../../test/parity/fixtures/privacy'
 import unicode from '../../test/parity/fixtures/privacy_unicode'
 import { DIVERGENCES } from '../../test/parity/divergences'
-import { foldConfusables, isSensitive, normalize, redact } from './privacy'
+import { foldConfusables, isSensitive, maskSecretValues, normalize, redact, redactSecretValues } from './privacy'
 
 // Every input jev-skills' privacy.py was captured on (docs/PORTING.md) must give the same
 // four answers here: its test corpus, and a Unicode set aimed at where Python's regex and
@@ -91,4 +91,30 @@ test('real phone numbers are still masked', () => {
   expect(redact('ring 021 123 4567')).toBe('ring [phone]')
   expect(redact('x8505550134 and Tel:8505550134')).toBe('x[phone] and Tel:[phone]')
   expect(redact('18505550134')).toBe('[phone]')
+})
+
+test('maskSecretValues masks the value a secret name is given, keeps the name and mere mentions', () => {
+  const cases: [string, string][] = [
+    ['const password = "hunter2"', 'const password = "[secret]"'],
+    ["apiKey: 'abc123xyz'", "apiKey: '[secret]'"],
+    ['{"password": "hunter2", "user": "bob"}', '{"password": "[secret]", "user": "bob"}'],
+    ['password: hunter2', 'password: [secret]'],
+    ['Authorization: Basic dXNlcjpwYXNzd29yZA==', 'Authorization: Basic [secret]'],
+    ['curl --password hunter2 -H x', 'curl --password [secret] -H x'],
+    ['The staging password is hunter22, never print it.', 'The staging password is [secret], never print it.'],
+    ['раssword = "hunter2"', 'password = "[secret]"'],
+    ['-----BEGIN RSA PRIVATE KEY-----\nMIIabc\n-----END RSA PRIVATE KEY-----', '[private key]'],
+  ]
+  for (const [input, out] of cases) expect(maskSecretValues(input)).toBe(out)
+  for (const kept of ['Never log API keys or passwords.', 'apiKey: config.apiKey', 'apiKey: string', 'if (password === input) {',
+    'const apiKey = process.env.API_KEY', 'password = getPassword()', 'fetch(url, { apiKey })', 'author: "Victor"']) {
+    expect(maskSecretValues(kept)).toBe(kept)
+  }
+})
+
+test('redactSecretValues leaves no value isSensitive would catch, only the names', () => {
+  const text = 'DB_PASSWORD=hunter2\nconst t = "sk-abcdefghijklmnopqrstuv"\nheaders = { Authorization: `Bearer abcdefgh12345678` }'
+  const out = redactSecretValues(text)
+  for (const value of ['hunter2', 'sk-abcdefghijklmnopqrstuv', 'abcdefgh12345678']) expect(out.includes(value)).toBe(false)
+  expect(out).toContain('DB_PASSWORD=[secret]')
 })

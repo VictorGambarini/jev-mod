@@ -278,7 +278,7 @@ export function request(query: string, cards: readonly string[], ids: readonly n
 
 // ── ranking ──────────────────────────────────────────────────────────────────
 
-/** Where an unjudged file stands between a judged "related" (0.4 and up) and "unrelated" (near 0). */
+/** Where an unjudged file stands: above most unrelated answers (near 0), below a confident "related" (0.4 and up); a weakly related argmax can score lower (0.2). */
 export const UNJUDGED = 0.25
 
 export type Ranked = { path: string; local: number; verdict?: Verdict; confidence?: number; relevance: number; reason: string }
@@ -316,12 +316,12 @@ export function rank(candidates: readonly Candidate[], answers: ReadonlyMap<numb
 
 // ── what the model reads ─────────────────────────────────────────────────────
 
-export type Outcome = { by: 'jev' | 'local'; note?: string; searched: number; folder: string }
+export type Outcome = { by: 'jev' | 'local'; note?: string; batches?: { batches: number; failed: number }; searched: number; folder: string }
 
 /** The tool's answer: a header line saying how it was ranked, then one line per file. */
 export function render(query: string, ranked: readonly Ranked[], limit: number, outcome: Outcome): string {
   const shown = ranked.filter(r => outcome.by === 'local' || r.verdict !== 'unrelated' || r.relevance >= UNJUDGED).slice(0, limit)
-  const how = outcome.by === 'jev' ? 'ranked by the decision model' : `local ranking only${outcome.note ? ` (${outcome.note})` : ''}`
+  const how = outcome.by === 'jev' ? `ranked by the decision model${outcome.batches ? ` (${outcome.batches.batches - outcome.batches.failed} of ${outcome.batches.batches} batches judged)` : ''}` : `local ranking only${outcome.note ? ` (${outcome.note})` : ''}`
   const head = `${shown.length} file${shown.length === 1 ? '' : 's'} for "${query.slice(0, 120)}" in ${outcome.folder}, ${how}; ${outcome.searched} files searched.`
   if (!shown.length) return `${head}\nNothing matched; try other words, or Grep for a name you know.`
   const lines = shown.map((r, i) => {

@@ -10,11 +10,13 @@ import { listedOnly, note, repeat } from './catalog'
 
 // Skills: at submit, the one installed skill the prompt needs, if any, as context beside it.
 // Jev ranks the whole catalog and may say no skill is needed; a skill already suggested in
-// the session is not suggested again. The same switch as jev-skills' hook (`hook_skills`):
+// the session is not suggested again (nor counted again in shadow). Only the project's and the
+// user's own skill folders are searched: a plugin's skills (listed as plugin:skill) are never suggested. The same switch as jev-skills' hook (`hook_skills`):
 // "shadow" asks and records but suggests nothing.
 
 // `catalog`: how many skills the last pick ranked; `listed`: whether the session's own listing narrowed them.
-export type SkillsSpace = { suggested?: string[]; catalog?: number; listed?: boolean }
+// `wouldSuggest`: the same once-a-session list for shadow mode, kept apart so turning it on starts fresh.
+export type SkillsSpace = { suggested?: string[]; wouldSuggest?: string[]; catalog?: number; listed?: boolean }
 
 const CATALOG_TTL_MS = 5 * 60_000
 let cached: { key: string; at: number; skills: Skill[]; listed: boolean } | null = null
@@ -55,7 +57,10 @@ export async function analyse(io: IO, text: string): Promise<string | null> {
   const chosen = picked.skills[0]
   if (!chosen) return null
   if (setting !== 'on') {
-    await activity.count(io, 'skills', 'would-suggest')
+    const [seen, wouldSuggest] = repeat(mine.wouldSuggest ?? [], chosen.name)
+    if (seen) return null
+    mine.wouldSuggest = wouldSuggest
+    await Promise.all([memory.save(io), activity.count(io, 'skills', 'would-suggest')])
     return null
   }
   const [again, suggested] = repeat(mine.suggested ?? [], chosen.name)

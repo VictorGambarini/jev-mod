@@ -108,7 +108,8 @@ export const FEATURES: readonly Feature[] = [
       + 'that final message and what the turn ran (edited files, commands and the head and tail of their output, then the session\'s earlier commands as far as they fit) and judges whether the '
       + 'claims are shown. on: when it is sure enough they are not, the agent is told which claim is unshown and asked to verify '
       + 'it or say plainly what is unverified, never to take a destructive step; at most maxNudges times per prompt. '
-      + 'shadow: the same judgement, in the background, counted as would-nudge or passed; the agent is never stopped or kept waiting. off: nothing is read or sent.',
+      + 'shadow: the same judgement, in the background, counted as would-nudge or passed; the agent is never stopped or kept waiting. off: nothing is read or sent. '
+      + 'The gate skips the turn, silently, when the request, the message or the evidence holds a secret-shaped word, since none of it may be sent.',
     modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
       maxNudges: { type: 'int', title: 'Nudges per prompt', help: 'How many times one prompt\'s turn may be sent back to verify; 0 never sends it back.', default: 2, min: 0, max: 5 },

@@ -86,7 +86,9 @@ patterns, and a pattern gate can be got round:
   does not know.
 
 It also does not guard its own switches: a model that edits `~/.config/jev-mod/config.json` can
-turn it off (the tool-call gate, on, asks before such a write outside the project).
+turn it off. The tool-call gate may ask before such a write outside the project, if it is on (it is
+off by default) and Jev doubts the call was asked for and judges it hard to undo; it skips on a
+timeout, private mode, the budget and the cool-off.
 
 An MCP server whose name has one of the words above (`remote-devices`, say) is caught as a whole,
 even for tools that do not log in anywhere; allow its category for the session, or add it to

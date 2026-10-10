@@ -345,6 +345,8 @@ export const register: Register = (on, given) => {
     if (ran.deny !== undefined) return ran
     const failed = ran.isError === true
     const io = ioOf($)
+    // the tool-call gate learns which MCP tools their server declares read-only (shown only on the result)
+    if (kind === 'mcp') await toolGate.observe(io, e.tool, ran).catch(() => {})
     if (kind && !failed && ran.result !== undefined) {
       const result = await screening.filter(io, kind, e.tool, ran.result)
       if (result !== null) ran = { ...ran, result }

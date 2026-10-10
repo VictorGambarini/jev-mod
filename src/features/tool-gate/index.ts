@@ -7,8 +7,11 @@ import { limitsOf } from '../../core/limits'
 import * as memory from '../../core/memory'
 import { modeOf, setting } from '../../core/config'
 import { isPrivate, jevDir } from '../../core/settings'
-import { ask, costOf, JevError } from '../../engine/client'
-import { callIsSensitive, decide, questionsFor, remember as rememberPrompt, riskOf, stateOf, type Remembered, type Risk, type Scope, type Verdict } from './rules'
+import { ask, costOf, JevError, type Answer } from '../../engine/client'
+import {
+  answeredAll, cacheText, callIsSensitive, decide, mcpRisk, questionsFor, readOnlyMayOverrule, remember as rememberPrompt, riskOf,
+  stateOf, type Remembered, type Risk, type Scope, type Verdict,
+} from './rules'
 
 // The tool-call gate: before a consequential call runs (a push, a delete, a publish, a deploy,
 // a write outside the project, an MCP tool that sends or changes something), the decision model
@@ -22,10 +25,33 @@ import { callIsSensitive, decide, questionsFor, remember as rememberPrompt, risk
 // person locally instead, since a credential riding on a push or a POST is exactly what the gate
 // is for. Every other failure (no answer in time, private mode, the budget, the cool-off) leaves
 // Claude Code's own verdict standing.
+//
+// An identical call (same session, tool, input, and the same prompts and limits behind it) judged
+// in the last two minutes reuses that judgement, and two in flight share one request. The cache
+// keys on a hash of the redacted input and holds only the answers; a call nothing answered for is
+// never cached. An MCP tool its server declared read-only (seen on an earlier call's result: the
+// engine shows the declaration only there) is not judged, unless its name sends, creates, changes
+// or deletes (readOnlyMayOverrule).
 
 export const ID = 'tool-gate'
 
-export type ToolGateSpace = Remembered & { asked?: number; last?: string }
+export type ToolGateSpace = Remembered & { asked?: number; last?: string; readOnly?: string[] }
+
+// How long a judgement is reused, and how many are kept.
+export const CACHE_MS = 2 * 60_000
+export const CACHE_MAX = 200
+// The MCP tools remembered as declared read-only, per session.
+const KEEP_READ_ONLY = 100
+
+type Answers = Record<string, Answer>
+const cache = new Map<string, { at: number; answers: Answers }>()
+const inFlight = new Map<string, Promise<Answers | null>>()
+
+/** Forget every cached judgement (tests). */
+export function clearCache(): void {
+  cache.clear()
+  inFlight.clear()
+}
 
 /** At submit: the prompt, redacted, and the limits it states, for the calls that follow. */
 export async function analyse(io: IO, text: string): Promise<void> {
@@ -67,13 +93,21 @@ export async function check(io: IO, e: Call): Promise<Gate> {
     await noteAsk(io, risk.why, 'asked-secret')
     return { decision: 'ask', reason: secretReason(risk.why) }
   }
-  const minConfidence = Number(resolved.knobs.minConfidence?.value ?? 0.7)
-  const timeoutMs = Number(resolved.knobs.timeoutMs?.value ?? 2000)
-  if (resolved.mode !== 'on') {
-    inBackground(() => judge(io, e, risk, minConfidence, timeoutMs, true))
+  // flagged only by its name, which its server's read-only declaration does not contradict
+  if (risk.kind === 'mcp' && readOnlyMayOverrule(e.tool) && memory.space<ToolGateSpace>(ID).readOnly?.includes(e.tool)) {
+    await activity.count(io, ID, 'skipped')
     return null
   }
-  const verdict = await judge(io, e, risk, minConfidence, timeoutMs, false)
+  const knobs: Knobs = {
+    minConfidence: Number(resolved.knobs.minConfidence?.value ?? 0.7),
+    offMachineConfidence: Number(resolved.knobs.offMachineConfidence?.value ?? 0.7),
+    timeoutMs: Number(resolved.knobs.timeoutMs?.value ?? 2000),
+  }
+  if (resolved.mode !== 'on') {
+    inBackground(() => judge(io, e, risk, knobs, true))
+    return null
+  }
+  const verdict = await judge(io, e, risk, knobs, false)
   if (!verdict) return null
   await noteAsk(io, risk.why, 'asked-person')
   return { decision: 'ask', reason: verdict.reason }
@@ -86,31 +120,69 @@ async function noteAsk(io: IO, why: string, outcome: string): Promise<void> {
   await Promise.all([memory.save(io), activity.count(io, ID, outcome)])
 }
 
+/**
+ * After an MCP call ran: remembers whether its server declared the tool read-only (the engine's
+ * `isReadOnly` on the result), for the next call of it. Only for a tool the gate would judge by
+ * its name alone; a result without the flag forgets it.
+ */
+export async function observe(io: IO, tool: string, result: { isReadOnly?: unknown; deny?: unknown }): Promise<void> {
+  if (result.deny !== undefined || !mcpRisk(tool) || !readOnlyMayOverrule(tool)) return
+  if (await modeOf(io, ID) === 'off') return
+  await memory.load(io)
+  const mine = memory.space<ToolGateSpace>(ID)
+  const known = mine.readOnly ?? []
+  const declared = result.isReadOnly === true
+  if (declared === known.includes(tool)) return
+  mine.readOnly = declared ? [...known, tool].slice(-KEEP_READ_ONLY) : known.filter(t => t !== tool)
+  await memory.save(io)
+}
+
+type Knobs = { minConfidence: number; offMachineConfidence: number; timeoutMs: number }
+
+async function keyOf(e: Call, mine: Remembered): Promise<string> {
+  const text = cacheText(memory.session() ?? '', e.tool, e.input, !!e.agentId, mine)
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** A judgement of this key from the last CACHE_MS, else undefined; stale ones are dropped. */
+function cached(key: string, now = Date.now()): Answers | undefined {
+  for (const [k, hit] of cache) {
+    if (now - hit.at < CACHE_MS) break // kept oldest first
+    cache.delete(k)
+  }
+  return cache.get(key)?.answers
+}
+
+function keep(key: string, answers: Answers): void {
+  cache.delete(key)
+  cache.set(key, { at: Date.now(), answers })
+  while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!)
+}
+
 /** The decision model's verdict on a risky call when it doubts it, else null; every outcome but the ask counted here. */
-async function judge(io: IO, e: Call, risk: Risk, minConfidence: number, timeoutMs: number, shadow: boolean): Promise<Verdict | null> {
+async function judge(io: IO, e: Call, risk: Risk, knobs: Knobs, shadow: boolean): Promise<Verdict | null> {
   const skip = async (): Promise<null> => { await activity.count(io, ID, 'skipped'); return null }
   const mine = memory.space<ToolGateSpace>(ID)
   if (!mine.prompts?.length) return skip() // nothing to judge it against
-  if (coolingOff()) return skip()
-  const dir = await jevDir(io)
-  if (await isPrivate(io, dir)) return skip()
-  const limits = await limitsOf(io)
-  if (limits) {
-    const [allowed] = await limits.admit(shadow)
-    if (!allowed) return skip()
-  }
 
-  let answers
-  try {
-    const asked = await ask(hostOf(io), stateOf(e.tool, e.input, risk, mine, !!e.agentId), questionsFor(mine), { timeoutMs, retries: 0 })
-    await Promise.all([recordCalls(io, [asked], [], ID), limits?.charge(costOf(asked))])
-    answers = asked.answers
-  } catch (error) {
-    await recordCalls(io, [], [error instanceof JevError ? error.code : 'network'], ID)
-    return skip()
+  const key = await keyOf(e, mine)
+  let answers = cached(key)
+  if (answers) await activity.count(io, ID, 'reused')
+  else {
+    let pending = inFlight.get(key)
+    if (pending) await activity.count(io, ID, 'reused')
+    else {
+      pending = request(io, e, risk, mine, knobs.timeoutMs, shadow, key)
+      inFlight.set(key, pending)
+      const done = () => { inFlight.delete(key) }
+      pending.then(done, done)
+    }
+    answers = (await pending) ?? undefined
   }
+  if (!answers) return skip()
 
-  const verdict = decide(answers, risk, mine, minConfidence)
+  const verdict = decide(answers, risk, mine, knobs.minConfidence, knobs.offMachineConfidence)
   if (!verdict.ask) {
     await activity.count(io, ID, 'passed')
     return null
@@ -120,4 +192,26 @@ async function judge(io: IO, e: Call, risk: Risk, minConfidence: number, timeout
     return null
   }
   return verdict
+}
+
+/** One request's answers, cached when every question was answered; null when none came (fail open). */
+async function request(io: IO, e: Call, risk: Risk, mine: Remembered, timeoutMs: number, shadow: boolean, key: string): Promise<Answers | null> {
+  if (coolingOff()) return null
+  const dir = await jevDir(io)
+  if (await isPrivate(io, dir)) return null
+  const limits = await limitsOf(io)
+  if (limits) {
+    const [allowed] = await limits.admit(shadow)
+    if (!allowed) return null
+  }
+  const questions = questionsFor(mine)
+  try {
+    const asked = await ask(hostOf(io), stateOf(e.tool, e.input, risk, mine, !!e.agentId), questions, { timeoutMs, retries: 0 })
+    await Promise.all([recordCalls(io, [asked], [], ID), limits?.charge(costOf(asked))])
+    if (answeredAll(asked.answers, questions)) keep(key, asked.answers)
+    return asked.answers
+  } catch (error) {
+    await recordCalls(io, [], [error instanceof JevError ? error.code : 'network'], ID)
+    return null
+  }
 }

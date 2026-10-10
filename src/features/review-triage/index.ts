@@ -5,8 +5,9 @@ import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
 import { isPrivate, jevDir } from '../../core/settings'
-import { ask, costOf, JevError, type Answer, type Asked } from '../../engine/client'
+import { ask, costOf, JevError, MAX_STATE_CHARS, type Answer, type Asked } from '../../engine/client'
 import { isSensitive, redact } from '../../engine/privacy'
+import { encode } from '../../engine/pyjson'
 import {
   attribute, capRules, decide, describeSource, diffArgs, followUpOf, HARD_CAP_FACTOR, MAX_FILES, MAX_PATHS,
   MIN_SENT_SHARE, parseDiff, projectPath, questionsOf, render, RULE_FILES, rulesIn, statsOf, summarize,
@@ -14,9 +15,10 @@ import {
 } from './triage'
 
 // review-triage: a tool the model calls before it reviews a change. It reads the git diff,
-// sends a capped, redacted copy to the decision model with seven yes/no questions (security,
-// hard-to-undo data, public interfaces, runtime-only failures, the project's written rules,
-// untested behaviour, scope), and answers quick (one review pass is enough) or full (with the
+// sends a capped, redacted copy to the decision model with up to seven yes/no questions (security,
+// hard-to-undo data, public interfaces, runtime-only failures, the project's written rules
+// when there are any, untested behaviour, and scope: work beyond the intent, or, with no intent,
+// anything unfinished or inconsistent), and answers quick (one review pass is enough) or full (with the
 // questions and files behind it). It never replaces the review, only sets how deep the first
 // pass goes.
 //
@@ -32,15 +34,19 @@ const GIT_TIMEOUT_MS = 10_000
 const MAX_UNTRACKED = 50
 const MAX_UNTRACKED_BYTES = 1_000_000
 const MAX_INTENT_CHARS = 1000
+/** The request leaves room under the backend's limit for its own framing; the diff is never cut below this. */
+const STATE_MARGIN = 1500
+const MIN_DIFF_BUDGET = 2000
 
 export const SPEC = {
   name: TOOL,
   description: 'Triage a code change before you review it: call this first whenever the person asks for a review of a '
     + 'change, before /code-review or /review, or before reviewing your own edits. It reads the git diff (by default the '
     + 'uncommitted changes against HEAD, or the last commit when there are none; or the changes since `base`) and asks a '
-    + 'cheap decision model seven yes/no questions: security-sensitive code, hard-to-undo data changes, public '
-    + 'interfaces, runtime-only failures, the project\'s CLAUDE.md/AGENTS.md rules, behaviour changed without a test, '
-    + 'and work beyond the intent. It answers "verdict: quick" (one review pass is enough) or "verdict: full" (do the '
+    + 'cheap decision model up to seven yes/no questions: security-sensitive code, hard-to-undo data changes, public '
+    + 'interfaces, runtime-only failures, the project\'s CLAUDE.md/AGENTS.md rules (only when the project has some), '
+    + 'behaviour changed without a test, and work beyond the intent (without an intent: anything unfinished or '
+    + 'inconsistent). It answers "verdict: quick" (one review pass is enough) or "verdict: full" (do the '
     + 'full review, starting with the files it names), with the reasons and the diff\'s size. It never replaces the '
     + 'review: it only decides how deep the first pass goes.',
   inputSchema: {
@@ -82,7 +88,7 @@ async function untracked(io: IO, root: string, paths: readonly string[]): Promis
   return Promise.all(names.map(async name => {
     try {
       const text = await io.readFile(`${root}/${name}`)
-      return untrackedDiff(name, text.length > MAX_UNTRACKED_BYTES ? null : text)
+      return untrackedDiff(name, text.length > MAX_UNTRACKED_BYTES ? null : text, text.length > MAX_UNTRACKED_BYTES)
     } catch {
       return untrackedDiff(name, null)
     }
@@ -107,9 +113,14 @@ export async function collect(io: IO, root: string, base: string | undefined, pa
   if (!ran.ok) return { problem: `git could not read the uncommitted changes: ${firstLine(ran.err)}` }
   const files = [...parseDiff(ran.out), ...await untracked(io, root, paths)]
   if (files.length) return { files, source: { kind: 'uncommitted' } }
-  const last = await git(io, diffArgs(root, { kind: 'last-commit' }, paths))
-  if (!last.ok) return { files: [], source: { kind: 'uncommitted' } }
-  return { files: parseDiff(last.out), source: { kind: 'last-commit' } }
+  let source: Source = { kind: 'last-commit' }
+  let last = await git(io, diffArgs(root, source, paths))
+  if (!last.ok) { // a repository with one commit has no HEAD~1: that commit is the whole change
+    source = { kind: 'last-commit', root: true }
+    last = await git(io, diffArgs(root, source, paths))
+  }
+  if (!last.ok) return { problem: `git could not read the last commit: ${firstLine(last.err)}` }
+  return { files: parseDiff(last.out), source }
 }
 
 /** The project's written rules (CLAUDE.md, AGENTS.md), redacted, without lines that hold a secret, capped. */
@@ -207,7 +218,7 @@ export async function triage(io: IO, input: Input): Promise<string> {
     if (await isPrivate(io, await jevDir(io))) { void activity.count(io, ID, 'undecided'); return undecided(shown, 'private mode') }
     if (coolingOff()) { void activity.count(io, ID, 'undecided'); return undecided(shown, 'the decision backend is cooling off after a failure') }
 
-    const summary = summarize(files, maxDiffChars, isSensitive, text => redact(text, Math.max(4000, text.length * 2)))
+    let summary = summarize(files, maxDiffChars, isSensitive, text => redact(text, Math.max(4000, text.length * 2)))
     const withheld = summary.withheld
     if (withheld.length) void activity.count(io, ID, 'withheld', withheld.length)
     const sentAnything = summary.sent.some(s => s.text.trim())
@@ -224,20 +235,41 @@ export async function triage(io: IO, input: Input): Promise<string> {
     const hasIntent = Boolean(intent)
     const rules = await projectRules(io, root)
     const skipped = rules.length ? [] : ["project rules (no rules found in the project's CLAUDE.md or AGENTS.md)"]
-    const trimmed = summary.trimmed + summary.omitted > 0
 
-    const state: Record<string, unknown> = {
-      task: 'Triage a code change before it is reviewed: is a single quick review pass enough, or does it need a full review?',
-      change: describeSource(source),
-      stats: { files: stats.files, lines_added: stats.added, lines_removed: stats.removed },
-      files: summary.sent.map(s => ({ id: s.id, path: redact(s.file.path, 300), status: s.file.status, added: s.file.added, removed: s.file.removed,
-        ...(s.file.oldPath ? { renamed_from: redact(s.file.oldPath, 300) } : {}) })),
-      diff: Object.fromEntries(summary.sent.map(s => [s.id, s.text])),
+    const stateOf = (sum: typeof summary): Record<string, unknown> => {
+      const trimmed = sum.trimmed + sum.omitted > 0
+      const state: Record<string, unknown> = {
+        task: 'Triage a code change before it is reviewed: is a single quick review pass enough, or does it need a full review?',
+        change: describeSource(source),
+        stats: { files: stats.files, lines_added: stats.added, lines_removed: stats.removed },
+        files: sum.sent.map(s => ({ id: s.id, path: redact(s.file.path, 300), status: s.file.status, added: s.file.added, removed: s.file.removed,
+          ...(s.file.oldPath ? { renamed_from: redact(s.file.oldPath, 300) } : {}) })),
+        diff: Object.fromEntries(sum.sent.map(s => [s.id, s.text])),
+      }
+      if (trimmed) state.diff_note = `hunks were cut to fit (${sum.trimmed} trimmed, ${sum.omitted} left out); judge what is shown`
+      if (withheld.length) state.withheld_note = `${withheld.length} part(s) were not sent because they look like they hold a secret`
+      if (hasIntent) state.intent = redact(intent, MAX_INTENT_CHARS)
+      if (rules.length) state.project_rules = rules
+      return state
     }
-    if (trimmed) state.diff_note = `hunks were cut to fit (${summary.trimmed} trimmed, ${summary.omitted} left out); judge what is shown`
-    if (withheld.length) state.withheld_note = `${withheld.length} part(s) were not sent because they look like they hold a secret`
-    if (hasIntent) state.intent = redact(intent, MAX_INTENT_CHARS)
-    if (rules.length) state.project_rules = rules
+    // The whole request (files list, rules and notes too) has to fit what the backend takes: the diff shrinks first, then the files list.
+    const fits = (s: Record<string, unknown>) => [...encode(s, { compact: true })].length <= MAX_STATE_CHARS - STATE_MARGIN
+    let state = stateOf(summary)
+    let budget = maxDiffChars
+    for (let i = 0; i < 6 && !fits(state) && budget > MIN_DIFF_BUDGET; i++) {
+      const over = [...encode(state, { compact: true })].length - (MAX_STATE_CHARS - STATE_MARGIN)
+      budget = Math.max(MIN_DIFF_BUDGET, budget - over - 500)
+      summary = summarize(files, budget, isSensitive, text => redact(text, Math.max(4000, text.length * 2)))
+      state = stateOf(summary)
+    }
+    while (!fits(state) && summary.sent.length > 1) {
+      const keep = Math.ceil(summary.sent.length / 2)
+      summary = { ...summary, sent: summary.sent.slice(0, keep), omitted: summary.omitted + summary.sent.length - keep }
+      state = stateOf(summary)
+    }
+    const incomplete = summary.omitted > 0
+    if (incomplete) notes.push(`${summary.omitted} hunk(s) or file(s) not shown to the decision model (cut to fit); a quick verdict would be a guess about them`)
+    const trimmed = summary.trimmed + summary.omitted > 0
 
     const limits = await limitsOf(io)
     const deadline = Date.now() + timeoutMs
@@ -260,7 +292,7 @@ export async function triage(io: IO, input: Input): Promise<string> {
       if (more) attributed = attribute(more, decision.flags, named)
     }
     await recordCalls(io, calls.calls, calls.errors, ID)
-    const verdict = decision.verdict === 'quick' && !withheld.length ? 'quick' : 'full'
+    const verdict = decision.verdict === 'quick' && !withheld.length && !incomplete ? 'quick' : 'full'
     void activity.count(io, ID, verdict)
     const requests = calls.calls.length
     return render({ ...shown, verdict, flags: decision.flags, attributed, hasIntent, notes, withheld, skipped, trimmed,

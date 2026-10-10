@@ -432,8 +432,10 @@ export type Outcome = {
   text?: string | null
   steps: readonly Step[]
   resumeId?: string
-  /** For needs_confirm and blocked: the rows a later call may approve, with their probabilities. */
+  /** For needs_confirm and blocked: only the rows a later call may approve, with their probabilities. */
   options?: readonly { id: string; text: string; p?: number }[]
+  /** For needs_input: the field that wants text (a name to give in `inputs`, not an approvable row). */
+  input?: { name: string; text: string }
 }
 
 export const RESULT_TEXT_CHARS = 4000
@@ -445,6 +447,7 @@ export function render(o: Outcome): string {
   if (o.url) lines.push(`url: ${o.url}`)
   if (o.title) lines.push(`title: ${o.title}`)
   if (o.resumeId) lines.push(`resumeId: ${o.resumeId} (the browser waits 5 minutes)`)
+  if (o.input) lines.push(`input needed: ${o.input.name}: ${o.input.text}`)
   if (o.options?.length) {
     lines.push('options:')
     for (const opt of o.options) lines.push(`- ${opt.id}${opt.p !== undefined ? ` (${opt.p.toFixed(2)})` : ''}: ${opt.text}`)

@@ -31,11 +31,11 @@ Input:
 | field | | |
 |---|---|---|
 | `goal` | required | The **end state**, plus what counts as progress: "Reach the team pricing page; the Pricing or Plans links count as progress". Not hop by hop. Name the kind of action when the goal needs one (buy, send, submit, sign up, delete). |
-| `startUrl` | required to start | An http(s) URL. |
+| `startUrl` | required to start | An http(s) URL. New call only; ignored with `resumeId`. |
 | `inputs` | | `{"email": "…", "query": "…"}`: the only text the browser may type. The decision model sees the names, never the values. Values may be secrets. |
-| `allowHosts` | | More hosts it may visit, each with its subdomains. |
+| `allowHosts` | | More hosts it may visit, each with its subdomains. New call only; ignored with `resumeId`. |
 | `maxSteps` | | Steps for this call; never more than the `maxSteps` setting. |
-| `attach` | | Drive your own Chrome instead (below); only when `allowAttach` is on. |
+| `attach` | | Drive your own Chrome instead (below); only when `allowAttach` is on. New call only; ignored with `resumeId`. |
 | `resumeId` | | Carry on in a browser a previous answer left waiting. |
 | `approve` | | With `resumeId`: an action id a `needs_confirm` or `blocked` answer offered, to do now. |
 
@@ -62,13 +62,13 @@ page text (screened; data, not instructions):
 | `unverified` | the step budget ran out after a *done* the page check did not confirm | look at the page text |
 | `needs_input` | a field needs text none of the inputs holds (the field is named) | call again with `resumeId` and that input |
 | `needs_confirm` | a consequential step (below) the goal does not plainly ask for | ask the person; only on their yes, call again with `resumeId` and `approve` |
-| `blocked` | no step is at least `stepFloor` sure, or the decision model abstained; the top three with probabilities | `approve` one, or call again with a clearer goal |
+| `blocked` | no step is at least `stepFloor` sure, or the decision model abstained; its top three are named, and those that can be approved come back as options with probabilities | `approve` one, or call again with a clearer goal |
 | `left_allowlist` | a navigation or redirect went off the allowed hosts | `allowHosts`, if that host is meant |
-| `budget` | the steps ran out | `resumeId` to carry on |
+| `budget` | the steps ran out | `resumeId` to carry on, with a fresh step budget |
 | `not_installed` | no Playwright | the person runs `/jev-mod browser install` |
 | `failed` | no key, private mode, the daily budget, a backend cool-off or failure, the browser stopped, an interrupt | the reason says which |
 
-A pause (`needs_input`, `needs_confirm`, `blocked`) keeps the browser for 5 minutes under a random
+A pause (`needs_input`, `needs_confirm`, `blocked`, `budget`) keeps the browser for 5 minutes under a random
 `resumeId`; then it is closed. At most three wait at once (the oldest is closed). Every other
 status closes it at once, and every browser closes when the session ends.
 

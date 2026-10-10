@@ -141,7 +141,22 @@ when it cannot be screened. A failed command's trimmed text goes back as `{ deny
 hook's `result` only in the tool's record shape and reads no `isError` from a hook, and a deny
 after the tool ran is what the model reads as an error result. Each step is self-contained in the hook and
 returns its own result or null; a step that returns null leaves the result as the step before it
-made it, and a hook that changed nothing hands core the very object `next(e)` gave it.
+made it, and a hook that changed nothing hands core the very object `next(e)` gave it. Before
+both, for an MCP tool, the tool gate notes whether core's result carries `isReadOnly` (the
+server's `readOnlyHint`); that changes nothing in the result.
+
+## The tool gate
+
+`tool-gate` sits in the one `tool.check` hook without a matcher, after the access gate. A call
+Claude Code would allow and `rules.ts` flags as consequential is sent with the session's last
+prompts and stated limits, and four questions in one request: did the person ask for it, does it
+break a stated limit, is it hard to undo, does it send data off this machine. `decide` turns the
+answers into an ask or nothing. Answers are kept two minutes in a bounded in-process map, keyed
+on a SHA-256 of the session, tool, whole redacted input, subagent flag, prompts and limits, and a
+second identical call in flight waits on the first one's request; answers with a question
+unanswered, and failures, are not kept. An MCP tool remembered (in the session's memory) as
+declared read-only is passed unjudged when `readOnlyMayOverrule` says its name allows it; the
+engine shows the declaration only on a result, so `observe` learns it in the `tool.call` hook.
 
 ## The access gate
 

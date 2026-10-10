@@ -330,6 +330,26 @@ export function mcpRisk(tool: string): string | null {
   return verb ? `a ${tool.split('__')[1] ?? 'connector'} tool that would ${verb}` : null
 }
 
+// Words that send, create, change or delete with no other reading: a name holding one is judged
+// even when its server declares the tool read-only, since the name contradicts the claim.
+// MUTATING's other words are often nouns or read-side verbs in a tool's name (get_block,
+// list_by_label, resolve_library_id, execute_query, get_schedule): for those alone the
+// server's read-only declaration settles it.
+const READ_ONLY_MAY_OVERRULE = new Set([
+  'label', 'mark', 'order', 'book', 'schedule', 'block', 'execute', 'exec', 'resolve', 'transition', 'apply', 'spam',
+])
+
+/**
+ * Whether a server's read-only declaration lets an MCP call through unjudged: only when every
+ * word that flagged the name is one READ_ONLY_MAY_OVERRULE lists. A tool named for sending,
+ * creating, changing or deleting is judged whatever its server says.
+ */
+export function readOnlyMayOverrule(tool: string): boolean {
+  if (!tool.startsWith('mcp__')) return false
+  const flagged = mcpWords(tool).filter(w => MUTATING.has(w))
+  return flagged.length > 0 && flagged.every(w => READ_ONLY_MAY_OVERRULE.has(w))
+}
+
 // ── every call ───────────────────────────────────────────────────────────────
 
 const EDIT_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
@@ -424,6 +444,10 @@ export function questionsFor(mine: Remembered): Record<string, Question> {
       false: 'easy to undo and stays local',
     }),
   }
+  questions.offMachine = noul('Does this call send data off this machine (an upload, a post to a URL, an email or message, a push to a remote, pasting into an outside service)?', {
+    true: 'data leaves this machine for a server, a remote or another person',
+    false: 'nothing leaves this machine, or it only reads from elsewhere',
+  })
   if (mine.constraints?.length) {
     questions.breaks = noul('Does this call break a limit the person stated?', {
       true: 'it does what they said not to, or goes outside what they allowed',
@@ -439,21 +463,45 @@ const yes = (answer: Answer | undefined): number | null => answer?.type === 'nou
 
 /**
  * The gate's verdict from the answers. It asks the person when the call breaks a limit they
- * stated (with at least `minConfidence`), or when it is hard to undo and the model is not at
- * least `minConfidence` sure they asked for it. Missing answers never ask.
+ * stated (with at least `minConfidence`); when it sends data off this machine (with at least
+ * `offMachineConfidence`) and the model is not at least `minConfidence` sure they asked for it;
+ * or when it is hard to undo and the model is not that sure they asked for it. Missing answers
+ * never ask.
  */
-export function decide(answers: Record<string, Answer>, risk: Risk, mine: Remembered, minConfidence: number): Verdict {
+export function decide(answers: Record<string, Answer>, risk: Risk, mine: Remembered, minConfidence: number,
+  offMachineConfidence = 0.7): Verdict {
   const breaks = yes(answers.breaks)
   const asked = yes(answers.asked)
   const irreversible = yes(answers.irreversible)
+  const offMachine = yes(answers.offMachine)
   if (breaks !== null && breaks >= minConfidence) {
     // The model says a limit is broken, not which one, so every stated limit is listed.
     const stated = mine.constraints ?? []
     const limits = stated.length ? ` (you stated: ${stated.map(c => `"${c}"`).join('; ')})` : ''
     return { ask: true, reason: `jev-mod tool gate: this ${risk.why} and looks like it breaks one of the limits you stated${limits}` }
   }
+  if (asked !== null && offMachine !== null && asked < minConfidence && offMachine >= offMachineConfidence) {
+    return { ask: true, reason: `jev-mod tool gate: this ${risk.why}, sends data off this machine, and nothing you asked clearly calls for it` }
+  }
   if (asked !== null && irreversible !== null && asked < minConfidence && irreversible >= 0.5) {
     return { ask: true, reason: `jev-mod tool gate: this ${risk.why}, is hard to undo, and nothing you asked clearly calls for it` }
   }
   return { ask: false, reason: '' }
+}
+
+/** Whether every question put was answered with a probability: only such answers are reused. */
+export function answeredAll(answers: Record<string, Answer>, questions: Record<string, Question>): boolean {
+  return Object.keys(questions).every(q => yes(answers[q]) !== null)
+}
+
+/**
+ * What a verdict is cached under, before hashing: the session, the tool, its whole input
+ * (redacted, not trimmed, so two calls the model would read alike but that differ further on
+ * never share a verdict), who made it, and what the person asked and stated. A new prompt or a
+ * new limit changes the key, so a verdict never outlives what it was judged against.
+ */
+export function cacheText(session: string, tool: string, input: unknown, subagent: boolean, mine: Remembered): string {
+  let whole: string
+  try { whole = JSON.stringify(input) ?? '' } catch { whole = String(input) }
+  return JSON.stringify([session, tool, redact(whole, Number.POSITIVE_INFINITY), subagent, mine.prompts ?? [], mine.constraints ?? []])
 }

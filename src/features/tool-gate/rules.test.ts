@@ -1,8 +1,8 @@
 import { test, expect } from 'claude-code/testing'
 import type { Answer } from '../../engine/client'
 import {
-  bashRisk, callIsSensitive, constraintsIn, decide, describeCall, mcpRisk, outsideProject, questionsFor, remember,
-  resolvePath, riskOf, stateOf,
+  answeredAll, bashRisk, cacheText, callIsSensitive, constraintsIn, decide, describeCall, mcpRisk, outsideProject, questionsFor,
+  readOnlyMayOverrule, remember, resolvePath, riskOf, stateOf,
 } from './rules'
 
 const ROOT = '/home/u/proj'
@@ -187,8 +187,8 @@ test('the state names the call, why it was flagged, and what was asked; secrets 
 })
 
 test('the limit question is only asked when the person stated one', () => {
-  expect(Object.keys(questionsFor({ prompts: ['x'] })).sort()).toEqual(['asked', 'irreversible'])
-  expect(Object.keys(questionsFor({ prompts: ['x'], constraints: ['never push'] })).sort()).toEqual(['asked', 'breaks', 'irreversible'])
+  expect(Object.keys(questionsFor({ prompts: ['x'] })).sort()).toEqual(['asked', 'irreversible', 'offMachine'])
+  expect(Object.keys(questionsFor({ prompts: ['x'], constraints: ['never push'] })).sort()).toEqual(['asked', 'breaks', 'irreversible', 'offMachine'])
 })
 
 test('the gate asks on a broken limit, or on an unasked call that is hard to undo; never on missing answers', () => {
@@ -208,4 +208,43 @@ test('the gate asks on a broken limit, or on an unasked call that is hard to und
   expect(decide({ asked: n(0.9), irreversible: n(0.9), breaks: n(0.1) }, risk, mine, 0.7).ask).toBe(false)
   expect(decide({ asked: n(0.6), irreversible: n(0.9) }, risk, mine, 0.5).ask).toBe(false) // a looser threshold
   expect(decide({}, risk, mine, 0.7).ask).toBe(false)
+})
+
+test('sending data off this machine unasked is put to the person, at its own threshold', () => {
+  const n = (v: number): Answer => ({ type: 'noul', noul: v })
+  const risk = { kind: 'bash' as const, why: 'sends data to a server' }
+  const mine = { prompts: ['fix the test'] }
+  const sent = decide({ asked: n(0.2), irreversible: n(0.1), offMachine: n(0.8) }, risk, mine, 0.7, 0.7)
+  expect(sent.ask).toBe(true)
+  expect(sent.reason).toContain('sends data off this machine')
+  expect(decide({ asked: n(0.2), irreversible: n(0.1), offMachine: n(0.6) }, risk, mine, 0.7, 0.7).ask).toBe(false) // not sure enough
+  expect(decide({ asked: n(0.2), irreversible: n(0.1), offMachine: n(0.8) }, risk, mine, 0.7, 0.9).ask).toBe(false) // a stricter bar
+  expect(decide({ asked: n(0.9), irreversible: n(0.1), offMachine: n(0.99) }, risk, mine, 0.7, 0.7).ask).toBe(false) // they asked for it
+  expect(decide({ irreversible: n(0.1), offMachine: n(0.99) }, risk, mine, 0.7, 0.7).ask).toBe(false) // no answer to "asked"
+})
+
+test("a server's read-only claim overrules only names that do not send, create, change or delete", () => {
+  for (const tool of ['mcp__notion__get_block', 'mcp__gmail__list_by_label', 'mcp__context7__resolve_library_id',
+    'mcp__db__execute_query', 'mcp__cal__get_schedule']) {
+    expect(mcpRisk(tool)).not.toBe(null) // flagged by the name alone
+    if (!readOnlyMayOverrule(tool)) throw new Error(`${tool} should be overruled by a read-only declaration`)
+  }
+  for (const tool of ['mcp__gmail__send_message', 'mcp__linear__createIssue', 'mcp__s__update_page', 'mcp__s__delete_file',
+    'mcp__s__execute_and_delete', 'mcp__bank__pay', 'mcp__s__label_and_send', 'mcp__s__get_thread', 'Bash']) {
+    if (readOnlyMayOverrule(tool)) throw new Error(`${tool} should be judged whatever its server says`)
+  }
+})
+
+test('the cache key reads the whole input redacted, and only full answers are reused', () => {
+  const mine = { prompts: ['fix it'] }
+  const long = 'x'.repeat(2000)
+  const a = cacheText('s1', 'Bash', { command: `${long} a` }, false, mine)
+  expect(a).not.toBe(cacheText('s1', 'Bash', { command: `${long} b` }, false, mine)) // past what the model reads
+  expect(a).not.toBe(cacheText('s2', 'Bash', { command: `${long} a` }, false, mine))
+  expect(a).not.toBe(cacheText('s1', 'Bash', { command: `${long} a` }, false, { prompts: ['fix it'], constraints: ["don't push"] }))
+  expect(cacheText('s1', 'mcp__m__send', { to: 'alice@example.com' }, false, mine)).not.toContain('alice@example.com')
+  const n = (v: number): Answer => ({ type: 'noul', noul: v })
+  const questions = questionsFor(mine)
+  expect(answeredAll({ asked: n(0.5), irreversible: n(0.5), offMachine: n(0.5) }, questions)).toBe(true)
+  expect(answeredAll({ asked: n(0.5), irreversible: n(0.5) }, questions)).toBe(false)
 })

@@ -22,7 +22,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | **Find files** (`find-files`) | when the model calls `find_files` (offered while it is on) | Which files implement what the model describes in plain words ("where retries with backoff are done"). The project's files (git's list, so `.gitignore` is honoured) are scored locally by the query's words in each path, its first lines and how many lines mention them; the best 60 go to the decision model as short redacted cards (path, header comment, the names it defines, a few matching lines) and it judges each *implements*, *related* or *unrelated*. The model gets a ranked list of paths with a reason each, in place of a chain of greps. No key, private mode, the daily budget or a failing backend: the local ranking, labelled as such. |
 | **Review triage** (`review-triage`, off by default) | when the model calls `review_triage` before a code review (offered while it is on) | How deep the first review pass should go. The git diff (uncommitted changes against HEAD, else the last commit, or the changes since a `base` the model names) goes to the decision model redacted and cut to 12,000 characters, with up to seven yes/no questions: security-sensitive code, hard-to-undo data changes, a public interface others rely on, runtime-only failures, a rule in the project's CLAUDE.md or AGENTS.md, behaviour changed without a test, and work beyond the stated intent (with no intent given, anything unfinished or inconsistent; the rules question is skipped when the project wrote none). *quick* (one review pass is enough) only when every answer is a confident no; otherwise *full*, naming the questions and the files behind them (one more request asks which files). It never replaces the review. A hunk that looks like it holds or handles a secret is not sent and makes it *full*; so does any hunk or file cut away to fit, and an untracked text file over 1 MB; so do no key, private mode, the daily budget, a failing backend or a diff too large to triage. |
 | **Browser** (`browser`, off by default) | when the model calls `browse` (offered while it is on) | Drives a web page toward a goal the model states as an end state. A headless Chromium on a throwaway profile (Playwright, installed once with `/jev-mod browser install`) opens the page; each step its links, buttons and fields become a table of actions and the decision model picks one. It never writes text: what to type comes from the call's `inputs`, sent to it by name only. Page text is redacted and screened first. It stays on the start site; a consequential step (buy, pay, send, delete, post, sign up, submit a form) waits for you unless the goal names it and the decision model is sure the goal asks for it; *done* needs a second check over the page's own text. Details and the safety rules: [docs/BROWSER.md](docs/BROWSER.md). |
-| **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing). |
+| **The jev-mod band** | always | One line above the prompt: what jev-mod decided this turn, its cost this session, what screening withheld, and which backend answered (red, with the reason, while it is failing; `⚠ yes/no pinned` while a named backend's yes/no answers look clamped). |
 | **`/jev-mod compact`** | when you type it | A compaction with no summary. The decision model is asked *keep* or *drop* for each message's text and for each tool call together with its result (it sees the tool, its main argument such as the command or file path, and the result's start and end, redacted and cut to under 700 characters, saying how much is not shown); a call and its result always share one fate. A message goes only when every part of it was judged drop with confidence of at least 0.7. Everything else stays: low-confidence drops, anything it did not judge (it was down, timed out, answered only part, or the text, call or result held something sensitive that is never sent), the last six messages, and both halves of any kept tool call. Background whose gist later work needs counts as keep. Nothing is summarised. `/compact` is left as Claude Code has it. |
 
 One command manages the mod; the typeahead offers each word after it:
@@ -30,7 +30,7 @@ One command manages the mod; the typeahead offers each word after it:
 | Command | What it does |
 |---|---|
 | `/jev-mod` (or `/jev-mod list`) | Every feature: its mode and where that came from, its settings, then anything in the config files that was passed over. |
-| `/jev-mod status` | The backend, where its key came from (never the key), a live check, each feature's mode, today's spend. |
+| `/jev-mod status` | The backend (and whether it is on this machine), where its key came from (never the key), a live check naming the backend and model that answered, any warning about its answers, each feature's mode, today's spend. |
 | `/jev-mod compact` | The compaction above. |
 | `/jev-mod dashboard` | A page in your browser to see and set every feature (below); `/jev-mod dashboard stop` ends it. |
 | `/jev-mod <feature>` | Its help, its modes, and each setting with its range, default and value now. |
@@ -44,7 +44,8 @@ After a change it shows the value that now holds, and warns when a kill file, `/
 project file still overrides what was just written.
 
 Every decision fails open: no answer means the turn runs exactly as plain Claude Code. The one exception is screening, which falls back to the local patterns when the decision model does not answer, and which does not inline the full text of a large fetched Bash output it could not screen (Claude Code's preview stays). After a
-failed call the mod stops asking for five minutes, so a backend that is down costs one timeout.
+failed call the mod stops asking for five minutes, so a backend that is down costs one timeout;
+a server on this machine that is still loading its model pauses it for seconds instead (below).
 A refused key or an account out of credit stops it for thirty minutes, or until a call answers
 again (`/jev-mod status` checks at once after you replace the key). Every call, the status check
 included, counts against the daily budget; past it, screening screens locally.
@@ -224,6 +225,57 @@ own copy of a policy (`~/.config/jev/backends/<name>/policies/`). The mod reads
 the backend sets it (over the `stepFloor` knob and 2; `choose.min_confidence` is bounded to
 0.5-0.99 as in jev-skills, so it can raise the floor, not lower it). `search.sufficiency_threshold` is accepted,
 since jev-skills' search reads it from the same file, but nothing in the mod uses it.
+
+A named backend is read in Jev's units, whatever server it is:
+
+- **Confidence.** Servers compute `confidence` differently (Laya: 1 − normalised entropy; Kev:
+  (p_max − 1/K)/(1 − 1/K), which is Jev's). The mod computes a choice's or a score's confidence
+  from the probabilities the backend returned with Jev's formula, (n·p_max − 1)/(n − 1), or takes
+  `x_jev_confidence` when the server sends it (Laya 0.4.2+). Yes/no answers are probabilities and
+  are read as they come. Answers from TypeSafe, OpenRouter, Venice and Zen keep Jev's own number.
+- **Pinned yes/no answers.** Once a backend has given 20 yes/no answers this session (of its last
+  50), yeses and noes both, and not one strictly between 0.2 and 0.8, `/jev-mod status` and the
+  band warn: a server that clamps its calibration (Von's default) makes every 0.8 gate fire on
+  every yes. Start Von with `--noul-decision raw`.
+- **Cut or refused input is not judged.** A reply that says the server read only part of the
+  state (`truncated` or `truncation` in it, or an `X-Von-Truncated` header), a 422 that says the
+  input is too long, and a state longer than the backend's `max_input_chars` (not sent at all)
+  all count as no answer: every feature fails open, and nothing cools off.
+- **Loading is not an outage.** A 503 or a refused connection before the backend first answers
+  this session (its first three calls), or a 503 with `Retry-After` at any time, pauses the mod
+  for ten seconds, or the `Retry-After` up to thirty, instead of five minutes. `first_timeout_ms`
+  gives the calls before its first answer a longer timeout, for a server that loads its model
+  then. Any other failure cools off as for the providers.
+
+## Run a decision model on your own machine
+
+A server on this machine needs no key: a backend with none gets no `Authorization` header, and
+plain `http` is allowed on `localhost`, `127.0.0.1` and `::1`. `/jev-mod status` marks it
+`(local)` and names the backend and model that answered its check. Put one of these in
+`~/.config/jev/backends.json`:
+
+```json
+{"default": "ollaya",
+ "backends": {
+   "ollaya": {"url": "http://localhost:11435/v1/systemone", "model": "laya",
+              "max_input_chars": 1800, "first_timeout_ms": 60000},
+   "laya": {"url": "http://127.0.0.1:8000/v1/systemone", "model": "laya",
+            "max_input_chars": 1800, "first_timeout_ms": 60000},
+   "von": {"url": "http://127.0.0.1:8080/v1/systemone", "model": "von",
+           "first_timeout_ms": 60000}}}
+```
+
+`ollaya` is Ollaya's default port; `laya` is `laya-serve`; `von` is Von, started with
+`--noul-decision raw` so its yes/no answers are not clamped. The ports for `laya-serve` and Von are
+examples: use the ones your server prints, and the model id it serves. Laya reads only 512
+tokens, about 2,000 characters of English and fewer of code or JSON; `max_input_chars` 1800
+leaves room for the questions, so a longer state is not sent rather than judged on its first
+part. Most features send more than that, so with Laya they fail open more often than they decide.
+
+The thresholds were measured on Jev. A local model's answers, even in Jev's units, are not Jev's:
+set the backend's own `tuning` (above) from what it answers on your work, and keep the gates in
+`shadow` until you have. Every feature still asks the one default backend; sending cheap
+questions to a local model and risky gates to Jev is not supported.
 
 ## Environment variables
 

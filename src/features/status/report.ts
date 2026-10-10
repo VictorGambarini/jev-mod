@@ -1,18 +1,18 @@
 // /jev-mod status: what the mod is connected to and whether it answers. Pure: the facts in, the
 // lines out. Nothing here ever holds a key; the facts say only where one was found.
 
-import { OUTAGES } from '../../engine/client'
+import { NOT_JUDGED, OUTAGES } from '../../engine/client'
 import type { KeySource } from '../../engine/keys'
 
 export type Facts = {
   version: string
   /** A named backend from backends.json, or a built-in provider. */
-  backend: { name: string; model: string; url: string } | null
+  backend: { name: string; model: string; url: string; local?: boolean; maxInputChars?: number; firstTimeoutMs?: number } | null
   provider: string // typesafe | openrouter | venice | zen | absent
   keySource: KeySource
   gateway: string | null // TYPESAFE_BASE_URL when it points elsewhere
   misconfigured: string | null // why backends.json could not be read
-  check: { ok: true; model: string | null; ms: number; cost: number } | { ok: false; error: string; said: string } | null
+  check: { ok: true; model: string | null; ms: number; cost: number; via?: string; local?: boolean } | { ok: false; error: string; said: string } | null
   /** Each feature's mode, and where it came from when that is not the default. */
   features: { id: string; mode: string; source: string }[]
   private: boolean
@@ -21,6 +21,8 @@ export type Facts = {
   budget: { spent: number; daily: number } | null
   /** What this session's routing holds to, from its record: the person's /model, a drift, an untuned backend. */
   routing?: { personModel?: string; drift?: string; untuned?: string }
+  /** What looks wrong with a backend's answers this session, such as pinned yes/no answers. */
+  warnings?: string[]
 }
 
 const SOURCE: Record<KeySource, string> = {
@@ -40,6 +42,8 @@ export function advice(error: string, facts?: Facts): string {
   if (error === 'credits_exhausted') return `The account is out of credit. ${meanwhile}`
   if (error === 'backend_misconfigured') return 'Fix ~/.config/jev/backends.json (see below).'
   if (error === 'skipped_budget') return "Today's daily budget is spent (limits.json); the mod asks nothing more until tomorrow."
+  if (error === 'loading') return 'The server on this machine may still be loading its model; the mod pauses for a few seconds (its Retry-After, at most 30), then asks again.'
+  if (NOT_JUDGED.includes(error)) return "The input was cut or refused for its length, so nothing was judged; every feature fails open for such a request, and the backend is not cooled off. Set the backend's max_input_chars to what it reads (README)."
   if (OUTAGES.includes(error)) return 'The backend did not answer; the mod stops asking for five minutes, and every feature fails open meanwhile.'
   return 'Every feature fails open meanwhile: Claude Code runs as if the mod were not there.'
 }
@@ -47,18 +51,27 @@ export function advice(error: string, facts?: Facts): string {
 export function report(f: Facts): string {
   const lines = [`jev-mod ${f.version}`]
   if (f.misconfigured) lines.push(`backends.json: ${f.misconfigured}`)
-  if (f.backend) lines.push(`backend: ${f.backend.name} · ${f.backend.model} at ${f.backend.url}`)
+  if (f.backend) {
+    const limits = [f.backend.maxInputChars ? `reads at most ${f.backend.maxInputChars} characters` : '',
+      f.backend.firstTimeoutMs ? `first call may take ${f.backend.firstTimeoutMs} ms` : ''].filter(Boolean)
+    lines.push(`backend: ${f.backend.name} · ${f.backend.model} at ${f.backend.url}${f.backend.local ? ' (local)' : ''}${limits.length ? ` · ${limits.join(', ')}` : ''}`)
+  }
   else if (f.provider === 'absent') lines.push('backend: none (no key found for TypeSafe, OpenRouter, Venice or OpenCode Zen)')
   else lines.push(`backend: Jev through ${NAMES[f.provider] ?? f.provider}${f.gateway ? ` (gateway ${f.gateway})` : ''}`)
-  lines.push(`key: ${SOURCE[f.keySource]}`)
+  lines.push(`key: ${f.backend && f.keySource === 'none' ? 'none, so none is sent (a server on this machine needs none)' : SOURCE[f.keySource]}`)
   if (f.check === null) lines.push('check: not run')
-  else if (f.check.ok) lines.push(`check: ok, answered by ${f.check.model ?? 'an unnamed model'} in ${f.check.ms} ms ($${f.check.cost.toFixed(5)})`)
+  else if (f.check.ok) {
+    const via = f.check.via ? ` on ${f.check.via}${f.check.local ? ' (local)' : ''}` : ''
+    lines.push(`check: ok, answered by ${f.check.model ?? 'an unnamed model'}${via} in ${f.check.ms} ms ($${f.check.cost.toFixed(5)})`)
+  }
   else lines.push(`check: failed (${f.check.error})${f.check.said ? `: ${f.check.said}` : ''}. ${advice(f.check.error, f)}`)
   const modes = f.features.map(x => `${x.id} ${x.mode}${x.source === 'default' ? '' : ` (${x.source})`}`)
   lines.push(`features: ${modes.join(' · ')}${f.private ? ' · private (nothing is sent)' : ''}`)
   if (f.routing?.personModel) lines.push(`routing: holding your /model (${f.routing.personModel}) this session; choosing Default in /model hands it back`)
   if (f.routing?.drift) lines.push(`routing: not routed · ${f.routing.drift}: the lane policy keeps the current model on a Jev it was not tuned on`)
   if (f.routing?.untuned) lines.push(`routing: the lane policy was not tuned for ${f.routing.untuned}; its thresholds are Jev's`)
+  if (f.backend) lines.push("confidence: computed from each answer's probabilities in Jev's units; the thresholds were measured on Jev, so set the backend's `tuning` for its own model (README)")
+  for (const warning of f.warnings ?? []) lines.push(`warning: ${warning}`)
   for (const problem of f.problems) lines.push(`config: ${problem}`)
   if (f.budget) lines.push(`today: $${f.budget.spent.toFixed(4)} of the $${f.budget.daily.toFixed(2)} daily budget`)
   return lines.join('\n')

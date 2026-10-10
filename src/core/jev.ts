@@ -1,4 +1,4 @@
-import { costOf, OUTAGES, REFUSED, type Asked } from '../engine/client'
+import { costOf, loadingPauseMs, OUTAGES, REFUSED, warnings, type Asked } from '../engine/client'
 import * as activity from './activity'
 import type { IO } from './io'
 import * as memory from './memory'
@@ -10,9 +10,11 @@ import * as memory from './memory'
 // cool-off ends. During a cool-off the features that ask on every prompt (routing, skills) ask
 // nothing, so a backend that is down costs one timeout, not one per prompt. A refused key or an
 // account out of credit cools off for half an hour, or until a call (/jev-mod status's check
-// after the key is replaced) answers again.
+// after the key is replaced) answers again. A named backend still loading its model (`loading`)
+// pauses for seconds instead. A request whose input was cut or refused for its length is not
+// judged (client.NOT_JUDGED): the feature fails open and nothing cools off.
 
-export type JevSpace = { cost?: number; calls?: number; error?: string | null; retryAt?: number; model?: string }
+export type JevSpace = { cost?: number; calls?: number; error?: string | null; retryAt?: number; model?: string; warning?: string }
 
 export const COOL_OFF_MS = 5 * 60_000
 export const REFUSED_COOL_OFF_MS = 30 * 60_000
@@ -22,7 +24,12 @@ export { OUTAGES, REFUSED }
 
 /** The code when it is a failure that starts a cool-off (an outage or a refusal), else null. */
 export function failureOf(code: string | null | undefined): string | null {
-  return code && (OUTAGES.includes(code) || REFUSED.includes(code)) ? code : null
+  return code && (OUTAGES.includes(code) || REFUSED.includes(code) || code === 'loading') ? code : null
+}
+
+function coolOffFor(code: string): number {
+  if (code === 'loading') return loadingPauseMs()
+  return REFUSED.includes(code) ? REFUSED_COOL_OFF_MS : COOL_OFF_MS
 }
 
 /**
@@ -38,7 +45,11 @@ export async function record(io: IO, call: { calls: number; cost: number; error:
   mine.calls = (mine.calls ?? 0) + call.calls
   mine.cost = (mine.cost ?? 0) + call.cost
   if (call.model) mine.model = call.model
-  const coolOff = call.error !== null && REFUSED.includes(call.error) ? REFUSED_COOL_OFF_MS : COOL_OFF_MS
+  // A backend whose yes/no answers look pinned says so on the band and in /jev-mod status.
+  const warning = warnings()[0]
+  if (warning) mine.warning = warning
+  else delete mine.warning
+  const coolOff = call.error !== null ? coolOffFor(call.error) : COOL_OFF_MS
   mine.error = call.error
   mine.retryAt = call.error === null ? undefined : now + coolOff
   // A call that answered ends any cool-off: the backend (or the replaced key) works again.

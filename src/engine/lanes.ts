@@ -164,7 +164,7 @@ export async function decide(host: Host, state: unknown, policy: Policy, opts: D
     reply = await ask(host, prepared, policy.questions, { timeoutMs: opts.timeoutMs ?? 4000, retries: opts.retries ?? 1 })
   } catch (error) {
     if (!(error instanceof JevError)) throw error // a question the client refused: a policy bug
-    return fallback(error.code, 'error', !['no_key', 'state_too_large', 'invalid_endpoint'].includes(error.code))
+    return fallback(error.code, 'error', !['no_key', 'state_too_large', 'over_input_limit', 'invalid_endpoint'].includes(error.code))
   }
   const values = readings(policy.questions, reply.answers, policy.uncertain_band ?? DEFAULT_BAND)
   const applied = apply(policy, values, opts.facts)

@@ -82,6 +82,15 @@ Known differences that are not fixture answers, and why:
   misspelt one (off), and the `<SWITCH>_OFF` files read as before.
 - **Already suggested** is remembered in the session record, not jev-skills'
   `jev-hooks-sessions.json`, and the mod writes no `jev-hooks.jsonl` row per prompt.
+- **A named backend's answers.** client.py took every server's `confidence` as sent. Other
+  servers compute it in other units (Laya: 1 − normalised entropy), so the mod computes a named
+  backend's choice and score confidence from its probabilities with Jev's formula,
+  (n·p_max − 1)/(n − 1), or takes its `x_jev_confidence`, and keeps the server's number as
+  `server_confidence`. Jev's own replies are read as before: the captured fixtures set
+  confidence apart from the probabilities, so they cannot show the formula reproduces Jev's
+  number. A named backend's reply that says it was truncated, a 422 for length, and a state over
+  its `max_input_chars` are not judged; a 503 or refused connection while it is loading pauses
+  for seconds. No fixture routes to a named backend in these ways, so every parity answer stands.
 - **backends.json that cannot be read** (a permissions error, say) reads as no file at all,
   rather than as a misconfiguration; a file that is not JSON is still a misconfiguration.
 - **Phones in identifiers.** privacy.py's phone rule ate the digits of a DOI

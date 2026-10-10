@@ -68,3 +68,11 @@ test('why a turn was not routed, and a refused key in words', () => {
   expect(plain(refused)).toBe('🧭 not routed  $0.00000 (1)  🔌 jev ✗ auth_failed (key refused), retry in 31m')
   expect(refused.find(s => s.text.startsWith('🔌'))!.color).toBe('red')
 })
+
+test('a backend loading its model counts down in seconds, and pinned yes/no answers show as a warning', () => {
+  const loading = line({ jev: { calls: 1, cost: 0, model: 'laya-0.4', error: 'loading', retryAt: 9_500 } }, 0)!
+  expect(plain(loading)).toBe('🧭 not routed  $0.00000 (1)  🔌 laya-0.4 ✗ loading (model loading), retry in 10s')
+  const pinned = line({ jev: { calls: 20, cost: 0, model: 'von', error: null, warning: "von's last 20 yes/no answers ..." } }, 0)!
+  expect(plain(pinned)).toBe('🧭 not routed  $0.00000 (20)  🔌 von ⚠ yes/no pinned')
+  expect(pinned.at(-1)!.color).toBe('yellow')
+})

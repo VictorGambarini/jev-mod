@@ -219,10 +219,36 @@ function level(key: string): number | null {
 
 export type Answer =
   | { type: 'noul'; noul: number }
-  | { type: 'choice'; choice: string; probabilities: Record<string, number>; confidence: number }
-  | { type: 'score'; score: number; probabilities: Record<number, number>; spread_reported: boolean; confidence: number; legend?: Record<number, string> }
+  | { type: 'choice'; choice: string; probabilities: Record<string, number>; confidence: number; server_confidence?: number }
+  | { type: 'score'; score: number; probabilities: Record<number, number>; spread_reported: boolean; confidence: number; server_confidence?: number; legend?: Record<number, string> }
 
-export function checkAnswer(name: string, question: Question, answer: unknown): Answer {
+// ── confidence in Jev's units ────────────────────────────────────────────────
+//
+// Every threshold in the mod was measured on Jev's confidence: (n·p_max − 1)/(n − 1) over n
+// options, 0 for a flat spread and 1 for a certain one. Other servers send their own number
+// under the same name (Laya: 1 − normalised entropy; Kev: (p_max − 1/K)/(1 − 1/K)), so a named
+// backend's confidence is computed here from the probabilities it returned, or taken from its
+// `x_jev_confidence` when it sends one (Laya 0.4.2+). The server's own value is kept beside it
+// as `server_confidence`. Jev's own replies keep the value Jev sent: the captured fixtures set
+// confidence apart from the probabilities, so they cannot show the formula matches Jev to the
+// digit, and the provider path stays exactly as jev-skills read it.
+
+/** Jev's confidence for a distribution over `n` outcomes whose largest probability is `top`. */
+export function jevConfidence(top: number, n: number): number {
+  if (n < 2) return 1
+  return Math.min(1, Math.max(0, (n * top - 1) / (n - 1)))
+}
+
+/** `x_jev_confidence` when the server sent one in range, else Jev's formula over the spread. */
+function inJevUnits(name: string, answer: Record<string, unknown>, spread: number[], n: number): number {
+  if (typeof answer.x_jev_confidence === 'number') return unit(answer.x_jev_confidence, `${name}.x_jev_confidence`)
+  return jevConfidence(Math.max(0, ...spread), n)
+}
+
+/** How a reply's confidence is read: as the server sent it (Jev), or in Jev's units (any other backend). */
+export type Units = 'server' | 'jev'
+
+export function checkAnswer(name: string, question: Question, answer: unknown, units: Units = 'server'): Answer {
   if (!isObject(answer) || answer.type !== question.type) throw new JevError('malformed', `answer ${name} has the wrong type`)
   if (question.type === 'noul') return { type: 'noul', noul: unit(answer.noul, `${name}.noul`) }
   if (question.type === 'choice') {
@@ -238,7 +264,11 @@ export function checkAnswer(name: string, question: Question, answer: unknown): 
       // act on are two different answers.
       throw invalid(name, 'choice_is_argmax', `chose ${picked} at ${probabilities[picked]} against a maximum of ${top}`)
     }
-    return { type: 'choice', choice: picked, probabilities, confidence: unit(answer.confidence, `${name}.confidence`) }
+    if (units === 'server') return { type: 'choice', choice: picked, probabilities, confidence: unit(answer.confidence, `${name}.confidence`) }
+    const out: Answer = { type: 'choice', choice: picked, probabilities,
+      confidence: inJevUnits(name, answer, Object.values(probabilities), options.length) }
+    if (answer.confidence !== undefined) out.server_confidence = unit(answer.confidence, `${name}.confidence`)
+    return out
   }
   const levels = (question.criteria as unknown[]).length
   const value = answer.score
@@ -272,9 +302,16 @@ export function checkAnswer(name: string, question: Question, answer: unknown): 
       if (n !== null && n < levels && typeof text === 'string') legend[n] = text
     }
   }
+  const reported = unit('confidence' in answer ? answer.confidence : 1.0, `${name}.confidence`)
   const out: Answer = {
-    type: 'score', score: value, probabilities: spread, spread_reported: Object.keys(spread).length > 0,
-    confidence: unit('confidence' in answer ? answer.confidence : 1.0, `${name}.confidence`),
+    type: 'score', score: value, probabilities: spread, spread_reported: Object.keys(spread).length > 0, confidence: reported,
+  }
+  if (units === 'jev') {
+    // With no spread there is nothing to compute from: x_jev_confidence, else the server's own.
+    if (out.spread_reported || typeof answer.x_jev_confidence === 'number') {
+      out.confidence = inJevUnits(name, answer, Object.values(spread), levels)
+    }
+    if ('confidence' in answer) out.server_confidence = reported
   }
   if (Object.keys(legend).length) out.legend = legend
   return out
@@ -302,6 +339,17 @@ export const RETRYABLE = new Set(['rate_limited', 'overloaded', 'network', 'http
 export const OUTAGES: readonly string[] = [...RETRYABLE, 'timeout']
 export const REFUSED: readonly string[] = ['auth_failed', 'credits_exhausted']
 export const MAX_RETRY_AFTER_MS = 60_000
+// A request whose input was cut or refused for its length: its answers are not judged, so every
+// feature fails open as it does on no answer, and the backend is not cooling off for it.
+// `truncated`: the server said it read only part of the state. `input_too_long`: it refused it
+// (a 422 that says so). `over_input_limit`: longer than the backend's max_input_chars, not sent.
+export const NOT_JUDGED: readonly string[] = ['truncated', 'input_too_long', 'over_input_limit', 'state_too_large']
+// A named backend that is still loading its model: a 503 or a refused connection before it has
+// first answered this session (at most its first LOADING_CALLS calls), or a 503 with
+// Retry-After at any time. It pauses for seconds, not the outage cool-off.
+export const LOADING_CALLS = 3
+export const LOADING_PAUSE_MS = 10_000
+export const MAX_LOADING_PAUSE_MS = 30_000
 
 /**
  * The start of the server's own explanation of a refused request. Auth failures and redirects
@@ -327,8 +375,12 @@ export function retryAfterMs(headers: Record<string, string>): number | null {
   return null
 }
 
+// A 422 whose body says the input is too long, as servers word it.
+const TOO_LONG = /too long|too many tokens|exceeds?|maximum (?:context|input|length)|context length|max_input/i
+
 /** POST once. Redirects are errors, never hops: a redirect would carry the bearer elsewhere. */
-async function send(host: Host, url: string, body: string, headers: Record<string, string>, timeoutMs: number): Promise<string> {
+async function send(host: Host, url: string, body: string, headers: Record<string, string>, timeoutMs: number):
+  Promise<{ text: string; headers: Record<string, string> }> {
   let reply: { status: number; text: string; headers: Record<string, string> }
   try {
     reply = await host.post(url, body, headers, timeoutMs)
@@ -338,10 +390,70 @@ async function send(host: Host, url: string, body: string, headers: Record<strin
   if (new TextEncoder().encode(reply.text).length > MAX_RESPONSE_BYTES) throw new JevError('response_too_large')
   if (reply.status !== 200) {
     const retry = retryAfterMs(reply.headers ?? {})
-    throw new JevError(STATUS[reply.status] ?? `http_${reply.status}`, errorExcerpt(reply.status, reply.text),
-      retry === null ? null : retry)
+    const code = reply.status === 422 && TOO_LONG.test(reply.text) ? 'input_too_long' : STATUS[reply.status] ?? `http_${reply.status}`
+    throw new JevError(code, errorExcerpt(reply.status, reply.text), retry === null ? null : retry)
   }
-  return reply.text
+  return { text: reply.text, headers: reply.headers ?? {} }
+}
+
+/** Whether a reply says the server read only part of the state: a `truncated` or `truncation` field, or X-Von-Truncated. */
+export function truncated(payload: Record<string, unknown>, headers: Record<string, string>): boolean {
+  const said = (value: unknown): boolean => {
+    if (typeof value === 'string') return !['', '0', 'false', 'no', 'none'].includes(strip(value).toLowerCase())
+    if (typeof value === 'number') return value !== 0
+    if (isObject(value)) return value.truncated === undefined ? Object.keys(value).length > 0 : said(value.truncated)
+    return value === true
+  }
+  const header = Object.entries(headers).find(([k]) => k.toLowerCase() === 'x-von-truncated')?.[1]
+  return said(payload.truncated) || said(payload.truncation) || (header !== undefined && said(header))
+}
+
+// ── what this session has seen of each backend ───────────────────────────────
+
+/** A named backend's record this session: whether it has answered, its calls, its last yes/no probabilities. */
+export type Seen = { answered: boolean; calls: number; nouls: number[] }
+export const NOUL_WINDOW = 50
+export const MIN_NOULS = 20
+const seen = new Map<string, Seen>()
+let loadingPause = LOADING_PAUSE_MS
+
+function seenOf(name: string): Seen {
+  let mine = seen.get(name)
+  if (!mine) seen.set(name, mine = { answered: false, calls: 0, nouls: [] })
+  return mine
+}
+
+/** This session's record of a named backend, or undefined before its first call. */
+export function seenBackend(name: string): Seen | undefined {
+  return seen.get(name)
+}
+
+/** Forget every backend's record: a new session, or a test. */
+export function resetSeen(): void {
+  seen.clear()
+  loadingPause = LOADING_PAUSE_MS
+}
+
+/** The pause after the last `loading` failure, Retry-After honoured within MAX_LOADING_PAUSE_MS. */
+export function loadingPauseMs(): number {
+  return loadingPause
+}
+
+/**
+ * A warning when a backend's yes/no answers look pinned: at least MIN_NOULS of them this session,
+ * yeses and noes both, and not one strictly between 0.2 and 0.8. A server that clamps its
+ * calibration answers like that, and then every gate at 0.8 fires on every yes.
+ */
+export function pinnedWarning(name: string): string | null {
+  const nouls = seen.get(name)?.nouls ?? []
+  if (nouls.length < MIN_NOULS || nouls.some(p => p > 0.2 && p < 0.8)) return null
+  if (!nouls.some(p => p >= 0.8) || !nouls.some(p => p <= 0.2)) return null
+  return `${name}'s last ${nouls.length} yes/no answers all sit at 0.2 or below, or 0.8 or above: likely a calibration-clamped server (Von: start it with --noul-decision raw); every 0.8 gate fires on each yes`
+}
+
+/** Every named backend's warning this session. */
+export function warnings(): string[] {
+  return [...seen.keys()].map(pinnedWarning).filter((w): w is string => w !== null)
 }
 
 // A path prefix is plain segments: no spaces, controls, dot segments, backslashes or
@@ -411,7 +523,7 @@ export async function activeBackend(host: Host): Promise<Backend | null> {
  * providers in order.
  */
 export async function ask(host: Host, state: unknown, questions: Record<string, unknown>, options: AskOptions = {}): Promise<Asked> {
-  const timeoutMs = options.timeoutMs ?? 4000
+  let timeoutMs = options.timeoutMs ?? 4000
   const retries = options.retries ?? 1
   const identity = options.identity ?? IDENTITY
   if (!questions || !Object.keys(questions).length) throw new Error('no questions')
@@ -449,7 +561,11 @@ export async function ask(host: Host, state: unknown, questions: Record<string, 
     defaultModel = (await host.env('TYPESAFE_MODEL')) || PROVIDER_MODEL[via as keys.Provider]
   }
   const encodedState = typeof state === 'string' ? state : encode(state, { compact: true })
-  if ([...encodedState].length > MAX_STATE_CHARS) throw new JevError('state_too_large')
+  const length = [...encodedState].length
+  if (length > MAX_STATE_CHARS) throw new JevError('state_too_large')
+  if (backend?.maxInputChars && length > backend.maxInputChars) {
+    throw new JevError('over_input_limit', `${length} characters; ${backend.name} reads at most ${backend.maxInputChars}`)
+  }
   const body = encode({ state, model: options.model || defaultModel, questions: checked }, { compact: true })
   const headers: Record<string, string> = {
     'Content-Type': 'application/json', Accept: 'application/json', 'User-Agent': identity.userAgent,
@@ -461,20 +577,25 @@ export async function ask(host: Host, state: unknown, questions: Record<string, 
     headers['X-Title'] = identity.title
   }
   const url = endpoint ?? PROVIDER_URL[via as keys.Provider]
+  const record = backend ? seenOf(backend.name) : null
+  if (record) record.calls++
+  // Until a named backend first answers, it may be loading its model: its own first timeout, if longer.
+  if (backend?.firstTimeoutMs && !record!.answered) timeoutMs = Math.max(timeoutMs, backend.firstTimeoutMs)
 
   const started = host.now()
   let attempt = 0
   let raw: string
+  let replyHeaders: Record<string, string>
   for (;;) {
     const remaining = timeoutMs - (host.now() - started)
     if (remaining <= 50) throw new JevError('timeout')
     try {
-      raw = await send(host, url, body, headers, remaining)
+      ;({ text: raw, headers: replyHeaders } = await send(host, url, body, headers, remaining))
       break
     } catch (error) {
       if (!(error instanceof JevError)) throw error
       attempt++
-      if (!RETRYABLE.has(error.code) || attempt > retries) throw error
+      if (!RETRYABLE.has(error.code) || attempt > retries) throw loading(error, record)
       const left = Math.max(0, timeoutMs - (host.now() - started) - 100)
       let wait = Math.min(250 * attempt, left)
       if (options.patient && error.retryAfter !== null) {
@@ -493,9 +614,17 @@ export async function ask(host: Host, state: unknown, questions: Record<string, 
   }
   const answers = isObject(payload) ? payload.answers : undefined
   if (!isObject(answers)) throw new JevError('malformed', 'reply has no answers')
-  const validated: Record<string, Answer> = {}
-  for (const [name, question] of Object.entries(checked)) validated[name] = checkAnswer(name, question, answers[name])
   const p = payload as Record<string, unknown>
+  // A server that read only part of the state judged a different text: nothing it said is used.
+  if (truncated(p, replyHeaders)) throw new JevError('truncated', 'the server read only part of the state')
+  const validated: Record<string, Answer> = {}
+  const units: Units = backend ? 'jev' : 'server'
+  for (const [name, question] of Object.entries(checked)) validated[name] = checkAnswer(name, question, answers[name], units)
+  if (record) {
+    record.answered = true
+    for (const answer of Object.values(validated)) if (answer.type === 'noul') record.nouls.push(answer.noul)
+    record.nouls.splice(0, Math.max(0, record.nouls.length - NOUL_WINDOW))
+  }
   const usage = isObject(p.usage) ? p.usage : {}
   const tokens = usage.input_tokens
   return {
@@ -506,6 +635,16 @@ export async function ask(host: Host, state: unknown, questions: Record<string, 
     input_tokens: typeof tokens === 'number' && Number.isFinite(tokens) && tokens >= 0 ? Math.trunc(tokens) : null,
     provider: backend ? via : endpoint ? 'custom' : via,
   }
+}
+
+/** A named backend's 503 or refused connection while it may be loading becomes `loading`, with its pause. */
+function loading(error: JevError, record: Seen | null): JevError {
+  if (!record) return error
+  const early = !record.answered && record.calls <= LOADING_CALLS && ['http_503', 'network'].includes(error.code)
+  const told = error.code === 'http_503' && error.retryAfter !== null
+  if (!early && !told) return error
+  loadingPause = Math.min(MAX_LOADING_PAUSE_MS, Math.max(1000, error.retryAfter ?? LOADING_PAUSE_MS))
+  return new JevError('loading', `${error.code}: the server may still be loading its model`, error.retryAfter)
 }
 
 // ── what a call cost ─────────────────────────────────────────────────────────

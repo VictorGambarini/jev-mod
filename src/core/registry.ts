@@ -103,7 +103,7 @@ export const FEATURES: readonly Feature[] = [
     title: 'Completion gate',
     summary: 'Checks that a turn claiming the work is done has the evidence to show it',
     help: 'When the main agent ends a turn saying the work is done or that checks pass, the decision model reads the request, '
-      + 'that final message and what the turn ran (edited files, commands and the tail of their output) and judges whether the '
+      + 'that final message and what the turn ran (edited files, commands and the head and tail of their output, then the session\'s earlier commands as far as they fit) and judges whether the '
       + 'claims are shown. on: when it is sure enough they are not, the agent is told which claim is unshown and asked to verify '
       + 'it or say plainly what is unverified, never to take a destructive step; at most maxNudges times per prompt. '
       + 'shadow: the same judgement, in the background, counted as would-nudge or passed; the agent is never stopped or kept waiting. off: nothing is read or sent.',

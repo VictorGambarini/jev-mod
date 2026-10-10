@@ -215,13 +215,13 @@ export const FEATURES: readonly Feature[] = [
     summary: 'A tool the model calls before a code review: quick (one pass is enough) or full, and which files first',
     help: 'on: the model is offered a review_triage tool (mcp__jev-mod__review_triage) to call before it reviews a change. '
       + 'It reads the git diff (the uncommitted changes against HEAD, or the last commit when there are none, or the changes '
-      + 'since a base the model names) and asks the decision model seven yes/no questions about it: security-sensitive code, '
+      + 'since a base the model names) and asks the decision model up to seven yes/no questions about it: security-sensitive code, '
       + 'hard-to-undo data changes, a public interface others rely on, runtime-only failures, a rule in the project\'s '
-      + 'CLAUDE.md or AGENTS.md, behaviour changed without a test, and work beyond the stated intent. quick: every answer '
+      + 'CLAUDE.md or AGENTS.md (only when the project has some), behaviour changed without a test, and work beyond the stated intent (without an intent: anything unfinished or inconsistent). quick: every answer '
       + 'is no with at least minConfidence. Anything else is full, naming the questions and the files behind them (one '
       + 'more request asks which files). It never replaces the review; it only sets how deep the first pass goes. The '
       + 'diff is sent redacted and cut to maxDiffChars; a part that looks like it holds a secret is not sent, and makes '
-      + 'the verdict full; a diff over ten times maxDiffChars is not sent at all (full). No key, private mode, the daily '
+      + 'the verdict full, as is any part cut away to fit (the whole request, files list and rules included, stays under the backend\'s limit); a diff over ten times maxDiffChars is not sent at all (full). No key, private mode, the daily '
       + 'budget, a backend cool-off or no answer within timeoutMs: full, with the reason. off: the tool is not offered '
       + '(a session started while it was on keeps it, and it answers that it is off). There is no shadow: the model '
       + 'calls the tool by choice, so there is nothing to watch it do unasked.',

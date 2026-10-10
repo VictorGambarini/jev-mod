@@ -188,10 +188,11 @@ the budget, the cool-off, a timeout) answers with the local ranking, labelled as
 
 `review-triage` offers `mcp__jev-mod__review_triage` the same way (off by default), for the model
 to call before it reviews a change. It reads the change with git (`git diff HEAD` plus untracked
-files; with none, `HEAD~1 HEAD`; given a `base`, `git diff --merge-base <base>`, or the range as
+files; with none, `HEAD~1 HEAD` (the empty tree against `HEAD` in a repository with one commit); given a `base`, `git diff --merge-base <base>`, or the range as
 given), splits it per file and hunk, and builds a summary: hunks that look like they hold or handle
-a secret (`isSensitive`) are left out, the rest redacted and each cut to the same length so all of
-them fit `maxDiffChars`. One request asks seven `noul` questions about the whole change (the rules
+a secret (`isSensitive`) are left out, the rest redacted, and hunks longer than a common cap are cut to it
+so that all fit `maxDiffChars` (and, with the files list and rules, the backend's 60000-character limit;
+what still cannot be shown is left out and makes it `full`: "N hunk(s) or file(s) not shown"). One request asks up to seven `noul` questions about the whole change (the rules
 question only when the project's CLAUDE.md or AGENTS.md has list items or rule words to send, capped
 at 40 lines and 3000 characters). A confident no on all of them is `quick`; anything else is `full`,
 and when more than one file was sent a second request asks each yes or unsure question of each of

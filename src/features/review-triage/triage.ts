@@ -1,7 +1,7 @@
 import { noul, type Answer, type Question } from '../../engine/client'
 
 // review-triage's rules, with no IO: which git command reads the change, how a diff splits into
-// files and hunks, what is sent (capped, redacted, secrets left out), the seven questions, the
+// files and hunks, what is sent (capped, redacted, secrets left out), the (up to) seven questions, the
 // verdict, which files drove it, and the text the model reads.
 
 // ── reading the change ───────────────────────────────────────────────────────
@@ -37,14 +37,17 @@ export function projectPath(root: string, given: string): string | null {
   return out.startsWith('-') ? `./${out}` : out
 }
 
-export type Source = { kind: 'uncommitted' } | { kind: 'last-commit' } | { kind: 'base'; base: string; mergeBase: boolean }
+/** git's empty tree: what the first commit of a repository is diffed against. */
+export const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+
+export type Source = { kind: 'uncommitted' } | { kind: 'last-commit'; root?: boolean } | { kind: 'base'; base: string; mergeBase: boolean }
 
 /** The git command that reads the change from `source`, limited to `paths` (already checked). */
 export function diffArgs(root: string, source: Source, paths: readonly string[]): string[] {
   const head = ['git', '-C', root, 'diff', ...DIFF_FLAGS]
   const tail = ['--', ...(paths.length ? paths : [])]
   if (source.kind === 'uncommitted') return [...head, 'HEAD', ...tail]
-  if (source.kind === 'last-commit') return [...head, 'HEAD~1', 'HEAD', ...tail]
+  if (source.kind === 'last-commit') return [...head, source.root ? EMPTY_TREE : 'HEAD~1', 'HEAD', ...tail]
   // a range (a..b, a...b) is git's own; a single ref is diffed from where this branch left it
   if (source.base.includes('..') || !source.mergeBase) return [...head, source.base, ...tail]
   return [...head, '--merge-base', source.base, ...tail]
@@ -57,6 +60,7 @@ export function untrackedArgs(root: string, paths: readonly string[]): string[] 
 
 export function describeSource(source: Source): string {
   if (source.kind === 'uncommitted') return 'uncommitted changes vs HEAD'
+  if (source.kind === 'last-commit' && source.root) return 'the first commit, against the empty tree (no uncommitted changes)'
   if (source.kind === 'last-commit') return 'the last commit, HEAD~1..HEAD (no uncommitted changes)'
   return source.base.includes('..') ? source.base : `changes since ${source.base}`
 }
@@ -71,6 +75,8 @@ export type FileDiff = {
   hunks: Hunk[]
   added: number
   removed: number
+  /** An untracked text file over the size read: counted, but its text is not here. */
+  tooLarge?: boolean
 }
 
 const HUNK_HEADER = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/
@@ -125,8 +131,9 @@ export function parseDiff(text: string): FileDiff[] {
   return files
 }
 
-/** An untracked file as a diff that adds it whole; null text means a binary or unreadable one. */
-export function untrackedDiff(path: string, text: string | null): FileDiff {
+/** An untracked file as a diff that adds it whole; null text means a binary or unreadable one, `tooLarge` a text file too big to read. */
+export function untrackedDiff(path: string, text: string | null, tooLarge = false): FileDiff {
+  if (tooLarge) return { path, status: 'added', hunks: [], added: 0, removed: 0, tooLarge: true }
   if (text === null || text.includes('\0')) return { path, status: 'binary', hunks: [], added: 0, removed: 0 }
   const lines = text.replace(/\n$/, '').split('\n')
   const n = text ? lines.length : 0
@@ -168,7 +175,7 @@ export type Summary = {
   sent: { id: string; file: FileDiff; text: string }[]
   /** Hunks (or whole files, by path) not sent because they look like they hold a secret. */
   withheld: Withheld[]
-  /** Hunks trimmed or left out to fit maxDiffChars. */
+  /** Hunks trimmed, or hunks and files left out (not shown at all), to fit maxDiffChars. */
   trimmed: number
   omitted: number
   /** The share of changed lines that could be sent at all (secrets aside). */
@@ -206,8 +213,9 @@ export function trimHunk(text: string, cap: number): string {
 
 /**
  * The diff as the decision model may see it: hunks that look like they hold a secret left out
- * (a file whose path does, whole), the rest redacted and cut to fit `maxChars` (every hunk cut
- * to the same length; when even the shortest useful cut does not fit, the later hunks are left out).
+ * (a file whose path does, whole), the rest redacted and cut to fit `maxChars` (hunks longer than a common cap are
+ * cut to it and shorter ones stay whole; when even the shortest useful cut does not fit, the later hunks
+ * are left out, and an untracked file too large to read is left out too: both count as `omitted`).
  */
 export function summarize(files: readonly FileDiff[], maxChars: number, sensitive: (text: string) => boolean,
   redact: (text: string) => string): Summary {
@@ -245,8 +253,9 @@ export function summarize(files: readonly FileDiff[], maxChars: number, sensitiv
       parts.push(cut)
       if (room !== Infinity) room -= cut.length
     }
-    if (!k.hunks.length && k.file.status === 'binary') parts.push('(binary file)')
-    if (!k.hunks.length && !k.file.hunks.length && k.file.status !== 'binary') parts.push(`(${k.file.status}, no content lines)`)
+    if (k.file.tooLarge) { omitted++; parts.push('(too large, not shown)') }
+    else if (!k.hunks.length && k.file.status === 'binary') parts.push('(binary file)')
+    if (!k.file.tooLarge && !k.hunks.length && !k.file.hunks.length && k.file.status !== 'binary') parts.push(`(${k.file.status}, no content lines)`)
     return { id: `F${i + 1}`, file: k.file, text: parts.join('\n') }
   })
   return { sent, withheld, trimmed, omitted, sendableShare: total ? sendable / total : sent.length ? 1 : 0 }
@@ -349,7 +358,7 @@ function texts(subject: string, hasIntent: boolean): Record<QuestionId, Question
   }
 }
 
-/** The questions about the whole change: all seven, less `rules` when the project wrote none. */
+/** The questions about the whole change: up to seven (`rules` only when the project wrote some; `scope` reads "unfinished or inconsistent" without an intent). */
 export function questionsOf(hasIntent: boolean, hasRules: boolean): Record<string, Question> {
   const all = texts('the change in diff', hasIntent)
   return Object.fromEntries(QUESTION_IDS.filter(id => id !== 'rules' || hasRules).map(id => [id, all[id]]))

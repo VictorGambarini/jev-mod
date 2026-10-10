@@ -40,7 +40,7 @@ type Opts = {
   /** p(yes) per question id; a follow-up `<id>__F<n>` reads `<id>__<path>` first. Default: every one 0.05. */
   p?: Record<string, number>
   /** git diff's stdout by which diff it is; `fail` makes that one exit 128. */
-  git?: { uncommitted?: string; untracked?: string[]; lastCommit?: string; base?: string; mergeBaseFails?: boolean; notRepo?: boolean }
+  git?: { uncommitted?: string; untracked?: string[]; lastCommit?: string; firstCommit?: string; base?: string; mergeBaseFails?: boolean; notRepo?: boolean }
   options?: Record<string, unknown>
   rules?: string | null
 }
@@ -72,6 +72,8 @@ function io(opts: Opts = {}): Fake {
       if (argv[3] === 'ls-files') return ok((g.untracked ?? []).map(n => `${n}\0`).join(''))
       const rest = argv.slice(argv.indexOf('-U3') + 1, argv.indexOf('--'))
       if (rest[0] === 'HEAD' && rest.length === 1) return ok(g.uncommitted ?? '')
+      if (rest[0] === 'HEAD~1' && g.firstCommit !== undefined) return { exitCode: 128, stdout: '', stderr: "fatal: ambiguous argument 'HEAD~1': unknown revision" }
+      if (rest[0] === '4b825dc642cb6eb9a060e54bf8d69288fbee4904') return ok(g.firstCommit ?? '')
       if (rest[0] === 'HEAD~1') return ok(g.lastCommit ?? '')
       if (rest[0] === '--merge-base' && g.mergeBaseFails) return { exitCode: 129, stdout: '', stderr: 'error: unknown option merge-base' }
       return ok(g.base ?? '')
@@ -259,6 +261,44 @@ test('the registry entry is all /jev-mod needs: listed, helped, set', async () =
   expect((await run(fake, 'review-triage maxDiffChars 20000')).text).toContain('20000')
   expect(JSON.parse(fake.disk[USER]!).features['review-triage'].maxDiffChars).toBe(20000)
   expect(await triage(fake, {})).toContain('review_triage is off')
+})
+
+const manyFiles = (n: number, lines: number) => Array.from({ length: n }, (_, i) => [
+  `diff --git a/src/m${i}.ts b/src/m${i}.ts`, '--- a/src/m' + i + '.ts', '+++ b/src/m' + i + '.ts', `@@ -0,0 +1,${lines} @@`,
+  ...Array.from({ length: lines }, (_, j) => `+export const value${i}_${j} = ${j}`)].join('\n')).join('\n') + '\n'
+
+test('hunks left out to fit make it full, even when every answer is a no', async () => {
+  const fake = io({ git: { uncommitted: manyFiles(40, 12) }, settings: { mode: 'on', maxDiffChars: 2000 } })
+  const out = await triage(fake, {})
+  expect(fake.asked[0]!.state.diff_note).toContain('left out')
+  expect(out).toContain('verdict: full')
+  expect(out).toMatch(/- \d+ hunk\(s\) or file\(s\) not shown/)
+})
+
+test('the whole request fits the backend\'s limit: a long files list shrinks the diff, not the answer to "too large"', async () => {
+  const fake = io({ git: { uncommitted: manyFiles(250, 20) }, settings: { mode: 'on', maxDiffChars: 40000 } })
+  const out = await triage(fake, {})
+  expect(fake.asked.length).toBeGreaterThan(0)
+  expect(JSON.stringify(fake.asked[0]!.state).length).toBeLessThan(60000)
+  expect(out).not.toContain('too large to send')
+  expect(out).toContain('not shown')
+})
+
+test('an untracked text file over 1 MB is "too large, not shown" and makes it full, not a binary file', async () => {
+  const fake = io({ git: { uncommitted: DIFF, untracked: ['huge.txt'] } })
+  fake.disk[`${ROOT}/huge.txt`] = 'x'.repeat(1_000_001)
+  const out = await triage(fake, {})
+  expect(fake.asked[0]!.state.diff.F3).toBe('(too large, not shown)')
+  expect(out).toContain('verdict: full')
+  expect(out).toContain('not shown')
+})
+
+test('a repository with one commit: the last commit is diffed against the empty tree', async () => {
+  const fake = io({ git: { uncommitted: '', firstCommit: DIFF } })
+  const out = await triage(fake, {})
+  expect(out).not.toContain('found no changes')
+  expect(out).toContain('the first commit, against the empty tree')
+  expect(diffs(fake).at(-1)).toEqual(['4b825dc642cb6eb9a060e54bf8d69288fbee4904', 'HEAD', '--'])
 })
 
 // Last: a failure starts the five-minute cool-off for the rest of this file's process.

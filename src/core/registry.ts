@@ -293,7 +293,10 @@ export const FEATURES: readonly Feature[] = [
       + 'to it by name only). The page text it reads is redacted and screened first. It stays on the start site; a '
       + 'consequential step (buy, pay, send, delete, post, sign up, submit a form) is taken only when the goal names it and '
       + 'the decision model is at least confirmConfidence sure the goal asks for it, else it stops for you; "done" needs a '
-      + 'second check over the page\'s own text. Needs Playwright: /jev-mod browser install (once; about 150 MB). '
+      + 'second check over the page\'s own text (also when the decision model says the goal is reached). It stops early when the '
+      + 'decision model says the run is stuck, and at a bot check (Cloudflare, hCaptcha, reCAPTCHA, DataDome, PerimeterX) that '
+      + 'does not clear in 8 seconds; a consequential step whose result is unknown is never repeated without you. '
+      + 'Needs Playwright: /jev-mod browser install (once; about 150 MB). '
       + 'A project file may turn it off, never on, and sets none of its settings. docs/BROWSER.md has the rules.',
     modes: ['off', 'on'], default: 'off', risky: true,
     knobs: {

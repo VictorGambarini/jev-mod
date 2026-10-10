@@ -30,12 +30,16 @@ export type ActResult = {
   left?: string
   /** The element was gone or said something else; obs is the page as it is now. */
   stale?: boolean
+  /** A click's target was covered by another element (what is on top, as the page labels it); nothing was clicked. */
+  covered?: string
   error?: string
 }
 
 export interface Driver {
   observe(): Promise<Observation>
   act(action: Wire): Promise<ActResult>
+  /** Wait `ms` (a bot check clearing), then the page as it is. */
+  wait(ms: number): Promise<Observation>
   /** More input values, held in the driver's process (a resume that brings what needs_input asked for). */
   addInputs(values: Record<string, string>): Promise<void>
   /** Ends the browser and the child; never throws, never waits. */
@@ -170,7 +174,8 @@ export const launchChild: Launch = async (io, o) => {
     const ran = await io.run([bin, `${here}/client.mjs`, socket], { stdin: JSON.stringify({ token, ...command }) + '\n', timeoutMs: COMMAND_MS })
     let reply: any
     try { reply = JSON.parse(ran.stdout.trim().split('\n').pop() ?? '') } catch { throw new Error(`the browser did not answer (${ran.stderr.trim().slice(0, 200) || `exit ${ran.exitCode}`})`) }
-    if (reply?.ok !== true && !reply?.left && !reply?.stale) throw new Error(String(reply?.error ?? 'the browser refused the command'))
+    // An action that failed still answers with the page as it is (obs): the caller decides what that means.
+    if (reply?.ok !== true && !reply?.left && !reply?.stale && !reply?.obs) throw new Error(String(reply?.error ?? 'the browser refused the command'))
     return reply
   }
   const driver: Driver = {
@@ -182,6 +187,7 @@ export const launchChild: Launch = async (io, o) => {
         return { ok: false, error: error instanceof Error ? error.message : String(error) }
       }
     },
+    wait: async ms => (await send({ op: 'wait', ms })).obs as Observation,
     addInputs: async values => { await send({ op: 'inputs', inputs: values }) },
     close: () => {
       if (ended) return

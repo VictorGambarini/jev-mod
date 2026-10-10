@@ -26,7 +26,7 @@ if (!DIR) {
 
 const PAGES = {
   '/': '<!doctype html><title>Home</title><nav><a href="/about">About</a></nav><main><h1>Welcome</h1><p>The shop.</p>'
-    + '<h2>Plans</h2><a href="/pricing">Pricing</a> <a href="https://example.com/">Elsewhere</a> <a href="/spa">Single page</a>'
+    + '<h2>Plans</h2><a href="/pricing">Pricing</a> <a href="https://example.com/">Elsewhere</a> <a href="/spa">Single page</a> <a href="/covered">Covered</a> <a href="/framed">Framed</a> <a href="/poll">Poll</a>'
     + '<form role="search" action="/search"><input type="search" name="q" placeholder="Search"><button>Go</button></form></main>'
     + '<footer>Footer words</footer>',
   '/pricing': '<!doctype html><title>Pricing</title><main><h1>Pricing</h1><p>Team plan: $10 per seat.</p><button>Buy now</button></main>',
@@ -38,6 +38,18 @@ const PAGES = {
     + 'document.getElementById("q").addEventListener("keydown", e => { if (e.key !== "Enter") return;'
     + ' const out = document.getElementById("out"); out.textContent = "Loading data...";'
     + ' setTimeout(() => { out.innerHTML = "<p>Clonostachys rosea: 3 enzymes found.</p>" }, 1000) })</script>',
+  // a button under a fixed banner, another one clear of it; a console error and a request that 404s
+  '/covered': '<!doctype html><title>Covered</title><main><h1>Covered</h1><button id="under" onclick="document.title=\'Clicked under\'">Under</button>'
+    + '<div style="margin-top:400px"><button id="clear" onclick="document.title=\'Clicked clear\'">Clear</button></div>'
+    + '<div style="position:fixed;top:0;left:0;width:100%;height:200px;background:#fff">Subscribe to our newsletter</div></main>'
+    + '<script>console.error("boom from the page"); fetch("/missing?token=zebra-query-77")</script>',
+  // a visible frame (as a challenge frame is reported), and one too small to count
+  '/framed': '<!doctype html><title>Framed</title><main><h1>Framed</h1><iframe src="/pricing?x=1#frame=challenge" width="300" height="200"></iframe>'
+    + '<iframe src="/search?y=2" width="1" height="1"></iframe></main>',
+  // a page that polls forever, and a button whose result comes from a request it starts, with no loading marker
+  '/poll': '<!doctype html><title>Poll</title><main><h1>Poll</h1><input aria-label="Name"><button id="b">Fetch</button><div id="r"></div></main>'
+    + '<script>setInterval(() => fetch("/api?poll=1"), 300); document.getElementById("b").onclick = () => '
+    + 'fetch("/api").then(r => r.text()).then(t => { document.getElementById("r").textContent = t })</script>',
   '/slow': '<!doctype html><title>Slow</title><main><h1>Slow</h1><div id="x" aria-busy="true">Loading</div></main><script>'
     + 'setTimeout(() => { const x = document.getElementById("x"); x.removeAttribute("aria-busy"); x.textContent = "Late text arrived." }, 1200)</script>',
 }
@@ -48,6 +60,7 @@ const run = (args, input) => new Promise(resolve => {
 })
 
 const server = createServer((req, res) => {
+  if (req.url.startsWith('/api')) return setTimeout(() => res.end('Result arrived.'), 300)
   const page = PAGES[new URL(req.url ?? '/', 'http://x').pathname]
   res.writeHead(page ? 200 : 404, { 'content-type': 'text/html' })
   res.end(page ?? 'not here')
@@ -72,7 +85,13 @@ try {
   if (ready.error) {
     console.log(`skipped: the driver could not start a browser (${ready.error}: ${ready.message})`)
   } else {
-    const send = async (cmd, token = ready.token) => JSON.parse(await run([`${HERE}client.mjs`, ready.socket], JSON.stringify({ token, ...cmd }) + '\n'))
+    const timings = []
+    const send = async (cmd, token = ready.token) => {
+      const t0 = Date.now()
+      const reply = JSON.parse(await run([`${HERE}client.mjs`, ready.socket], JSON.stringify({ token, ...cmd }) + '\n'))
+      if (cmd.op === 'act') timings.push({ kind: cmd.action.kind, ms: Date.now() - t0 })
+      return reply
+    }
     let r = await send({ op: 'observe' })
     const find = label => r.obs.elements.find(e => e.label === label)
     assert.equal(r.obs.title, 'Home')
@@ -121,13 +140,57 @@ try {
     r = await send({ op: 'act', action: { kind: 'back' } })
     r = await send({ op: 'act', action: { kind: 'back' } })
     assert.equal(r.obs.title, 'Home')
+
+    // A covered button is not clicked, and says what covers it; one clear of the banner is.
+    const covered = find('Covered')
+    r = await send({ op: 'act', action: { kind: 'click', ref: covered.id, expect: { tag: 'a', label: 'Covered' } } })
+    assert.ok(r.obs.events.some(e => e.kind === 'console' && /boom from the page/.test(e.text)), `a console error is reported (${JSON.stringify(r.obs.events)})`)
+    assert.ok(r.obs.events.some(e => e.kind === 'network' && /\/missing answered 404/.test(e.text)), 'a failed request is reported')
+    assert.ok(!JSON.stringify(r.obs.events).includes('zebra-query-77'), 'a request URL is reported without its query')
+    const under = find('Under')
+    r = await send({ op: 'act', action: { kind: 'click', ref: under.id, expect: { tag: under.tag, label: under.label } } })
+    assert.match(String(r.covered), /Subscribe to our newsletter/, `the cover is named (${JSON.stringify(r).slice(0, 200)})`)
+    assert.equal(r.obs.title, 'Covered', 'nothing was clicked')
+    const clear = find('Clear')
+    r = await send({ op: 'act', action: { kind: 'click', ref: clear.id, expect: { tag: clear.tag, label: clear.label } } })
+    assert.equal(r.obs.title, 'Clicked clear')
+    r = await send({ op: 'act', action: { kind: 'back' } })
+    assert.equal(r.obs.title, 'Home')
+
+    // A page that polls: a type does not wait out the poll; a click waits for the request it started.
+    const poll = find('Poll')
+    r = await send({ op: 'act', action: { kind: 'click', ref: poll.id, expect: { tag: 'a', label: 'Poll' } } })
+    const name = find('Name')
+    let t0 = Date.now()
+    r = await send({ op: 'act', action: { kind: 'type', ref: name.id, input: 'query', expect: { tag: name.tag, label: name.label } } })
+    assert.ok(Date.now() - t0 < 1500, `a type on a polling page is quick (${Date.now() - t0}ms)`)
+    const fetchButton = find('Fetch')
+    r = await send({ op: 'act', action: { kind: 'click', ref: fetchButton.id, expect: { tag: fetchButton.tag, label: fetchButton.label } } })
+    assert.match(r.obs.text, /Result arrived\./, `the click waited for the request it started (got: ${r.obs.text})`)
+    r = await send({ op: 'act', action: { kind: 'back' } })
+    assert.equal(r.obs.title, 'Home')
+
+    // Visible frames are reported (origin, path and the frame= marker; no query), a 1px one is not.
+    const framed = find('Framed')
+    r = await send({ op: 'act', action: { kind: 'click', ref: framed.id, expect: { tag: 'a', label: 'Framed' } } })
+    assert.deepEqual(r.obs.frames, [`${base}pricing#frame=challenge`])
+    r = await send({ op: 'wait', ms: 100 })
+    assert.equal(r.obs.title, 'Framed', 'wait answers with the page')
+    r = await send({ op: 'act', action: { kind: 'back' } })
+    assert.equal(r.obs.title, 'Home')
     const away = find('Elsewhere')
     assert.deepEqual(await send({ op: 'act', action: { kind: 'click', ref: away.id, expect: { tag: 'a', label: 'Elsewhere' } } }), { left: 'https://example.com/' })
     assert.equal((await send({ op: 'observe' }, 'not-the-token')).error, 'bad token')
     assert.deepEqual(await send({ op: 'close' }), { ok: true })
     await new Promise(r => child.on('exit', r))
+    const median = list => { const s = [...list].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0 }
+    const kinds = [...new Set(timings.map(t => t.kind))]
+    console.log(`timings (ms, client round trip included): ${kinds.map(k => `${k} median ${median(timings.filter(t => t.kind === k).map(t => t.ms))}`).join(', ')}; `
+      + `all median ${median(timings.map(t => t.ms))}, total ${timings.reduce((a, t) => a + t.ms, 0)} over ${timings.length} actions`)
     console.log('ok: the driver observed, typed, submitted, went back, refused a stale target, clicked, stopped at the allowlist, '
       + 'reported the input a field holds, submitted a single-page search by Enter and waited out its loading, waited for a late page, '
+      + 'refused a covered button, reported console errors, failed requests and visible frames, did not wait out a poll, '
+      + 'waited for a request a click started, '
       + 'refused a bad token and closed')
   }
 } catch (error) {

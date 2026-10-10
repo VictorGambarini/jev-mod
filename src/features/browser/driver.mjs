@@ -12,6 +12,8 @@
 // folder), every one carrying the token:
 //   {"op":"observe"}                                   → {"ok":true,"obs":{…}}  (once the page is not loading)
 //   {"op":"act","action":{kind,ref,input,expect}}      → {"ok":true,"obs":{…}} | {"left":"<url>"} | {"stale":true,"obs":{…}}
+//                                                        | {"covered":"<what is on top>","obs":{…}} | {"ok":false,"error":"…","obs":{…}}
+//   {"op":"wait","ms":2000}                            → {"ok":true,"obs":{…}}  (a bot check clearing)
 //   {"op":"inputs","inputs":{name:value}}              → {"ok":true}
 //   {"op":"close"}                                     → {"ok":true}, then it exits
 //
@@ -22,6 +24,12 @@
 // headless Chromium on a throwaway profile, closed at the end. With cdp: the person's own
 // Chrome over the DevTools protocol, in a new tab of theirs that is the only one touched, and
 // closed at the end; their browser is disconnected from, never closed.
+//
+// Each observation also carries the visible frames' URLs (origin and path; for the mod's bot
+// check) and the console errors and failed requests seen since the last one (capped; request
+// URLs without their query). A click first checks that its target is the element on top at its
+// centre; a covered one is not clicked. After an action it waits as long as the action needs:
+// a navigation for its load, anything else for two animation frames and the requests it started.
 
 import { createRequire } from 'node:module'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
@@ -129,6 +137,33 @@ function inPage(arg) {
     const el = document.querySelector(`[data-jev-id="${CSS.escape(arg.ref)}"]`)
     if (!el || !visible(el)) return { same: false }
     return { same: el.tagName.toLowerCase() === arg.expect.tag && cap(labelOf(el), 120) === arg.expect.label }
+  }
+  if (arg.op === 'covered') {
+    // Whether the element at the target's centre is the target, inside it, or its label; else what is on top.
+    const el = document.querySelector(`[data-jev-id="${CSS.escape(arg.ref)}"]`)
+    if (!el) return { covered: null }
+    if (el.scrollIntoViewIfNeeded) el.scrollIntoViewIfNeeded(true)
+    else el.scrollIntoView({ block: 'center', inline: 'center' })
+    const r = el.getBoundingClientRect()
+    const x = Math.min(Math.max(r.left + r.width / 2, 0), window.innerWidth - 1)
+    const y = Math.min(Math.max(r.top + r.height / 2, 0), window.innerHeight - 1)
+    let hit = document.elementFromPoint(x, y)
+    while (hit && hit.shadowRoot) {
+      const inner = hit.shadowRoot.elementFromPoint(x, y)
+      if (!inner || inner === hit) break
+      hit = inner
+    }
+    if (!hit || hit === el || el.contains(hit) || (hit.getRootNode() instanceof ShadowRoot && el.contains(hit.getRootNode().host))) return { covered: null }
+    const label = hit.closest('label')
+    if (label && (label.control === el || label.contains(el))) return { covered: null }
+    return { covered: `${roleOf(hit)} "${cap(labelOf(hit), 60)}"` }
+  }
+  if (arg.op === 'frames') {
+    // A visible animation frame twice (or the cap): what a same-page interaction needs to paint.
+    return new Promise(resolve => {
+      const cap = setTimeout(() => resolve(false), arg.capMs)
+      requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(cap); resolve(true) }))
+    })
   }
   if (arg.op === 'scroll') {
     window.scrollBy(0, Math.round(window.innerHeight * 0.8))
@@ -255,8 +290,49 @@ let attached = false
 let leftTo = null
 let values = {}
 
+// Requests in flight (with when they started) and when the last main-frame navigation began: an
+// action that navigates waits for the load; one that does not waits only for what it started.
+const inflight = new Map()
+let navAt = 0
+// Console errors and failed requests since the last observation; MAX_EVENTS at most, the rest counted.
+const MAX_EVENTS = 50
+let events = []
+let dropped = 0
+
+function note(kind, text) {
+  if (events.length >= MAX_EVENTS) { dropped++; return }
+  events.push({ kind, text: String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, 300) })
+}
+
+/** A request's URL as an event says it: origin and path, never the query (it can carry what was typed). */
+function bare(url) {
+  try {
+    const u = new URL(url)
+    return `${u.origin}${u.pathname}`.slice(0, 160)
+  } catch {
+    return String(url).split(/[?#]/)[0].slice(0, 160)
+  }
+}
+
 function guard(p) {
   ours.add(p)
+  p.on('console', m => { if (m.type() === 'error') note('console', m.text()) })
+  p.on('pageerror', e => note('console', `uncaught ${String(e?.message ?? e).split('\n')[0]}`))
+  p.on('request', r => {
+    if (inflight.size > 200) for (const [old, at] of inflight) if (Date.now() - at > 60_000) inflight.delete(old) // never finished
+    inflight.set(r, Date.now())
+    try { if (r.isNavigationRequest() && r.frame() === p.mainFrame()) navAt = Date.now() } catch { /* a worker's request */ }
+  })
+  p.on('requestfinished', r => { inflight.delete(r) })
+  p.on('requestfailed', r => {
+    inflight.delete(r)
+    const why = r.failure()?.errorText ?? 'failed'
+    if (/ERR_BLOCKED_BY_CLIENT|ERR_ABORTED/.test(why)) return // ours (the allowlist), or a navigation that replaced it
+    note('network', `${r.method()} ${bare(r.url())} failed: ${why}`)
+  })
+  p.on('response', r => {
+    if (r.status() >= 400) note('network', `${r.request().method()} ${bare(r.url())} answered ${r.status()}`)
+  })
   p.on('framenavigated', frame => {
     if (frame === p.mainFrame() && !allowed(frame.url())) leftTo ??= frame.url()
   })
@@ -277,26 +353,65 @@ function guard(p) {
 
 const IDLE_CAP_MS = 3000
 const LOADING_CAP_MS = 5000
+/** Two animation frames, or this long: what a same-page interaction gets before anything else. */
+const FRAMES_CAP_MS = 50
+/** A combobox or select: the whole wait, capped (its options open at once or come with the next look). */
+const COMBO_CAP_MS = 200
+/** The requests a same-page interaction started: waited for up to this long. */
+const STARTED_CAP_MS = 1500
 
 /**
- * After an action: the navigation's load and the network going quiet (each capped at 3s), then
- * the page itself: the DOM still for a moment (a same-URL update has landed), and while it says
- * it is loading ("Loading…", aria-busy, a spinner), more polling, up to 5s.
+ * After an action, as long as it needs. Two animation frames (or 50ms) first. Then, when it
+ * navigated (or went back): the load (capped at 3s once the DOM is in), the requests started
+ * since going quiet for 100ms (capped at 3s), the DOM still for 300ms, and more while the page
+ * says it is loading. Otherwise (a same-page click, a type, a scroll): the requests it started
+ * (capped at 1.5s; requests already running before it, such as a poll, are not waited for), the
+ * DOM still for 150ms, and the loading check. A combobox gets 200ms in all.
+ * Before, every action waited for Playwright's networkidle (500ms with no request at all, capped
+ * at 3s) and 300ms of still DOM: a type took about half a second, a page with a poll 3 seconds.
  */
-async function settle() {
+async function settle(kind = 'nav', since = Date.now()) {
   if (!page) return
-  await page.waitForTimeout(100).catch(() => {}) // a click's navigation has started by now, if it makes one
+  if (kind !== 'nav' && kind !== 'back') {
+    await frames()
+    await drain(since, kind === 'combo' ? COMBO_CAP_MS : STARTED_CAP_MS, 0, true)
+    if (navAt < since) {
+      if (kind !== 'combo') await ready(150, 800)
+      return
+    }
+  }
   await page.waitForLoadState('domcontentloaded', { timeout: NAV_MS }).catch(() => {})
   await page.waitForLoadState('load', { timeout: IDLE_CAP_MS }).catch(() => {})
-  await page.waitForLoadState('networkidle', { timeout: IDLE_CAP_MS }).catch(() => {})
+  await drain(since, IDLE_CAP_MS, 100, false)
   await ready()
 }
 
-/** The DOM still for 300ms (capped), then, while the page says it is loading, polled up to LOADING_CAP_MS. */
-async function ready() {
+/** Until no request started since `since` is in flight for graceMs, capped; a same-page wait ends early on a navigation. */
+async function drain(since, capMs, graceMs, untilNav) {
+  const end = Date.now() + capMs
+  let quiet = null
+  while (page && Date.now() < end) {
+    if (untilNav && navAt >= since) return
+    if ([...inflight.values()].some(t => t >= since)) quiet = null
+    else if (Date.now() - (quiet ??= Date.now()) >= graceMs) return
+    await new Promise(r => setTimeout(r, 25))
+  }
+}
+
+/** Two animation frames, capped at FRAMES_CAP_MS (a page mid-navigation has none to give). */
+async function frames() {
+  if (!page) return
+  await Promise.race([
+    page.evaluate(inPage, { op: 'frames', capMs: FRAMES_CAP_MS }).catch(() => {}),
+    new Promise(r => setTimeout(r, FRAMES_CAP_MS)),
+  ])
+}
+
+/** The DOM still for quietMs (capped), then, while the page says it is loading, polled up to LOADING_CAP_MS. */
+async function ready(quietMs = 300, capMs = 1500) {
   if (!page) return
   const end = Date.now() + LOADING_CAP_MS
-  await page.evaluate(inPage, { op: 'quiet', quietMs: 300, capMs: 1500 }).catch(() => {})
+  await page.evaluate(inPage, { op: 'quiet', quietMs, capMs }).catch(() => {})
   while (page && Date.now() < end) {
     const busy = await page.evaluate(inPage, { op: 'busy' }).catch(() => false)
     if (!busy) return
@@ -318,12 +433,40 @@ async function observe() {
     const name = Object.keys(values).find(k => squash(values[k]) && seen.includes(squash(values[k])))
     if (name !== undefined) row.holds = name
   }
+  obs.frames = await visibleFrames()
+  obs.events = events
+  if (dropped) obs.eventsDropped = dropped
+  events = []
+  dropped = 0
   return obs
+}
+
+/**
+ * The visible child frames' URLs, for the bot check: origin and path, with the markers that tell
+ * a challenge from a checkbox (hCaptcha's frame=…, reCAPTCHA's size=invisible). At most 20.
+ */
+async function visibleFrames() {
+  const out = []
+  for (const frame of page.frames().slice(0, 40)) {
+    if (frame === page.mainFrame() || out.length >= 20) continue
+    try {
+      const box = await (await frame.frameElement()).boundingBox()
+      if (!box || box.width < 20 || box.height < 20) continue
+      const u = new URL(frame.url())
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') continue
+      const marks = [/[?&#]size=invisible/.test(u.search + u.hash) ? 'size=invisible' : '', /frame=(challenge|checkbox)/.exec(u.hash + u.search)?.[0] ?? '']
+        .filter(Boolean)
+      out.push(`${u.origin}${u.pathname}${marks.length ? `#${marks.join('&')}` : ''}`)
+    } catch { /* detached */ }
+  }
+  return out
 }
 
 async function act(a) {
   if (!page) throw new Error('the page was closed')
   leftTo = null
+  const since = Date.now()
+  let kind = a.kind === 'back' ? 'back' : 'action'
   const target = () => page.locator(`[data-jev-id="${String(a.ref).replace(/["\\]/g, '')}"]`).first()
   if (a.ref !== undefined) {
     const check = await page.evaluate(inPage, { op: 'check', ref: a.ref, expect: a.expect ?? { tag: '', label: '' } }).catch(() => ({ same: false }))
@@ -331,11 +474,16 @@ async function act(a) {
   }
   try {
     if (a.kind === 'click') {
-      await target().click({ timeout: 8000 })
+      // Covered by something else (a banner, a dialog): not clicked, and said so, rather than Playwright's long retry.
+      const check = await page.evaluate(inPage, { op: 'covered', ref: a.ref }).catch(() => ({ covered: null }))
+      if (check.covered) return { covered: check.covered, obs: await observe() }
+      await target().click({ timeout: 5000 })
     } else if (a.kind === 'type') {
       const value = values[a.input]
       if (typeof value !== 'string') return { ok: false, error: 'no value for that input', obs: await observe() }
       const el = target()
+      const combo = await el.evaluate(e => e.tagName === 'SELECT' || e.getAttribute('role') === 'combobox' || e.getAttribute('aria-autocomplete') !== null)
+      if (combo) kind = 'combo'
       if ((await el.evaluate(e => e.tagName)) === 'SELECT') {
         await el.selectOption({ label: value }, { timeout: 5000 }).catch(() => el.selectOption(value, { timeout: 5000 }))
       } else {
@@ -355,8 +503,9 @@ async function act(a) {
     const message = String(error?.message ?? error).split('\n')[0].slice(0, 200)
     return { ok: false, error: message, obs: await observe().catch(() => undefined) }
   }
-  await settle()
+  await settle(kind, since)
   if (leftTo) return { left: leftTo }
+  if (page && /^chrome-error:/.test(page.url())) return { ok: false, error: 'the page it went to failed to load', obs: await observe().catch(() => undefined) }
   if (page && !allowed(page.url())) return { left: page.url() }
   return { ok: true, obs: await observe() }
 }
@@ -420,6 +569,7 @@ async function main() {
     return
   }
   await guard(page)
+  const opened = Date.now()
   try {
     await page.goto(cfg.startUrl, { timeout: NAV_MS, waitUntil: 'domcontentloaded' })
   } catch (error) {
@@ -429,7 +579,7 @@ async function main() {
       return
     }
   }
-  await settle()
+  await settle('nav', opened)
 
   const token = randomBytes(24).toString('base64url')
   const tokenBytes = Buffer.from(token)
@@ -450,6 +600,14 @@ async function main() {
       return { ok: true, obs: await observe() }
     }
     if (msg.op === 'act') return act(msg.action ?? {})
+    if (msg.op === 'wait') {
+      const since = Date.now()
+      await page?.waitForTimeout(Math.max(0, Math.min(10_000, Number(msg.ms) || 0))).catch(() => {})
+      await settle('nav', since)
+      if (leftTo) return { left: leftTo }
+      if (page && !allowed(page.url())) return { left: page.url() }
+      return { ok: true, obs: await observe() }
+    }
     if (msg.op === 'inputs') {
       for (const [k, v] of Object.entries(msg.inputs ?? {})) if (typeof v === 'string') values[k] = v
       return { ok: true }

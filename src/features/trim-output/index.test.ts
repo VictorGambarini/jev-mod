@@ -141,7 +141,7 @@ const page = Array.from({ length: 600 }, (_, i) => (i === 400 ? INJECTED : `<li>
 /** A backend for screening: a passage that holds the planted line scores as an injection. */
 function screeningBackend(fake: Fake, up = true): void {
   fake.fetch = async (_url: string, init?: FetchInit) => {
-    if (!up) return { status: 401, ok: false, text: '' } // a refusal: no cool-off for the tests after
+    if (!up) return { status: 400, ok: false, text: '' } // a bad request: no cool-off for the tests after (a 401 has one)
     const body = JSON.parse(init!.body!)
     fake.asked.push(body)
     const passages = (body.state.passages ?? {}) as Record<string, string>

@@ -35,6 +35,16 @@ test('a failure says what to do, for a provider and for a named backend', () => 
   expect(set).toContain('config: user config: no feature skils (there are routing, skills)')
 })
 
+test('what routing holds to this session, and a refused key or spent budget, say what happens next', () => {
+  const held = report({ ...base, routing: { personModel: 'claude-opus-5-5', drift: 'Jev 1.14 ≠ tuned 1.13', untuned: 'lais05' } })
+  expect(held).toContain('routing: holding your /model (claude-opus-5-5) this session')
+  expect(held).toContain('routing: not routed · Jev 1.14 ≠ tuned 1.13')
+  expect(held).toContain('routing: the lane policy was not tuned for lais05')
+  expect(report({ ...base, check: { ok: false, error: 'credits_exhausted', said: '' } })).toContain('stops asking for 30 minutes')
+  expect(report({ ...base, check: { ok: false, error: 'http_500', said: '' } })).toContain('The backend did not answer')
+  expect(report({ ...base, check: { ok: false, error: 'skipped_budget', said: '' } })).toContain("Today's daily budget is spent")
+})
+
 test('a key echoed back by a server never reaches the screen', () => {
   expect(scrub('HTTP 401: key sk-test-0123456789 is not valid', ['sk-test-0123456789', undefined, 'short'])).toBe('HTTP 401: key [key] is not valid')
 })

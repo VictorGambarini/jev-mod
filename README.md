@@ -11,7 +11,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 
 | Feature | When | What it decides |
 |---|---|---|
-| **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it; above 40k tokens the model only moves up. |
+| **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it, and a second correction in a row starts at escalate; above 40k tokens the model only moves up. A model you choose with `/model` (or the picker) holds for the session, Jev not asked, until you choose Default again; a model set at launch (`--model`, settings) is routed as usual. The lane policy's `security_paths` pre-rule never fires here: a prompt gives no paths to check. When Jev's version is not the one the policy was tuned on, the turn is not routed and the band says so (`not routed · Jev 1.14 ≠ tuned 1.13`). |
 | **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
 | **Tool-call gate** (off by default) | before a consequential tool call Claude Code would allow: Bash that pushes, deletes, rewrites history, publishes, installs, deploys, migrates or writes outside the project; Write/Edit outside the project; MCP tools that send, create, change or delete | Whether you asked for it, whether it breaks a limit you stated ("don't push"), and whether it is hard to undo. A doubtful call is put to you in the permission dialog with the reason, instead of running unasked. It only tightens Claude Code's decision, never loosens it. |
@@ -45,6 +45,9 @@ project file still overrides what was just written.
 
 Every decision fails open: no answer means the turn runs exactly as plain Claude Code. After a
 failed call the mod stops asking for five minutes, so a backend that is down costs one timeout.
+A refused key or an account out of credit stops it for thirty minutes, or until a call answers
+again (`/jev-mod status` checks at once after you replace the key). Every call, the status check
+included, counts against the daily budget; past it, screening screens locally.
 
 ## What you need
 

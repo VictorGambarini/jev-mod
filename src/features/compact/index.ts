@@ -2,6 +2,8 @@ import { hostOf } from '../../core/host'
 import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
 import { recordCalls } from '../../core/jev'
+import { limitsOf } from '../../core/limits'
+import { costOf } from '../../engine/client'
 import { select } from '../../engine/compact'
 import { keepOnly, unitsOf } from './keep'
 
@@ -43,13 +45,17 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
     return { skip }
   }
   if (toJev.length === 0) return done('nothing to judge')
+  // One compaction against the daily budget, its batches charged together.
+  const limits = await limitsOf(io)
+  if (limits && !(await limits.admit(false))[0]) return done("today's budget is spent; nothing was removed")
   let out
   try {
     out = await select(hostOf(io), toJev, { keepLast: 0 }) // the tail is kept by message, in keepOnly
   } catch {
     return done('Jev did not answer; nothing was removed')
   }
-  await recordCalls(io, out.calls ?? [], out.errors, 'compact')
+  await Promise.all([recordCalls(io, out.calls ?? [], out.errors, 'compact'),
+    limits?.charge((out.calls ?? []).reduce((sum, c) => sum + costOf(c), 0))])
   if (out.status === 'fail_open') return done('Jev did not answer; nothing was removed')
   const kept = keepOnly(messages, units, out.fates)
   if (kept.length === messages.length) return done('Jev marked no turn drop; nothing to remove')

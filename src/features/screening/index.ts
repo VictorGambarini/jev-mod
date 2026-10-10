@@ -2,9 +2,11 @@ import { hostOf } from '../../core/host'
 import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
+import { limitsOf } from '../../core/limits'
 import * as memory from '../../core/memory'
 import { modeOf } from '../../core/config'
 import { isPrivate, jevDir } from '../../core/settings'
+import { costOf } from '../../engine/client'
 import { screenResult, withholdText } from '../../engine/screen'
 import { kindOf, screenValue, SCREEN_MAX_TEXTS, SCREEN_MIN_CHARS, type Kind } from './targets'
 
@@ -19,8 +21,8 @@ export { kindOf }
 /**
  * The text with the parts that carry instructions withheld, or null to leave it as it came.
  * Every unit is screened locally; the decision backend judges the rest unless the profile is
- * private or a recent failure has it cooling off, in which case the local verdict stands
- * alone rather than nothing being screened at all.
+ * private, a recent failure has it cooling off or the daily budget is spent, in which case the
+ * local verdict stands alone rather than nothing being screened at all.
  */
 async function screenText(io: IO, tool: string, text: string, raw: boolean) {
   if (text.length < SCREEN_MIN_CHARS) return null
@@ -39,9 +41,15 @@ async function screenText(io: IO, tool: string, text: string, raw: boolean) {
 
 /** The screen's verdict on one text, and whether the backend was to be asked. */
 async function judge(io: IO, tool: string, text: string, raw: boolean) {
-  const send = !coolingOff() && !(await isPrivate(io, await jevDir(io)))
+  let send = !coolingOff() && !(await isPrivate(io, await jevDir(io)))
+  // One screen against the daily budget, as live work (it guards what the model reads): past
+  // the budget it is screened locally, never left unscreened.
+  const limits = send ? await limitsOf(io) : undefined
+  if (limits) send = (await limits.admit(false))[0]
   const verdict = await screenResult(hostOf(io), tool, text, { send, raw })
-  await recordCalls(io, verdict.calls ?? [], verdict.errors ?? [], 'screening')
+  const calls = verdict.calls ?? []
+  await Promise.all([recordCalls(io, calls, verdict.errors ?? [], 'screening'),
+    limits?.charge(calls.reduce((sum, c) => sum + costOf(c), 0))])
   return { verdict, send }
 }
 

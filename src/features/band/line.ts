@@ -8,6 +8,9 @@ export type Features = Record<string, Record<string, any>>
 
 const DIFFICULTY: Record<string, string> = { small: 'easy', medium: 'normal', high: 'hard', escalate: 'critical' }
 
+// A failure that will not mend by itself, said in words beside its code.
+const REASON: Record<string, string> = { auth_failed: 'key refused', credits_exhausted: 'out of credit' }
+
 /** claude-haiku-4-5-20251001 -> haiku 4.5; anything else as it came, less "claude-". */
 export function shortModel(model: string | undefined): string | undefined {
   if (!model) return undefined
@@ -32,15 +35,21 @@ function backend(model: string | undefined): string {
 /** What a new install is told until its config file exists: the band line and the once-per-session toast. */
 export const ONBOARDING = 'jev-mod: nothing on yet · /jev-mod dashboard to choose'
 
-/** The band's segments; a dim "ready" line (or, before any config file exists, the onboarding hint) until the mod has done something this session. */
+/**
+ * The band's segments; a dim "ready" line (or, before any config file exists, the onboarding hint)
+ * until the mod has done something this session. `mod.judging: false` (routing and skills both
+ * off) drops the ready line's promise; `mod.routing: false` hides a lane recorded before routing
+ * was switched off.
+ */
 export function line(features: Features, now: number): Segment[] | null {
-  const routing = features.routing ?? {}
+  const routing = features.mod?.routing === false ? {} : (features.routing ?? {})
   const calls = features.jev ?? {}
   const screening = features.screening ?? {}
   const opened: string[] = Array.isArray(features.access?.open) ? features.access.open.map(String) : []
   const unlocked: Segment[] = opened.length ? [{ text: '  ' }, { text: `🔓 ${opened.join(', ')}`, color: 'yellow' }] : []
   if (!routing.lane && !calls.calls && !calls.error) {
     if (features.mod?.configured === false) return [{ text: `🧭 ${ONBOARDING}`, dim: true }, ...unlocked]
+    if (features.mod?.judging === false) return [{ text: '🧭 jev-mod ready', dim: true }, ...unlocked]
     return [{ text: '🧭 jev-mod ready', dim: true }, { text: ' · judges your next prompt', dim: true }, ...unlocked]
   }
   const out: Segment[] = []
@@ -50,7 +59,8 @@ export function line(features: Features, now: number): Segment[] | null {
     const on = [shortModel(routing.lastModel), routing.effort].filter(Boolean).join(' · ')
     if (routing.changed === false) out.push({ text: `🧭 ${DIFFICULTY[lane]}${on ? ` · ${on}` : ''}` }, { text: ' · kept', dim: true })
     else out.push({ text: `🧭 ${DIFFICULTY[lane]}${on ? ` → ${on}` : ''}` })
-  } else out.push({ text: '🧭 not routed', dim: true })
+    if (routing.untuned) out.push({ text: ' · untuned', dim: true })
+  } else out.push({ text: `🧭 not routed${lane && routing.why ? ` · ${routing.why}` : ''}`, dim: true })
   if (calls.calls) out.push({ text: '  ' }, { text: money(Number(calls.cost ?? 0)), color: 'yellow' }, { text: ` (${calls.calls})`, dim: true })
   if (screening.withheld) out.push({ text: '  ' }, { text: `🛡 withheld ${screening.withheld}`, color: 'red' })
   if (features.browser?.running && features.browser.line) out.push({ text: '  ' }, { text: String(features.browser.line) })
@@ -58,7 +68,8 @@ export function line(features: Features, now: number): Segment[] | null {
   const where = `🔌 ${backend(calls.model)}`
   if (calls.error) {
     const left = Number(calls.retryAt ?? 0) - now
-    out.push({ text: '  ' }, { text: `${where} ✗ ${calls.error}${left > 0 ? `, retry in ${Math.floor(left / 60_000) + 1}m` : ''}`, color: 'red' })
+    const reason = REASON[calls.error] ? ` (${REASON[calls.error]})` : ''
+    out.push({ text: '  ' }, { text: `${where} ✗ ${calls.error}${reason}${left > 0 ? `, retry in ${Math.floor(left / 60_000) + 1}m` : ''}`, color: 'red' })
   } else out.push({ text: '  ' }, { text: where, dim: true })
   return out
 }

@@ -45,3 +45,20 @@ test('an access category open this session shows as a warning, on the ready line
   expect(plain(busy)).toBe('🧭 not routed  $0.00000 (1)  🔓 ssh  🔌 jev')
   expect(plain(line({ access: { open: [] } }, 0)!)).toBe('🧭 jev-mod ready · judges your next prompt')
 })
+
+test('the ready line promises a judgement only while routing or skills is on', () => {
+  expect(plain(line({ mod: { configured: true, judging: false } }, 0)!)).toBe('🧭 jev-mod ready')
+  expect(plain(line({ mod: { configured: true, judging: true } }, 0)!)).toBe('🧭 jev-mod ready · judges your next prompt')
+  // a lane recorded before routing was switched off is not this turn's
+  const off = line({ mod: { configured: true, routing: false, judging: true }, routing: { lane: 'high', changed: true },
+    jev: { calls: 1, cost: 0 } }, 0)!
+  expect(plain(off)).toBe('🧭 not routed  $0.00000 (1)  🔌 jev')
+})
+
+test('why a turn was not routed, and a refused key in words', () => {
+  const drift = line({ routing: { lane: 'as is', why: 'Jev 1.14 ≠ tuned 1.13' }, jev: { calls: 1, cost: 0 } }, 0)!
+  expect(plain(drift)).toBe('🧭 not routed · Jev 1.14 ≠ tuned 1.13  $0.00000 (1)  🔌 jev')
+  const refused = line({ jev: { calls: 1, cost: 0, error: 'auth_failed', retryAt: 30 * 60_000 } }, 0)!
+  expect(plain(refused)).toBe('🧭 not routed  $0.00000 (1)  🔌 jev ✗ auth_failed (key refused), retry in 31m')
+  expect(refused.find(s => s.text.startsWith('🔌'))!.color).toBe('red')
+})

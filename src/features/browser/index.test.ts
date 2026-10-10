@@ -17,17 +17,17 @@ type Pick = { choice: string; p?: number; probs?: Record<string, number> }
 type Brain = { picks?: Pick[]; achieved?: number[]; asked?: number }
 type Sent = { state: any; questions: Record<string, any> }
 
-type Fake = IO & { sent: Sent[]; store: Record<string, unknown> }
+type Fake = IO & { sent: Sent[]; store: Record<string, unknown>; disk: Record<string, string> }
 
-function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: boolean; options?: Record<string, unknown> } = {}): Fake {
+function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: boolean; options?: Record<string, unknown>; limits?: boolean } = {}): Fake {
   const files: Record<string, string> = { [USER]: JSON.stringify({ features: { browser: { mode: 'on', ...(opts.settings ?? {}) } } }) }
   const store: Record<string, unknown> = {}
   const sent: Sent[] = []
   const picks = [...(brain.picks ?? [])]
   const achieved = [...(brain.achieved ?? [])]
-  const env: Record<string, string> = { JEV_HOME: '/jev', JEV_LIMITS: 'off', ...(opts.key === false ? {} : { TYPESAFE_API_KEY: 'test-not-a-key' }) }
+  const env: Record<string, string> = { JEV_HOME: '/jev', JEV_LIMITS: opts.limits ? 'on' : 'off', ...(opts.key === false ? {} : { TYPESAFE_API_KEY: 'test-not-a-key' }) }
   return {
-    sent, store,
+    sent, store, disk: files,
     option: (name: string) => opts.options?.[name] as string | boolean | undefined,
     readFile: async (path: string) => { if (path in files) return files[path]; throw new Error('ENOENT') },
     writeFile: async (path: string, text: string) => { files[path] = text },
@@ -202,6 +202,15 @@ test('page text is redacted and screened before the decision model reads it, and
   expect(pricing).not.toMatch(/ignore all previous instructions/i)
   expect(pricing).toContain('[withheld by Jev screening:')
   expect(text).not.toMatch(/ignore all previous instructions/i)
+})
+
+test('the page screening is admitted to and charged against the daily budget, as each step is', async () => {
+  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'abstain', p: 0.9 }] }, { limits: true })
+  const { launch } = site()
+  await browse(fake, { goal: 'Find the team price', startUrl: 'https://shop.test/' }, { launch })
+  expect(fake.sent.some(b => b.state.passages)).toBe(true)
+  // one admit per request: the steps' and the screens' alike
+  expect(JSON.parse(fake.disk['/jev/limits.state.json']!).count).toBe(fake.sent.length)
 })
 
 test('needs_confirm: a buy the goal does not name stops without asking; approve with resumeId does it', async () => {

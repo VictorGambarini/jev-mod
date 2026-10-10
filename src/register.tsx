@@ -59,6 +59,7 @@ async function envOf($: any, name: string): Promise<string | undefined> {
     case 'JEV_MOD_DASHBOARD': return read(await $.env.get('JEV_MOD_DASHBOARD'))
     case 'JEV_MOD_BROWSER_CDP': return read(await $.env.get('JEV_MOD_BROWSER_CDP'))
     case 'JEV_MOD_BROWSER_DIR': return read(await $.env.get('JEV_MOD_BROWSER_DIR'))
+    case 'JEV_MOD_BENCH_OVERLAY': return read(await $.env.get('JEV_MOD_BENCH_OVERLAY'))
     default: {
       if (!/^[A-Z][A-Z0-9_]{0,63}$/.test(name)) return undefined
       try {

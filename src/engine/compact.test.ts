@@ -62,6 +62,14 @@ test('drop at exactly 0.7 is dropped, at 0.69 kept', async () => {
   expect((await select(fake(() => ({ choice: 'drop', confidence: 0.69 })), plain)).counts.drop).toBe(0)
 })
 
+test('a caller may move the drop bar (a bench run does): 0.8 keeps a 0.75 drop, 0.6 drops it', async () => {
+  const at = (bar: number) => select(fake(() => ({ choice: 'drop', confidence: 0.75 })), plain, { dropConfidence: bar })
+  expect((await at(0.8)).counts.drop).toBe(0)
+  const sure = await select(fake(() => ({ choice: 'drop', confidence: 0.9 })), plain)
+  expect((await at(0.6)).counts).toEqual(sure.counts)
+  expect(sure.counts.drop).toBeGreaterThan(0)
+})
+
 test('Jev failing keeps everything, status fail_open', async () => {
   const out = await select(fake(() => ({ choice: 'drop', confidence: 0.9 }), { failFrom: 1 }), plain)
   expect(out.status).toBe('fail_open')

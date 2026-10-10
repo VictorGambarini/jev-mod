@@ -1,3 +1,4 @@
+import { readOverlay } from './bench-overlay'
 import { hostOf } from './host'
 import type { IO } from './io'
 import { jevDir } from './settings'
@@ -14,12 +15,16 @@ import { checkKnob, checkMode, feature, FEATURES, strictness, type Feature, type
 //   5. older switches:  a /config field set away from its default, then jev-skills' state.json
 //   6. the feature's default (registry.ts)
 //
+// A bench run (JEV_MOD_BENCH_OVERLAY, bench-overlay.ts) adds one layer between 2 and 3: it sets
+// a feature's mode and knobs above both files, except that a protective feature only gets
+// stricter there and a risky one only lower, and neither takes its knobs from it.
+//
 // Both files look like {"features": {"skills": {"mode": "shadow", "<knob>": <value>}}}. A value
 // that does not check is passed over and reported, and so is a file that is not JSON: a typo
 // never turns screening off. Files are read on each use, so an edit holds from the next event.
 
 export type Scope = 'user' | 'project'
-export type Source = 'kill file' | '/config' | Scope | 'older setting' | 'default'
+export type Source = 'kill file' | '/config' | 'bench overlay' | Scope | 'older setting' | 'default'
 
 /** What the layers hold, read once: everything resolve() needs, so it can be pure. */
 export type Snapshot = {
@@ -28,6 +33,8 @@ export type Snapshot = {
   kills: string[]
   options: Record<string, unknown>
   problems: string[]
+  /** A bench run's overlay features (bench-overlay.ts), when JEV_MOD_BENCH_OVERLAY names one. */
+  bench?: Record<string, Record<string, unknown>>
   /** jev-mod's config folder and jev-skills' (where its kill files and state.json are). */
   mod: string
   jev: string
@@ -88,7 +95,10 @@ export async function snapshot(io: IO, features: readonly Feature[] = FEATURES):
   }
   const options = Object.fromEntries(['enabled', ...features.flatMap(f => (f.legacy ? [f.legacy.option] : []))]
     .map(name => [name, io.option(name)]))
-  return { files, state, kills: candidates.filter((_, i) => found[i]), options, problems, mod, jev }
+  const bench: Awaited<ReturnType<typeof readOverlay>> = await readOverlay(io).catch(() => ({}))
+  if (bench.problem) problems.push(bench.problem)
+  return { files, state, kills: candidates.filter((_, i) => found[i]), options, problems, mod, jev,
+    ...(bench.overlay ? { bench: bench.overlay.features } : {}) }
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
@@ -155,10 +165,28 @@ export function resolve(snap: Snapshot, f: Feature): Resolved {
       if ('value' in checked) knobs[name] = { value: checked.value, source: scope }
     }
   }
+  const overlay = snap.bench?.[f.id]
+  if (overlay && !f.protective && !f.risky) {
+    for (const name of Object.keys(f.knobs)) {
+      if (!(name in overlay)) continue
+      const checked = checkKnob(f, name, overlay[name])
+      if ('value' in checked) knobs[name] = { value: checked.value, source: 'bench overlay' }
+    }
+  }
   const at = (mode: Mode, source: Source): Resolved => ({ mode, source, knobs })
   if (killedBy(snap, f).length) return at('off', 'kill file')
   const enabled = snap.options.enabled
   if (enabled === false || enabled === 'false') return at('off', '/config')
+  if (overlay && 'mode' in overlay) {
+    const checked = checkMode(f, overlay.mode)
+    if ('mode' in checked) {
+      // a bench run never loosens what guards the person, nor lets the browser do more
+      const without = resolve({ ...snap, bench: undefined }, f).mode
+      const may = f.protective ? strictness(checked.mode) >= strictness(without)
+        : f.risky ? strictness(checked.mode) <= strictness(without) : true
+      if (may) return at(checked.mode, 'bench overlay')
+    }
+  }
   const project = section(snap.files.project, f.id)
   if (project && 'mode' in project) {
     const checked = checkMode(f, project.mode)

@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { CASES } from '../../../evals/trim-tests/fixtures'
+import { CASES } from './bench/cases'
 import {
   chunks, commandKey, detect, dropOnly, failures, hash, MAX_FAILURES, nameList, oneRequest, parse, remembered, unchanged,
   type Runner,

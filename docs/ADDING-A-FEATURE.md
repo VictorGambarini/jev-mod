@@ -50,3 +50,6 @@
 9. **Check it:** `claude plugin validate .`, `claude plugin test .`, then live: a headless
    `claude -p ... --plugin-dir .` run (stream-json for anything that needs the session open).
 10. **Document it** in the README's feature table.
+11. **Benchmark it**, if it decides with a threshold: `src/features/<name>/bench/` with synthetic
+    cases and an adapter, one line in `src/bench/features.ts`, and a fake-backend test
+    (src/bench/README.md, *Write a bench*). A real run then gives the threshold per backend.

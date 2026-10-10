@@ -1,3 +1,4 @@
+import { dropConfidence } from '../../core/bench-overlay'
 import { hostOf } from '../../core/host'
 import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
@@ -50,7 +51,9 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
   if (limits && !(await limits.admit(false))[0]) return done("today's budget is spent; nothing was removed")
   let out
   try {
-    out = await select(hostOf(io), toJev, { keepLast: 0 }) // the tail is kept by message, in keepOnly
+    // the tail is kept by message, in keepOnly; a bench run may set the drop confidence (core/bench-overlay.ts)
+    const bench = await dropConfidence(io)
+    out = await select(hostOf(io), toJev, { keepLast: 0, ...(bench === undefined ? {} : { dropConfidence: bench }) })
   } catch {
     return done('Jev did not answer; nothing was removed')
   }

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 146" width="720" height="146" role="img" aria-label="/jev-mod compact: decision cost and latency per backend (FAKE)">
+<title>/jev-mod compact: decision cost and latency per backend (FAKE)</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="146" rx="8" class="bg"/>
+<text class="t" x="16" y="26">/jev-mod compact: decision cost and latency per backend (FAKE)</text>
+<text class="st" x="16" y="44">latency per decision call; cost per case as the client bills it (a named backend bills $0 here)</text>
+<text class="fake" x="16" y="62">FAKE BACKEND: example numbers, not a measurement</text>
+<text class="lab" x="162" y="113" text-anchor="end">fake · fake-jev</text>
+<text class="ax" x="174" y="86">latency p50</text>
+<line class="a" x1="170" x2="170" y1="92" y2="122"/>
+<rect x="170" y="101" width="105.33" height="16" rx="3" class="d1"><title>fake · fake-jev: 275 ms</title></rect>
+<text class="lab" x="279.33" y="113">275 ms</text>
+<text class="ax" x="349.33333333333337" y="86">latency p95</text>
+<line class="a" x1="345.33333333333337" x2="345.33333333333337" y1="92" y2="122"/>
+<rect x="345.33333333333337" y="101" width="105.33" height="16" rx="3" class="d1"><title>fake · fake-jev: 397 ms</title></rect>
+<text class="lab" x="454.67" y="113">397 ms</text>
+<text class="ax" x="524.6666666666667" y="86">cost per case</text>
+<line class="a" x1="520.6666666666667" x2="520.6666666666667" y1="92" y2="122"/>
+<rect x="520.6666666666667" y="101" width="2" height="16" rx="3" class="d1"><title>fake · fake-jev: $0</title></rect>
+<text class="lab" x="526.67" y="113">$0</text>
+</svg>

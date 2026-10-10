@@ -1,23 +1,23 @@
 // An offline benchmark for test-log trimming: how much of a log is cut, and how many of the
-// lines the goal needs are lost with it. Plain functions; evals/trim-tests/run.ts prints the table
-// and the test file holds the numbers.
+// lines the goal needs are lost with it. Plain functions: adapter.ts runs them under the bench
+// harness (src/bench/README.md) and pipeline.test.ts holds the numbers.
 //
 // Two paths are measured on each case:
 //   keep-failures-only   what a plain filter does: failures and the summary, nothing else
 //   decision model       the path trim-output takes: fold, split into blocks, one request,
 //                        drop the blocks "not needed" is at least 90% likely for
-// The decision model is a `Decide`: a fake in the tests, a real backend when you wire one in
-// (see evals/trim-tests/README.md).
+// The decision model is a `Decide`: a fake in the tests, a real backend through the bench
+// (`bun src/bench/run.ts trim-output --backend <name>`).
 
-import type { Question } from '../../engine/client'
-import * as tests from './testlog'
-import { chunkText, fold, linesOf, render, request, drop } from './trim'
+import type { Question } from '../../../engine/client'
+import * as tests from '../testlog'
+import { chunkText, fold, linesOf, render, request, drop } from '../trim'
 
 /** Answers each question of one request with the probability that its chunk is needed. */
 export type Decide = (state: Record<string, unknown>, questions: Record<string, Question>) => Promise<Record<string, number>>
 
 export type BenchCase = { name: string; command: string; goal: string; log: string; gold: string[] }
-export type Result = { name: string; lines: number; keptLines: number; cutPercent: number; goldTotal: number; goldLost: string[] }
+export type Result = { name: string; lines: number; keptLines: number; cutPercent: number; goldTotal: number; goldLost: string[]; kept: string[] }
 
 const PATH = '<archive>'
 
@@ -27,7 +27,7 @@ function score(c: BenchCase, kept: string[]): Result {
   const lost = c.gold.filter(g => !have.has(g.trim()))
   return {
     name: c.name, lines, keptLines: kept.length, cutPercent: Math.round(100 * (1 - kept.length / lines)),
-    goldTotal: c.gold.length, goldLost: lost,
+    goldTotal: c.gold.length, goldLost: lost, kept,
   }
 }
 
@@ -40,27 +40,44 @@ export function keepFailuresOnly(c: BenchCase): Result {
   return score(c, kept)
 }
 
-/** The trim-output path with `decide` as the decision model. */
-export async function withDecisionModel(c: BenchCase, decide: Decide): Promise<Result & { asked: number; requests: number }> {
+/** The trim-output path up to its one request: the folded rows, the chunks, and what would be asked. */
+export function prepare(c: BenchCase) {
   const lines = linesOf(c.log)
   const log = tests.parse(lines, c.command)
   if (!log) throw new Error(`${c.name}: not recognised as a test log`)
-  let rows = fold(lines)
+  const rows = fold(lines)
   const chunks = tests.chunks(rows, log)
   const texts = new Map<number, string>()
   chunks.forEach((ch, id) => { if (!ch.keep) texts.set(id, chunkText(rows, ch)) })
   const ids = tests.oneRequest(texts, text => text.length + 16)
-  let requests = 0
+  const asked = ids.length ? request(c.goal, c.command, texts, ids) : null
+  return { lines, rows, chunks, ids, asked }
+}
+
+/**
+ * The trimmed output for a case given the decision model's answers (each chunk's probability
+ * that it is needed): a chunk goes when "not needed" is at least `notNeeded` (the feature's 0.9).
+ */
+export function apply(c: BenchCase, answers: Record<string, number>, notNeeded = tests.NOT_NEEDED): Result & { asked: number } {
+  const { lines, rows, chunks, ids } = prepare(c)
+  let out = rows
   if (ids.length) {
-    const { state, questions } = request(c.goal, c.command, texts, ids)
-    const answers = await decide(state, questions)
-    requests = 1
-    const need = new Map<number, number>()
-    for (const id of ids) if (typeof answers[`c${id}`] === 'number') need.set(id, answers[`c${id}`]!)
-    rows = drop(rows, chunks, tests.dropOnly(need), 0.5)
+    const sure = new Map<number, number>()
+    for (const id of ids) {
+      const p = answers[`c${id}`]
+      if (typeof p === 'number') sure.set(id, 1 - p >= notNeeded - 1e-9 ? 0 : 1)
+    }
+    out = drop(rows, chunks, sure, 0.5)
   }
-  const out = render(rows, lines.length, PATH).split('\n').slice(1)
-  return { ...score(c, out), asked: ids.length, requests }
+  const kept = render(out, lines.length, PATH).split('\n').slice(1)
+  return { ...score(c, kept), asked: ids.length, kept }
+}
+
+/** The trim-output path with `decide` as the decision model. */
+export async function withDecisionModel(c: BenchCase, decide: Decide): Promise<Result & { asked: number; requests: number }> {
+  const { asked } = prepare(c)
+  const answers = asked ? await decide(asked.state, asked.questions) : {}
+  return { ...apply(c, answers), requests: asked ? 1 : 0 }
 }
 
 // ── the fake decision model ──────────────────────────────────────────────────

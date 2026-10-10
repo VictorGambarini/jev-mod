@@ -1,5 +1,5 @@
 import { noul, type Answer, type Question } from '../../engine/client'
-import { isSensitive, redact } from '../../engine/privacy'
+import { redactSecretValues } from '../../engine/privacy'
 
 // The rules gate's rules, with no IO: which rule files apply to a file, how a rule file becomes
 // single rules, which rules are sent when there are too many, what the change looks like to the
@@ -290,7 +290,7 @@ export function lineDiff(before: string, after: string): string {
   return out.join('\n')
 }
 
-/** The pieces of text a call writes, raw, each with its name: what is checked for secrets and then sent. */
+/** The pieces of text a call writes, raw, each with its name: what is redacted and then sent. */
 export function changePieces(tool: string, input: unknown, existing: string | null): [string, string][] {
   const args = input && typeof input === 'object' ? input as Record<string, unknown> : {}
   const str = (v: unknown) => (typeof v === 'string' ? v : '')
@@ -318,19 +318,20 @@ export function changePieces(tool: string, input: unknown, existing: string | nu
 export type Change = { file: string; tool: string; edit: Record<string, string>; text: string }
 
 /**
- * The change as the decision model reads it: each piece redacted, the whole about `maxChars`
- * (shared between the pieces, a short piece leaving its share to the rest), or null when a
- * piece looks like it holds a secret.
+ * The change as the decision model reads it: each piece with every secret value masked (the
+ * literal after `password =` or `apiKey:`, a token, a key; redactSecretValues), the whole about
+ * `maxChars` (shared between the pieces, a short piece leaving its share to the rest), or null
+ * when there is nothing to judge. A change that only names a secret (`apiKey: config.apiKey`) is
+ * sent as it is: edits to auth code are the ones most worth checking.
  */
 export function describeChange(rel: string, tool: string, pieces: [string, string][], maxChars: number): Change | null {
-  if (pieces.some(([, text]) => isSensitive(text))) return null
   const edit: Record<string, string> = {}
   let left = maxChars
   const bySize = pieces.map(([name, text], i) => ({ name, text, i })).sort((x, y) => x.text.length - y.text.length)
   const given: string[] = []
   bySize.forEach((p, k) => {
     const share = Math.max(200, Math.floor(left / (bySize.length - k)))
-    const shown = redact(p.text, share)
+    const shown = redactSecretValues(p.text, share)
     given[p.i] = shown
     left -= Math.min(shown.length, share)
   })
@@ -346,7 +347,9 @@ export function stateOf(change: Change, subagent: boolean): Record<string, unkno
     task: 'An AI coding agent is about to change a file in a project. The project has written rules for its agents. '
       + 'Judge the change against each rule on its own. A rule about something this change does not touch is not broken; '
       + 'a rule is broken only when the change itself does what the rule forbids, or plainly leaves out what the rule '
-      + 'requires of a change like this one.',
+      + 'requires of a change like this one. A rule about other files or about workflow steps (writing tests, updating '
+      + 'a changelog or the docs, committing, reviews, doing something "in the same piece of work") cannot be broken by '
+      + 'one edit to one file: those steps may come in other edits, so such a rule is not broken here.',
     file: change.file,
     tool: change.tool,
     made_by: subagent ? 'a subagent the agent started' : 'the agent',
@@ -359,10 +362,11 @@ export const questionId = (i: number) => `rule_${i + 1}`
 /** One yes/no question per rule: does this change break it? */
 export function questionsFor(rules: readonly Rule[]): Record<string, Question> {
   return Object.fromEntries(rules.map((r, i) => [questionId(i), noul(
-    `Does this change break this rule? Rule (from ${r.source}${r.heading ? `, under "${redact(r.heading, 200)}"` : ''}): "${redact(r.text, MAX_RULE_CHARS + 50)}"`,
+    `Does this change break this rule? Rule (from ${r.source}${r.heading ? `, under "${redactSecretValues(r.heading, 200)}"` : ''}): "${redactSecretValues(r.text, MAX_RULE_CHARS + 50)}"`,
     {
       true: 'the change does what the rule forbids, or leaves out what it requires of this change',
-      false: 'the change keeps to the rule, or the rule is not about anything this change does',
+      false: 'the change keeps to the rule, or the rule is not about anything this change does, or the rule asks for '
+        + 'a step elsewhere (a test, a changelog entry, a commit, a review) that one edit cannot show',
     },
   )]))
 }

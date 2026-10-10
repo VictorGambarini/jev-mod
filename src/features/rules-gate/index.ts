@@ -7,7 +7,6 @@ import { coolingOff, recordCalls } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
 import { isPrivate, jevDir } from '../../core/settings'
 import { ask, costOf, JevError } from '../../engine/client'
-import { isSensitive } from '../../engine/privacy'
 import { resolvePath } from '../tool-gate/rules'
 import {
   changePieces, decide, describeChange, EDIT_TOOLS, foldersDown, globMatches, parseRules, questionsFor, refusal,
@@ -22,8 +21,9 @@ import {
 // the model reads as the call's error), quoting the rule and its file. In "shadow" the judgement
 // runs in the background and is only counted. Edits outside the project are the tool gate's.
 //
-// Every failure (no answer in time, no key, private mode, a secret in the change, the budget, the
-// cool-off) lets the edit go on as Claude Code decided.
+// Every failure (no answer in time, no key, private mode, the budget, the cool-off) lets the edit
+// go on as Claude Code decided. Secret values in a change or a rule are masked before they are
+// sent (redactSecretValues); a change or rule that only mentions a secret is judged like any other.
 
 export const ID = 'rules-gate'
 
@@ -128,14 +128,16 @@ async function judge(io: IO, e: Call, knobs: Knobs, shadow: boolean, started = D
   const rel = full === null ? null : relativeTo(base, full)
   if (rel === null) return null // outside the project: the tool gate's
 
-  const all = (await rulesFor(io, base, rel)).filter(r => !isSensitive(`${r.heading}\n${r.text}`))
+  // A rule that talks about secrets ("Never log API keys") is sent like any other; any secret
+  // value in it is masked by questionsFor, as the change's are by describeChange.
+  const all = await rulesFor(io, base, rel)
   if (!all.length) return null // no written rules for this file: nothing to judge, nothing counted
 
   const skip = async (): Promise<null> => { await activity.count(io, ID, 'skipped'); return null }
   let existing: string | null = null
   if (e.tool === 'Write') { try { existing = await io.readFile(full!) } catch { existing = null } }
   const change = describeChange(rel, e.tool, changePieces(e.tool, e.input, existing), knobs.maxChangeChars)
-  if (!change) return skip() // a secret in the change, or nothing to judge
+  if (!change) return skip() // nothing to judge
   if (coolingOff()) return skip()
   if (await isPrivate(io, await jevDir(io))) return skip()
   const limits = await limitsOf(io)

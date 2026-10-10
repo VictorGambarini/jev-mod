@@ -249,3 +249,90 @@ export function redact(text: string, limit = 4000): string {
   }
   return out
 }
+
+// ── a secret's value, not its name ──────────────────────────────────────────
+//
+// isSensitive() answers "does this text mention a secret" ("Never log API keys", `apiKey:
+// config.apiKey`), which is right for a gate that sends nothing it is unsure of, and wrong for
+// one whose whole subject is code and rules that talk about secrets. For those, maskSecretValues()
+// masks the VALUES a secret's name is given (the literal after `password =`, `apiKey:`,
+// `--token`, "the password is", a bearer or basic credential, a private key block) and keeps the
+// name, and redactSecretValues() does that and then all of redact(). What is left mentions a
+// secret but holds none of the values these rules can see.
+
+const SECRET_KEY_WORD =
+  'api[_ -]?key|apikey|access[_ -]?token|auth[_ -]?token|refresh[_ -]?token|id[_ -]?token|token|authorization|' +
+  'password|passwd|passphrase|pwd|client[_ -]?secret|secret|session[_ -]?cookie|cookie|credit[_ -]?card|' +
+  'card[_ -]?number|cvv|ssn|private[_ -]?key|credentials?'
+// A name holding one of those words: apiKey, DB_PASSWORD, "client_secret", x-api-key, opts.password.
+// Bounded, and only from the start of a name, so a long run of letters cannot make it backtrack
+// for seconds (a minified line, 10,000 x's).
+const SECRET_KEY = `(?<![\\w$.-])[\\w$.-]{0,80}?(?:${SECRET_KEY_WORD})[\\w$-]{0,40}`
+const QUOTED = '"(?:[^"\\\\\\n]|\\\\.)*"|\'(?:[^\'\\\\\\n]|\\\\.)*\'|`(?:[^`\\\\]|\\\\.)*`'
+const SCHEME = '(?:bearer|basic|token|digest)\\s+[^\\s"\'`,;]+'
+const BARE = '[^\\s"\'`,;)}\\]]+'
+// name, an optional closing quote, then `=` (not `==`), `:`, `:=`, `=>` or " is ", then the value;
+// a typed declaration (`apiKey: string = '…'`, `password: Optional[str] = "…"`) is a name too.
+const TYPE = ':\\s*[A-Za-z_$][\\w$.<>\\[\\]|?, ]{0,60}?\\s*=(?![=>])'
+const ASSIGNED = new RegExp(
+  `(${SECRET_KEY}["'\`\\]]?\\s*(?:${TYPE}|:=|=>|=(?!=)|:(?!:)|\\s+is\\s+)\\s*)(${QUOTED}|${SCHEME}|${BARE})`, 'giu')
+// A command-line flag: --password hunter2, --api-key=…
+const FLAG = new RegExp(`((?<![\\w-])--?[\\w-]*(?:${SECRET_KEY_WORD})[\\w-]*(?:=|\\s+))(${QUOTED}|${BARE})`, 'giu')
+// curl's `-u admin:hunter2` / `--user=admin:hunter2`: the part after the colon.
+const USER_PASS = /((?<![\w-])(?:-u|--user)(?:=|\s+)["']?[^\s:"']+:)(?!\[secret\])[^\s"']+/gu
+// A password in a URL: scheme://user:pass@host.
+const URL_PASS = /(\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:)(?!\[secret\])[^\s/@]+(@)/giu
+const SCHEME_ANYWHERE = /\b((?:bearer|basic)\s+)([A-Za-z0-9._~+/-]{8,}=*)/giu
+const PRIVATE_KEY_BLOCK = /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/gu
+
+// What follows a secret's name in code without being its value: a type, an empty or absent
+// value, another name (`config.apiKey`, `getPassword(`), a placeholder already masked.
+const NOT_A_VALUE = /^(?:string|number|boolean|bool|str|int|bytes|any|unknown|null|undefined|none|nil|true|false|this|self|new|await|typeof|optional|required|\[secret\]|\[redacted\]|""|''|``)$/i
+// A dotted value is a reference only when it reads as one: a part of it names a secret
+// (`config.apiKey`, `settings.DB_PASSWORD`) or it starts at a common object. A dot alone is not
+// enough: `correct.horse` and `prod.Xk9pLm2Q` are passwords.
+const DOTTED = /^[A-Za-z_$][\w$]*(?:(?:\.|\?\.|::)[A-Za-z_$][\w$]*)+$/
+const CALL = /^[A-Za-z_$][\w$.]*\($/
+const SECRET_KEY_PART = new RegExp(SECRET_KEY_WORD, 'i')
+const OBJECT_ROOTS = new Set(['this', 'self', 'config', 'cfg', 'conf', 'settings', 'options', 'opts', 'props', 'args', 'ctx',
+  'req', 'request', 'env', 'process', 'os', 'secrets', 'vault', 'credentials', 'params', 'data', 'user', 'auth'])
+
+function isReference(v: string): boolean {
+  if (CALL.test(v)) return true
+  if (!DOTTED.test(v)) return false
+  const parts = v.split(/\?\.|::|\./).filter(Boolean)
+  return OBJECT_ROOTS.has(parts[0]!.toLowerCase()) || parts.some(p => SECRET_KEY_PART.test(p))
+}
+
+function maskValue(value: string): string {
+  const v = value.trim()
+  if (NOT_A_VALUE.test(v) || isReference(v)) return value
+  // A string literal keeps its quotes so the code still reads as code.
+  const q = v[0]
+  if ((q === '"' || q === "'" || q === '`') && v.endsWith(q) && v.length >= 2) {
+    return v.length === 2 ? value : `${q}[secret]${q}`
+  }
+  const scheme = /^(bearer|basic|token|digest)\s+/i.exec(v)
+  return scheme ? `${scheme[0]}[secret]` : '[secret]'
+}
+
+/** The text with every value given to a secret's name masked, the names kept. Nothing else is changed. */
+export function maskSecretValues(text: string): string {
+  let out = foldConfusables(normalize(text))
+  out = out.replace(PRIVATE_KEY_BLOCK, '[private key]')
+  out = out.replace(SCHEME_ANYWHERE, (_, lead: string) => `${lead}[secret]`)
+  out = out.replace(ASSIGNED, (_, lead: string, value: string) => lead + maskValue(value))
+  out = out.replace(FLAG, (_, lead: string, value: string) => lead + maskValue(value))
+  out = out.replace(USER_PASS, (_, lead: string) => `${lead}[secret]`)
+  out = out.replace(URL_PASS, (_, lead: string, at: string) => `${lead}[secret]${at}`)
+  return out
+}
+
+/**
+ * For text whose subject may be secrets (a project's rules, an edit to auth code): every value
+ * maskSecretValues() and redact() find masked, the mention of a secret kept. Use it where a
+ * mention alone must not stop the text being sent; elsewhere isSensitive() still decides.
+ */
+export function redactSecretValues(text: string, limit = 4000): string {
+  return redact(maskSecretValues(text), limit)
+}

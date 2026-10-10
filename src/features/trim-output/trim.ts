@@ -7,6 +7,10 @@
 //      keeps its first and last line and a marker for the ones between. Lines that carry an
 //      error, a warning, a failure, a stack frame or a summary are never folded into a marker,
 //      and neither are the first and last lines of the output.
+//      Two folds run before that and need no model. A block of several lines that comes again
+//      verbatim, later in the output, keeps its first copy and the later ones become one marker
+//      naming the lines they repeat. And a test failure identical to the same failure in this
+//      command's previous run (index.ts remembers those) becomes one "still failing" marker.
 //   2. drop (the decision model): what is still long is cut into chunks at blank lines and
 //      section headers, and the decision model says how likely the current goal still needs
 //      each. A chunk under the threshold is replaced by a marker naming the lines it stood for
@@ -21,6 +25,9 @@ import { encode } from '../../engine/pyjson'
 export const HEAD_LINES = 2
 export const TAIL_LINES = 5
 export const MIN_SIMILAR_RUN = 3
+// A repeated block: at least this many lines, with 3 that are not blank, 2 that differ, and 60 characters.
+export const MIN_COPY_LINES = 4
+const MIN_COPY_CHARS = 60
 export const CHUNK_LINES = 40
 export const MIN_CHUNK_LINES = 8
 export const CHUNK_CHARS = 1200
@@ -88,15 +95,19 @@ export function shapeOf(line: string): string {
  *   repeat   one line that came `count` times in a row
  *   similar  a marker for `count` lines of the same shape as the lines around it
  *   omitted  a marker for `count` lines the decision model judged not needed
+ *   copy     a marker for `count` lines that repeat lines `of`.. verbatim
+ *   same     a marker for failures identical to the previous run's; `text` names the tests
  */
 export type Row = {
-  kind: 'line' | 'repeat' | 'similar' | 'omitted'
+  kind: 'line' | 'repeat' | 'similar' | 'omitted' | 'copy' | 'same'
   text: string
   from: number
   to: number
   count: number
   /** Never folded away or dropped. */
   keep: boolean
+  /** For a copy: the first line (1-based) of the block it repeats. */
+  of?: number
 }
 
 const row = (kind: Row['kind'], text: string, from: number, to: number, keep: boolean): Row =>
@@ -109,19 +120,77 @@ export function linesOf(text: string): string[] {
   return lines
 }
 
-/** Step 1: runs of repeated and similar lines folded. Pure, and sends nothing. */
-export function fold(lines: readonly string[]): Row[] {
+/**
+ * Blocks of MIN_COPY_LINES lines or more that repeat an earlier block verbatim, by the index of
+ * their first line. The repeat is never in the first or last lines or in a `claimed` line; the
+ * block it repeats is whole, earlier and unclaimed. Claims the lines it folds.
+ */
+export function findCopies(lines: readonly string[], claimed: boolean[]): Map<number, { len: number; of: number }> {
+  const K = MIN_COPY_LINES
+  const hi = lines.length - TAIL_LINES
+  const seen = new Map<string, number[]>()
+  const out = new Map<number, { len: number; of: number }>()
+  const key = (i: number) => lines.slice(i, i + K).join('\n')
+  const free = (i: number, len: number) => { for (let k = 0; k < len; k++) if (claimed[i + k]) return false; return true }
+  const worth = (i: number, len: number) => {
+    const text = lines.slice(i, i + len).map(l => l.trim()).filter(Boolean)
+    return text.length >= 3 && new Set(text).size >= 2 && text.join('').length >= MIN_COPY_CHARS
+  }
+  let indexed = 0
+  let i = HEAD_LINES
+  while (i + K <= hi) {
+    // only blocks that end before i can be repeated by one that starts at i
+    for (; indexed + K <= i; indexed++) {
+      if (!free(indexed, K)) continue
+      const k = key(indexed)
+      const list = seen.get(k)
+      if (!list) seen.set(k, [indexed])
+      else if (list.length < 4) list.push(indexed)
+    }
+    if (free(i, K)) {
+      let best = 0
+      let of = -1
+      for (const j of seen.get(key(i)) ?? []) {
+        let len = 0
+        while (i + len < hi && j + len < i && !claimed[i + len] && !claimed[j + len] && lines[i + len] === lines[j + len]) len++
+        if (len > best) { best = len; of = j }
+      }
+      if (best >= K && worth(i, best)) {
+        out.set(i, { len: best, of })
+        for (let k = 0; k < best; k++) claimed[i + k] = true
+        i += best
+        continue
+      }
+    }
+    i++
+  }
+  return out
+}
+
+/** A run of lines the previous run already showed: the line range (0-based) and the tests' names. */
+export type SameRange = { start: number; end: number; names: string }
+
+/** Step 1: repeated blocks, and runs of repeated and similar lines, folded. Pure, and sends nothing. */
+export function fold(lines: readonly string[], same: readonly SameRange[] = []): Row[] {
   const n = lines.length
   const pinned = (i: number) => i < HEAD_LINES || i >= n - TAIL_LINES
   const keep = lines.map((line, i) => pinned(i) || isProtected(line))
   const shapes = lines.map(shapeOf)
+  const claimed: boolean[] = lines.map(() => false)
+  const sameAt = new Map(same.map(s => [s.start, s]))
+  for (const s of same) for (let i = s.start; i <= s.end; i++) claimed[i] = true
+  const copies = findCopies(lines, claimed)
   const rows: Row[] = []
   let i = 0
   while (i < n) {
+    const sm = sameAt.get(i)
+    if (sm) { rows.push(row('same', sm.names, i + 1, sm.end + 1, true)); i = sm.end + 1; continue }
+    const cp = copies.get(i)
+    if (cp) { rows.push({ ...row('copy', '', i + 1, i + cp.len, false), of: cp.of + 1 }); i += cp.len; continue }
     if (pinned(i)) { rows.push(row('line', lines[i]!, i + 1, i + 1, true)); i++; continue }
     // a run of identical lines, protected or not
     let j = i
-    while (j + 1 < n && !pinned(j + 1) && lines[j + 1] === lines[i]) j++
+    while (j + 1 < n && !pinned(j + 1) && !claimed[j + 1] && lines[j + 1] === lines[i]) j++
     if (j > i) {
       rows.push(lines[i]!.trim() === '' ? row('line', lines[i]!, i + 1, j + 1, false) : row('repeat', lines[i]!, i + 1, j + 1, keep[i]!))
       i = j + 1
@@ -129,7 +198,7 @@ export function fold(lines: readonly string[]): Row[] {
     }
     // a run of lines of one shape; a protected line is never folded into a marker
     if (!keep[i]! && lines[i]!.trim() !== '') {
-      while (j + 1 < n && !pinned(j + 1) && !keep[j + 1] && shapes[j + 1] === shapes[i]) j++
+      while (j + 1 < n && !pinned(j + 1) && !claimed[j + 1] && !keep[j + 1] && shapes[j + 1] === shapes[i]) j++
       if (j - i + 1 >= MIN_SIMILAR_RUN) {
         rows.push(row('line', lines[i]!, i + 1, i + 1, false))
         rows.push(row('similar', '', i + 2, j, false))
@@ -246,12 +315,29 @@ export function request(goal: string, command: string, texts: ReadonlyMap<number
  * answer is kept.
  */
 export function drop(rows: readonly Row[], chunks: readonly Chunk[], need: ReadonlyMap<number, number>, threshold: number): Row[] {
+  const cut = chunks.map((c, id) => {
+    const p = need.get(id)
+    return !c.keep && p !== undefined && p < threshold
+  })
+  // a copy marker points at the first copy: a chunk holding lines a shown marker repeats stays
+  for (let again = true; again;) {
+    again = false
+    chunks.forEach((c, id) => {
+      if (cut[id]) return
+      for (const r of rows.slice(c.start, c.end + 1)) {
+        if (r.kind !== 'copy') continue
+        const lo = r.of!
+        const hi = r.of! + r.count - 1
+        chunks.forEach((d, other) => {
+          if (cut[other] && rows[d.start]!.from <= hi && rows[d.end]!.to >= lo) { cut[other] = false; again = true }
+        })
+      }
+    })
+  }
   const out: Row[] = []
   let omitted: Row | null = null
   chunks.forEach((c, id) => {
-    const p = need.get(id)
-    const cut = !c.keep && p !== undefined && p < threshold
-    if (cut) {
+    if (cut[id]) {
       const from = rows[c.start]!.from
       const to = rows[c.end]!.to
       omitted = omitted ? { ...omitted, to, count: to - omitted.from + 1 } : row('omitted', '', from, to, false)
@@ -269,6 +355,8 @@ function render1(r: Row, path: string): string {
     case 'line': return r.text
     case 'repeat': return `${r.text}  (repeated ${r.count} times)`
     case 'similar': return `[jev-mod: ${r.count} similar line${r.count === 1 ? '' : 's'} folded — ${path} lines ${r.from}–${r.to}]`
+    case 'copy': return `[jev-mod: lines ${r.from}–${r.to} repeat lines ${r.of}–${r.of! + r.count - 1} exactly]`
+    case 'same': return `[still failing with the same output as the previous run: ${r.text}]`
     case 'omitted': return `[jev-mod: ${r.count} line${r.count === 1 ? '' : 's'} omitted — full output: ${path} lines ${r.from}–${r.to}]`
   }
 }

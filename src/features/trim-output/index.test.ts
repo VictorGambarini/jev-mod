@@ -2,7 +2,8 @@ import { test, expect } from 'claude-code/testing'
 import type { FetchInit, IO } from '../../core/io'
 import { settled } from '../../core/background'
 import { screenWhole } from '../screening'
-import { noteGoal, trim } from './index'
+import { CASES } from '../../../evals/trim-tests/fixtures'
+import { forget, noteGoal, trim } from './index'
 
 const USER = '/home/u/.config/jev-mod/config.json'
 const ARCHIVE = '/home/u/.cache/jev-mod/outputs'
@@ -227,6 +228,133 @@ test('shadow never waits for the decision model: it returns at once, and the jud
   const today = Object.values(fake.store.activity as Record<string, any>)[0]['trim-output']
   expect(today['would-trim']).toBe(1) // counted once
   expect(today.asked).toBeGreaterThan(0)
+})
+
+const vitestCase = CASES[0]!
+const FAILING = 'src/parser.test.ts > parser > parses nested arrays'
+const STILL = `[still failing with the same output as the previous run: ${FAILING}]`
+const call = (command = vitestCase.command, subagent = false) => ({ command, subagent })
+
+test('a block that repeats verbatim is folded locally, before any model call', async () => {
+  const trace = ['Error: connection lost', '  at connect (net.js:10:5)', '  at retry (net.js:22:9)', '  at run (app.js:4:1)', '  at main (app.js:9:1)', '  at boot (app.js:12:1)']
+  const lines = ['$ run', 'starting']
+  for (let i = 0; i < 6; i++) lines.push(`phase ${i} started at a distinct moment ${'abcdefghij'[i]}`, `phase ${i} produced its own output ${'klmnopqrst'[i]}`, ...trace)
+  for (let i = 0; i < 250; i++) lines.push(`unique row ${i} ${'x'.repeat(i % 7)}${i}${'y'.repeat(i % 5)} end`)
+  lines.push('done', 'a', 'b', 'c', 'd')
+  const fake = io({ mode: 'on', localOnly: true })
+  const out = await trim(fake, call('./run.sh'), bash(lines.join('\n'))) as { stdout: string }
+  expect(out.stdout.match(/repeat lines 5–10 exactly/g)?.length).toBe(5)
+  expect(out.stdout.split('\n').filter(l => l === '  at connect (net.js:10:5)').length).toBe(1)
+  expect(fake.asked.length).toBe(0)
+  const path = /the full output is in (\S+)\]/.exec(out.stdout)![1]!
+  expect(fake.files[path]).toBe(lines.join('\n'))
+})
+
+test('a failure identical to the previous run of the same command is one "still failing" line', async () => {
+  const fake = io({ mode: 'on', localOnly: true })
+  await forget(fake)
+  const first = await trim(fake, call(), bash(vitestCase.log)) as { stdout: string } | null
+  // the first run shows the failure in full
+  expect(first === null || first.stdout.includes('AssertionError: expected')).toBe(true)
+  const second = await trim(fake, call(), bash(vitestCase.log)) as { stdout: string }
+  expect(second.stdout).toContain(STILL)
+  expect(second.stdout).not.toContain('AssertionError')
+  expect(second.stdout).toContain('Tests  1 failed | 167 passed (168)') // the summary stays
+  expect(fake.asked.length).toBe(0)
+  // the same failure, a little slower: still the same
+  const slower = vitestCase.log.replace('4.21s', '9.9s').replace('14ms', '55ms')
+  expect(((await trim(fake, call(), bash(slower))) as { stdout: string }).stdout).toContain(STILL)
+  // another command has its own memory; the failure shows in full
+  const other = await trim(fake, call('npx vitest run src/parser.test.ts'), bash(vitestCase.log)) as { stdout: string } | null
+  expect(other === null || !other.stdout.includes(STILL)).toBe(true)
+  // a changed failure is shown in full
+  const changed = vitestCase.log.replace('[ 1, [ 2, 3 ] ]', '[ 1, [ 2, 4 ] ]')
+  const third = await trim(fake, call(), bash(changed)) as { stdout: string } | null
+  expect(third === null || (third.stdout.includes('AssertionError') && !third.stdout.includes(STILL))).toBe(true)
+  // and the one after it is compared with that run
+  expect(((await trim(fake, call(), bash(changed))) as { stdout: string }).stdout).toContain(STILL)
+})
+
+test('a compaction (forget) clears the memory; so does a pass; the memory holds hashes and is bounded', async () => {
+  const fake = io({ mode: 'on', localOnly: true })
+  await forget(fake)
+  await trim(fake, call(), bash(vitestCase.log))
+  const runs = () => (fake.store.sessions as any).s1.features['trim-output'].runs as Record<string, { fails: Record<string, string> }>
+  expect(Object.keys(runs()).length).toBe(1)
+  expect(JSON.stringify(runs())).not.toContain('vitest run') // the command is a hash
+  expect(JSON.stringify(runs())).not.toContain('AssertionError')
+  await forget(fake)
+  expect(runs()).toEqual({})
+  const after = await trim(fake, call(), bash(vitestCase.log)) as { stdout: string } | null
+  expect(after === null || !after.stdout.includes(STILL)).toBe(true)
+  // a run with no failures leaves nothing to compare with
+  const passing = vitestCase.log.replace(` FAIL  ${FAILING}`, ' ✓ parser > parses nested arrays')
+  await trim(fake, call(), bash(passing))
+  expect(Object.values(runs())[0]!.fails).toEqual({})
+  // at most 20 commands
+  for (let i = 0; i < 25; i++) await trim(fake, call(`npx vitest run --shard ${i}`), bash(vitestCase.log))
+  expect(Object.keys(runs()).length).toBe(20)
+})
+
+test('shadow, a subagent and a preview never record a run, and a subagent never gets the marker', async () => {
+  const fake = io({ mode: 'on', localOnly: true })
+  await forget(fake)
+  const sub = await trim(fake, call(vitestCase.command, true), bash(vitestCase.log))
+  expect(sub === null || !(sub as { stdout: string }).stdout.includes(STILL)).toBe(true)
+  const next = await trim(fake, call(), bash(vitestCase.log)) as { stdout: string } | null // the main agent has not seen it
+  expect(next === null || !next.stdout.includes(STILL)).toBe(true)
+  await forget(fake)
+  // Claude Code kept the output in a file and the model saw 2KB of it: nothing was seen
+  fake.files['/tool-results/v.txt'] = vitestCase.log
+  const preview = bash(vitestCase.log.slice(0, 30_000), { persistedOutputPath: '/tool-results/v.txt', persistedOutputSize: vitestCase.log.length })
+  await trim(fake, call('npx vitest run --other'), { ...preview, stdout: vitestCase.log.slice(0, 100) })
+  expect(((fake.store.sessions as any)?.s1?.features?.['trim-output']?.runs ?? {})).toEqual({})
+  // shadow changes nothing and remembers nothing
+  const shadow = io({ mode: 'shadow', localOnly: true })
+  await forget(shadow)
+  expect(await trim(shadow, call(), bash(vitestCase.log))).toBe(null)
+  expect(await trim(shadow, call(), bash(vitestCase.log))).toBe(null)
+  expect(((shadow.store.sessions as any)?.s1?.features?.['trim-output']?.runs ?? {})).toEqual({})
+})
+
+test('a test log is judged in one request, failures and the summary never sent, and the gold lines survive', async () => {
+  noteGoal(vitestCase.goal)
+  const fake = io({ mode: 'on' }, chunk => (chunk.toLowerCase().includes('parser') ? 0.97 : 0.02))
+  await forget(fake)
+  const out = await trim(fake, call(), bash(vitestCase.log)) as { stdout: string }
+  expect(fake.asked.length).toBe(1)
+  expect(fake.asked[0]!.state.goal).toBe(vitestCase.goal)
+  const sent = Object.values(fake.asked[0]!.state.chunks as Record<string, string>)
+  expect(sent.length).toBeGreaterThan(15)
+  for (const t of sent) {
+    expect(t).not.toContain('AssertionError')
+    expect(t).not.toContain('Tests  1 failed')
+  }
+  const have = new Set(out.stdout.split('\n').map(l => l.trim()))
+  for (const g of vitestCase.gold) expect(have.has(g.trim())).toBe(true)
+  expect(out.stdout.length).toBeLessThan(vitestCase.log.length * 0.35)
+  expect(out.stdout).toMatch(/\[jev-mod: \d+ lines omitted — full output: /)
+})
+
+test('a test log block is dropped only when "not needed" is at least 0.9', async () => {
+  noteGoal(vitestCase.goal)
+  for (const [p, dropped] of [[0.2, false], [0.11, false], [0.1, true]] as const) {
+    const fake = io({ mode: 'on' }, () => p)
+    await forget(fake)
+    const out = await trim(fake, call(), bash(vitestCase.log)) as { stdout: string } | null
+    expect(out !== null && out.stdout.includes('lines omitted')).toBe(dropped)
+  }
+})
+
+test('a test log with a secret in a block is not sent for that block', async () => {
+  noteGoal(vitestCase.goal)
+  const secret = 'sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH'
+  const log = vitestCase.log.replace('[cache] loaded fixtures from test/data/cache.json', `[cache] key ${secret}`)
+  const fake = io({ mode: 'on' }, () => 0.02)
+  await forget(fake)
+  const out = await trim(fake, call(), bash(log)) as { stdout: string }
+  expect(JSON.stringify(fake.asked)).not.toContain('sk-ant-api03')
+  expect(out.stdout).toContain(secret) // kept, as it was: sending it is the risk, not the model reading it
 })
 
 // last: a backend that is down starts the cool-off, which holds for the rest of this file

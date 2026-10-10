@@ -25,7 +25,7 @@ src/
     skills/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
     tool-gate/         index.ts (glue, on tool.check) · rules.ts (pure: risk classifier, state, verdict) · rules.test.ts
-    trim-output/       index.ts (glue, archive) · trim.ts (fold, chunk, drop: pure) · their tests
+    trim-output/       index.ts (glue, archive, last-run memory) · trim.ts (fold, chunk, drop: pure) · testlog.ts (test-runner blocks: pure) · bench.ts (offline benchmark: pure) · their tests
     compact/           /jev-mod compact: index.ts · index.test.ts · keep.ts (pure) · keep.test.ts
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
     access-gate/       index.ts (glue: the session's allows in $.state, /jev-mod access) · rules.ts (pure: the
@@ -164,6 +164,14 @@ second identical call in flight waits on the first one's request; answers with a
 unanswered, and failures, are not kept. An MCP tool remembered (in the session's memory) as
 declared read-only is passed unjudged when `readOnlyMayOverrule` says its name allows it; the
 engine shows the declaration only on a result, so `observe` learns it in the `tool.call` hook.
+
+Output trimming keeps one small record per session: for each of the last 20 commands that printed a
+test run, each named failure's name and a hash of its text (durations ignored), under
+`memory.space('trim-output').runs`, keyed by a hash of the command. A failure identical to the
+previous run's is folded to a "still failing" line. It is written only when the model saw the run's
+failures whole (not a subagent's run, not shadow, not a preview of a persisted output), and the
+`session.compact` hook clears it on any compaction, ours or not, since the model may no longer
+hold the earlier output. A test run's non-failure blocks go to the decision model in one request.
 
 ## The access gate
 

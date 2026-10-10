@@ -186,8 +186,14 @@ export const FEATURES: readonly Feature[] = [
     title: 'Output trimming',
     summary: 'Cuts long Bash output down to what the current goal needs; the full output is kept in a file',
     help: 'on: a Bash output of minLines lines or more is trimmed before the model reads it. Runs of repeated or near-identical '
-      + 'lines are folded locally; then the decision model judges each remaining chunk against your latest request, and '
-      + 'chunks it scores under keepThreshold are replaced by a marker naming their lines. Errors, warnings, failures, stack '
+      + 'lines are folded locally, and so is a block of several lines that comes again verbatim (the first copy stays; later ones '
+      + 'become a marker naming the lines they repeat). For a test run (vitest, jest, pytest, go test, cargo test, bun test, '
+      + 'node --test, mocha), a failure identical to the same failure in the previous run of the same command in this session '
+      + 'becomes "[still failing with the same output as the previous run: <test names>]"; that memory is small and is forgotten '
+      + 'at any compaction. Then the decision model judges each remaining chunk against your latest request, and '
+      + 'chunks it scores under keepThreshold are replaced by a marker naming their lines. A test run is split into passing tests, '
+      + 'other output, failures and the summary instead: every block but the failures and the summary is judged in one request, and '
+      + 'dropped only when "not needed" is at least 90% likely (keepThreshold does not apply). Errors, warnings, failures, stack '
       + 'traces, summaries and the first and last lines are always kept. The full output is saved under '
       + '~/.cache/jev-mod/outputs/ (kept 7 days, never one from the running session, at most 500) and the trimmed output names the file. '
       + 'shadow: what would be cut is computed in the background and counted; nothing is changed and the command never waits for it. '
@@ -198,7 +204,7 @@ export const FEATURES: readonly Feature[] = [
       keepThreshold: { type: 'number', title: 'Keep threshold',
         help: "A chunk is dropped when the decision model's probability that the goal needs it is under this.", default: 0.35, min: 0, max: 1 },
       localOnly: { type: 'boolean', title: 'Local only',
-        help: 'true: fold repeats only, and never send output to the decision model.', default: false },
+        help: 'true: fold repeats only (repeated lines, repeated blocks, unchanged test failures), and never send output to the decision model.', default: false },
     },
   },
   {

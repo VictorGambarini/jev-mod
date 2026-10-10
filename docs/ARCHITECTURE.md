@@ -26,6 +26,9 @@ src/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
     tool-gate/         index.ts (glue, on tool.check) · rules.ts (pure: risk classifier, state, verdict) · rules.test.ts
     trim-output/       index.ts (glue, archive, last-run memory) · trim.ts (fold, chunk, drop: pure) · testlog.ts (test-runner blocks: pure) · bench.ts (offline benchmark: pure) · their tests
+    web-filter/        index.ts (glue: the goal, one request, counts) · filter.ts (pure: hits, duplicates, hosts,
+                       units and overlapping chunks, what stays without asking, markers) · their tests;
+                       src/web-filter.test.ts drives it after screening through the kit
     compact/           /jev-mod compact: index.ts · index.test.ts · keep.ts (pure) · keep.test.ts
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
     access-gate/       index.ts (glue: the session's allows in $.state, /jev-mod access) · rules.ts (pure: the
@@ -141,7 +144,8 @@ file with the state inside it, read-only.
 
 One `tool.call` hook changes what a tool returned, in a fixed order: screening first (WebFetch,
 WebSearch, MCP tools, Bash that fetches), then output trimming (every Bash output, a failed
-command's included), on the text screening left. A large Bash output comes as a preview with the
+command's included), on the text screening left, then the web filter (WebSearch, and a WebFetch of
+`fetchMinChars` or more, never a failed call), on the screened result. A large Bash output comes as a preview with the
 whole of it in Claude Code's file; trimming reads that file, so for a command screening looks at
 the file's text goes through the same screen (`screening.screenWhole`) first, and is not inlined
 when it cannot be screened. A failed command's trimmed text goes back as `{ deny }`: core takes a
@@ -172,6 +176,17 @@ previous run's is folded to a "still failing" line. It is written only when the 
 failures whole (not a subagent's run, not shadow, not a preview of a persisted output), and the
 `session.compact` hook clears it on any compaction, ours or not, since the model may no longer
 hold the earlier output. A test run's non-failure blocks go to the decision model in one request.
+
+The web filter asks one request per result. For a search, each result past the first `keepTop`
+is one question (does it help the query and the person's latest request?); exact duplicate URLs
+go locally, without asking. For a fetch, what is local and what is the model's is split so that a
+wrong answer can only cost tokens on the kinds of text a question most often needs: the first
+part, code, dates, figures (money, a percentage, a version, a measurement, a decimal, a large
+number) and a heading or number the question names always stay and are never sent; every other
+part is the decision model's call. A bare count in prose ("3 ways") is not a figure, or nearly every
+part would stay. Parts overlap by about 20% so each is judged with the context before it, and a
+piece of text is cut only when every part holding it was dropped. Any failure, a missing answer
+included, keeps what it was about; a failed request leaves the whole result as it came.
 
 ## The access gate
 
@@ -268,7 +283,7 @@ event on unchanged, so that is the mod's own choice (`claude plugin validate` li
 hook "with .catch"). Both are silent: test the glue live, not only the rules.
 
 Shadow never adds latency. In shadow a feature changes nothing, so the tool gate, the completion
-gate and output trimming start the decision with `core/background.ts`'s `inBackground` and return
+gate, output trimming and the web filter start the decision with `core/background.ts`'s `inBackground` and return
 at once; the decision counts its own outcome when it lands, once, and anything it throws is
 dropped. `on` waits for the answer, as it must.
 

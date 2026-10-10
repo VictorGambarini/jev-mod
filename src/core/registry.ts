@@ -208,6 +208,33 @@ export const FEATURES: readonly Feature[] = [
     },
   },
   {
+    id: 'web-filter',
+    title: 'Web filter',
+    summary: 'Drops search results and parts of long fetched pages the question does not need',
+    help: 'on: after WebSearch, the decision model is asked in one request whether each result (title, URL, snippet) helps '
+      + 'the search query and your latest request; a result it is at least minConfidence sure does not help is dropped, and so '
+      + 'is a later copy of the same URL. The first keepTop results always stay, in their order, and the list ends with a line '
+      + 'saying how many went. After a WebFetch of fetchMinChars characters or more, the text is cut into parts of about 2,000 '
+      + 'characters (20% overlap, at paragraphs) and the decision model is asked in one request which the fetch\'s prompt and '
+      + 'your latest request need; a dropped part becomes a marker naming what was cut. The first part, and any part with code, '
+      + 'a date, a figure (money, a percentage, a version, a measurement) or a heading or number the question names, always '
+      + 'stays without asking. Nothing is cut from a page whose host your request names. It runs after screening, on the '
+      + 'screened text. No key, private mode, the daily budget, a backend cool-off or no answer within timeoutMs: the result '
+      + 'passes unchanged. A subagent\'s search is judged by its query or fetch prompt alone. '
+      + 'shadow: what would be dropped is judged in the background and counted; nothing changes and nothing waits for it.',
+    modes: ['off', 'shadow', 'on'], default: 'off',
+    knobs: {
+      minConfidence: { type: 'number', title: 'Confidence to drop', default: 0.8, min: 0.5, max: 1,
+        help: 'How sure the decision model must be that a result does not help, or a part is not needed, for it to be dropped.' },
+      keepTop: { type: 'int', title: 'Results always kept', default: 3, min: 1, max: 10,
+        help: 'The first this many distinct search results always stay, in their order.' },
+      fetchMinChars: { type: 'int', title: 'Long fetch (characters)', default: 4000, min: 2000, max: 100_000,
+        help: 'A WebFetch result shorter than this is left alone.' },
+      timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 3000, min: 1000, max: 10000,
+        help: 'How long the result waits for the decision model before it passes unchanged.' },
+    },
+  },
+  {
     id: 'find-files',
     title: 'Find files',
     summary: 'A tool the model calls to find the files that implement something described in plain words',

@@ -76,3 +76,11 @@ test('a backend loading its model counts down in seconds, and pinned yes/no answ
   expect(plain(pinned)).toBe('🧭 not routed  $0.00000 (20)  🔌 von ⚠ yes/no pinned')
   expect(pinned.at(-1)!.color).toBe('yellow')
 })
+
+test('what the web filter cut, and in shadow what it would have', () => {
+  const on = line({ jev: { calls: 2, cost: 0.0001 }, 'web-filter': { results: 4, chunks: 3, chars: 12_345 } }, 0)!
+  expect(plain(on)).toBe('🧭 not routed  $0.00010 (2)  🔎 cut 7 · 12.3k chars  🔌 jev')
+  const shadow = line({ jev: { calls: 2, cost: 0.0001 }, 'web-filter': { would: 5 } }, 0)!
+  expect(plain(shadow)).toBe('🧭 not routed  $0.00010 (2)  🔎 would cut 5  🔌 jev')
+  expect(shadow.find(s => s.text.startsWith('🔎'))!.dim).toBe(true)
+})

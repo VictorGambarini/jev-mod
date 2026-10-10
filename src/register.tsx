@@ -19,6 +19,7 @@ import * as skills from './features/skills'
 import * as toolGate from './features/tool-gate'
 import * as stopGate from './features/stop-gate'
 import * as trimOutput from './features/trim-output'
+import * as webFilter from './features/web-filter'
 
 // jev-mod: a cheap decision model (Jev, or any decision backend) makes the small decisions
 // inside Claude Code, so the expensive model only does the work.
@@ -245,6 +246,7 @@ export const register: Register = (on, given) => {
     routing.turnStarted(e.turnId, e.text)
     stopGate.turnStarted(e.text)
     trimOutput.noteGoal(e.text)
+    webFilter.noteGoal(e.text)
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -339,11 +341,13 @@ export const register: Register = (on, given) => {
     return { result }
   }).catch(() => ({ result: 'status: failed\nreason: browse failed before it finished; the browser was closed.' }))
 
-  // Screening first, on what the tool returned; then output trimming, on what screening left.
+  // Screening first, on what the tool returned; then output trimming and the web filter, on what
+  // screening left.
   on('tool.call', async ($, e, next) => {
     const kind = screening.kindOf(e.tool, e as unknown as Record<string, unknown>)
     const trims = trimOutput.wants(e.tool)
-    if (!kind && !trims) return next(e)
+    const filters = webFilter.wants(e.tool)
+    if (!kind && !trims && !filters) return next(e)
     let ran: any = await next(e)
     if (ran.deny !== undefined) return ran
     const failed = ran.isError === true
@@ -365,6 +369,14 @@ export const register: Register = (on, given) => {
       const given = failed ? (typeof ran.text === 'string' ? ran.text : ran.result) : ran.result
       const result = await trimOutput.trim(io, { command, subagent: Boolean(e.agentId), screen }, given)
       if (result !== null) ran = failed ? failedWith(String(result)) : { ...ran, result }
+    }
+    // web-filter: WebSearch results and a long WebFetch, after screening, on the screened result.
+    if (filters && !failed && ran.result !== undefined) {
+      const input = e as unknown as { query?: unknown; url?: unknown; prompt?: unknown }
+      const text = (v: unknown) => (typeof v === 'string' ? v : undefined)
+      const result = await webFilter.filter(io, { tool: e.tool, query: text(input.query), url: text(input.url),
+        prompt: text(input.prompt), subagent: Boolean(e.agentId) }, ran.result)
+      if (result !== null) ran = { ...ran, result }
     }
     await refresh($)
     return ran

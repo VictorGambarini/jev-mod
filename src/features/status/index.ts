@@ -6,15 +6,17 @@ import * as memory from '../../core/memory'
 import { problems, resolve, snapshot } from '../../core/config'
 import { FEATURES } from '../../core/registry'
 import { isPrivate, jevDir } from '../../core/settings'
-import { BackendError } from '../../engine/backends'
-import { activeBackend, ask, costOf, JevError, noul, type Asked } from '../../engine/client'
+import { BackendError, isLocal } from '../../engine/backends'
+import { activeBackend, ask, costOf, JevError, noul, warnings, type Asked } from '../../engine/client'
 import { backendKey, backendKeySource, keySource, provider, providerKey } from '../../engine/keys'
 import { limitConfig } from '../../engine/lanes'
 import { VERSION } from '../../version'
 import { report, scrub, type Facts } from './report'
 
 // /jev-mod status: which decision backend the mod uses, where its key came from (never the key),
-// one check call with jev-skills' own verification question, each feature's mode and today's spend.
+// one check call with jev-skills' own verification question (which backend and model answered,
+// and whether it is on this machine), a warning about the backend's answers, each feature's mode
+// and today's spend.
 // The check is charged to the daily budget like any other call, and not made once it is spent.
 
 async function readJson(io: IO, path: string): Promise<any> {
@@ -36,7 +38,8 @@ export async function run(io: IO): Promise<{ text: string }> {
   const gateway = ((await io.env('TYPESAFE_BASE_URL')) ?? '').trim().replace(/\/+$/, '')
   const facts: Facts = {
     version: VERSION,
-    backend: backend ? { name: backend.name, model: backend.model, url: backend.url } : null,
+    backend: backend ? { name: backend.name, model: backend.model, url: backend.url, local: isLocal(backend.url),
+      maxInputChars: backend.maxInputChars, firstTimeoutMs: backend.firstTimeoutMs } : null,
     provider: chosen,
     keySource: backend ? await backendKeySource(host, backend) : chosen === 'absent' ? 'none' : await keySource(host, chosen),
     gateway: gateway && gateway !== 'https://api.typesafe.ai' ? gateway : null,
@@ -55,7 +58,8 @@ export async function run(io: IO): Promise<{ text: string }> {
     try {
       const reply: Asked = await ask(host, 'The build finished and all tests passed.',
         { ok: noul('The text reports a successful outcome') }, { timeoutMs: 15_000 })
-      facts.check = { ok: true, model: reply.jev_model, ms: Date.now() - started, cost: costOf(reply) }
+      facts.check = { ok: true, model: reply.jev_model, ms: Date.now() - started, cost: costOf(reply), via: reply.provider,
+        local: backend ? isLocal(backend.url) : false }
       await Promise.all([recordCalls(io, [reply]), limits?.charge(costOf(reply))])
     } catch (error) {
       const code = error instanceof JevError ? error.code : 'error'
@@ -66,6 +70,7 @@ export async function run(io: IO): Promise<{ text: string }> {
   await memory.load(io)
   const { personModel, drift, untuned } = memory.space<{ personModel?: string; drift?: string; untuned?: string }>('routing')
   facts.routing = { personModel, drift, untuned }
+  facts.warnings = warnings()
   const config = limitConfig(await readJson(io, `${dir}/limits.json`))
   const state = await readJson(io, `${dir}/limits.state.json`)
   const today = new Date()

@@ -48,3 +48,19 @@ test('what routing holds to this session, and a refused key or spent budget, say
 test('a key echoed back by a server never reaches the screen', () => {
   expect(scrub('HTTP 401: key sk-test-0123456789 is not valid', ['sk-test-0123456789', undefined, 'short'])).toBe('HTTP 401: key [key] is not valid')
 })
+
+test('a backend on this machine with no key: where it is, who answered, and what to tune', () => {
+  const local = report({ ...base, keySource: 'none',
+    backend: { name: 'ollaya', model: 'laya-0.4', url: 'http://localhost:11435/v1/systemone', local: true, maxInputChars: 1800, firstTimeoutMs: 60000 },
+    check: { ok: true, model: 'laya-0.4', ms: 80, cost: 0, via: 'ollaya', local: true },
+    warnings: ["ollaya's last 20 yes/no answers all sit at 0.2 or below, or 0.8 or above"] })
+  expect(local).toContain('backend: ollaya · laya-0.4 at http://localhost:11435/v1/systemone (local) · reads at most 1800 characters, first call may take 60000 ms')
+  expect(local).toContain('key: none, so none is sent (a server on this machine needs none)')
+  expect(local).toContain('check: ok, answered by laya-0.4 on ollaya (local) in 80 ms ($0.00000)')
+  expect(local).toContain("confidence: computed from each answer's probabilities in Jev's units")
+  expect(local).toContain("warning: ollaya's last 20 yes/no answers")
+  expect(report({ ...base, check: { ok: false, error: 'loading', said: '' } })).toContain('still be loading its model')
+  for (const error of ['truncated', 'input_too_long', 'over_input_limit']) {
+    expect(report({ ...base, check: { ok: false, error, said: '' } })).toContain('nothing was judged')
+  }
+})

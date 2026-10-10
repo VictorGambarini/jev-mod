@@ -275,7 +275,8 @@ export const FEATURES: readonly Feature[] = [
     id: 'band',
     title: 'jev-mod band',
     summary: 'A line above the prompt: what jev-mod decided, its cost, what screening withheld',
-    help: 'on: the band shows once the mod has done something this session. off: nothing is drawn.',
+    help: 'on: the band shows once the mod has done something this session, with the backend that answered (red while it '
+      + 'is failing, a ⚠ while its yes/no answers look pinned). off: nothing is drawn.',
     modes: ['off', 'on'], default: 'on', knobs: {},
     legacy: { option: 'band', unset: 'on' },
   },

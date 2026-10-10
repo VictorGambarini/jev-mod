@@ -10,7 +10,11 @@
 //                            "url": "https://lais05.example/v1/systemone",
 //                            "model": "Cloudflare/clef-flash"}}}
 //
-// A backend's key is its own (keys.ts) and is only ever sent to that backend's own URL.
+// A backend's key is its own (keys.ts) and is only ever sent to that backend's own URL; a
+// backend with no key (a server on this machine) gets no Authorization header at all. Two
+// optional limits belong to the server: `max_input_chars`, over which a state is not sent (a
+// model that reads only so much would judge a cut text), and `first_timeout_ms`, the time
+// allowed until it first answers this session (a local server may load its model then).
 //
 // Ported from jev-skills' jevkit/backends.py and tuning.check, reading the same file, so an
 // install set up with `jev backend add` keeps working. Where the URL rules differ from
@@ -39,7 +43,15 @@ export type Backend = {
   protocol: 'systemone'
   keyEnv: string
   tuning: Record<string, number>
+  /** A state longer than this (in characters, as sent) is not sent: the answers are not judged. */
+  maxInputChars?: number
+  /** The timeout until the backend first answers this session, over the caller's own. */
+  firstTimeoutMs?: number
 }
+
+// The bounds of the two limits, as backends.json may set them.
+export const MAX_INPUT_CHARS: [number, number] = [200, 1_000_000]
+export const FIRST_TIMEOUT_MS: [number, number] = [1000, 300_000]
 
 export function defaultKeyEnv(name: string): string {
   return 'JEV_BACKEND_' + name.toUpperCase().replace(/[^A-Z0-9]/g, '_') + '_API_KEY'
@@ -97,6 +109,12 @@ function split(url: string): [SplitURL, number | null] | null {
   }
 }
 
+/** Whether a backend's URL is this machine: 127.0.0.1, ::1 or localhost. */
+export function isLocal(url: string): boolean {
+  const parts = split(strip(url))
+  return !!parts && LOOPBACK.includes(parts[0].hostname ?? '')
+}
+
 /** https anywhere, http only on loopback; no credentials, query or fragment in the URL. */
 export function checkUrl(url: string): string {
   const s = strip(url)
@@ -147,7 +165,20 @@ export function parse(name: string, raw: unknown): Backend {
   } catch (error) {
     throw new BackendError(`backend ${repr(name)}: ${(error as Error).message}`)
   }
-  return { name, url: checkUrl(String(raw.url || '')), model: strip(model), protocol: 'systemone', keyEnv: keyEnv as string, tuning }
+  const out: Backend = { name, url: checkUrl(String(raw.url || '')), model: strip(model), protocol: 'systemone', keyEnv: keyEnv as string, tuning }
+  const limit = (field: string, [low, high]: [number, number]): number | undefined => {
+    const value = raw[field]
+    if (value === undefined || value === null) return undefined
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < low || value > high) {
+      throw new BackendError(`backend ${repr(name)}: ${field} must be a whole number from ${low} to ${high}`)
+    }
+    return value
+  }
+  const maxInputChars = limit('max_input_chars', MAX_INPUT_CHARS)
+  const firstTimeoutMs = limit('first_timeout_ms', FIRST_TIMEOUT_MS)
+  if (maxInputChars !== undefined) out.maxInputChars = maxInputChars
+  if (firstTimeoutMs !== undefined) out.firstTimeoutMs = firstTimeoutMs
+  return out
 }
 
 export type BackendsFile = { default: unknown; backends: Record<string, unknown> }

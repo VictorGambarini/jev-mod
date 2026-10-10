@@ -54,7 +54,8 @@ function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: bool
           const p = next.p ?? 0.9
           const rest = options.filter(o => o !== next.choice)
           const probabilities = next.probs ?? Object.fromEntries(options.map(o => [o, o === next.choice ? p : (1 - p) / rest.length]))
-          return [name, { type: 'choice', choice: next.choice, probabilities, confidence: p }]
+          // x_jev_confidence: a named backend's confidence is read in Jev's units (engine/client.ts), so say it is p
+          return [name, { type: 'choice', choice: next.choice, probabilities, confidence: p, x_jev_confidence: p }]
         }
         if (name.startsWith('inj_')) {
           const passage = String(body.state.passages[`P${name.slice(4)}`])

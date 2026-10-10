@@ -1,6 +1,7 @@
 // The jev-mod band above the prompt: what jev-mod decided this turn, its cost this session, what
 // screening withheld, which access categories this session has opened (🔓, so an open door is
-// always in sight), and which backend answers (red, with the reason, while it is failing).
+// always in sight), and which backend answers (red, with the reason, while it is failing; yellow ⚠
+// while its yes/no answers look pinned).
 // Pure: the session's record in, coloured segments out; register.tsx draws them.
 
 export type Segment = { text: string; color?: 'yellow' | 'red' | 'green'; dim?: boolean }
@@ -9,7 +10,7 @@ export type Features = Record<string, Record<string, any>>
 const DIFFICULTY: Record<string, string> = { small: 'easy', medium: 'normal', high: 'hard', escalate: 'critical' }
 
 // A failure that will not mend by itself, said in words beside its code.
-const REASON: Record<string, string> = { auth_failed: 'key refused', credits_exhausted: 'out of credit' }
+const REASON: Record<string, string> = { auth_failed: 'key refused', credits_exhausted: 'out of credit', loading: 'model loading' }
 
 /** claude-haiku-4-5-20251001 -> haiku 4.5; anything else as it came, less "claude-". */
 export function shortModel(model: string | undefined): string | undefined {
@@ -69,8 +70,9 @@ export function line(features: Features, now: number): Segment[] | null {
   if (calls.error) {
     const left = Number(calls.retryAt ?? 0) - now
     const reason = REASON[calls.error] ? ` (${REASON[calls.error]})` : ''
-    out.push({ text: '  ' }, { text: `${where} ✗ ${calls.error}${reason}${left > 0 ? `, retry in ${Math.floor(left / 60_000) + 1}m` : ''}`, color: 'red' })
+    out.push({ text: '  ' }, { text: `${where} ✗ ${calls.error}${reason}${left > 0 ? `, retry in ${left < 60_000 && calls.error === 'loading' ? `${Math.ceil(left / 1000)}s` : `${Math.floor(left / 60_000) + 1}m`}` : ''}`, color: 'red' })
   } else out.push({ text: '  ' }, { text: where, dim: true })
+  if (calls.warning) out.push({ text: ' ⚠ yes/no pinned', color: 'yellow' })
   return out
 }
 

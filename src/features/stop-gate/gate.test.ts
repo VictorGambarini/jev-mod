@@ -2,7 +2,8 @@ import { test, expect } from 'claude-code/testing'
 import type { Answer } from '../../engine/client'
 import { checkQuestions } from '../../engine/client'
 import {
-  answersOf, claims, claimsCompletion, decide, evidence, isRequest, keepIds, mayNudge, nudge, nudged, questionsOf, requestIndex,
+  actedAfter, answersOf, claims, claimsCompletion, decide, decideShort, evidence, isConsequential, shortAnswersOf, shortQuestions, shortStateOf,
+  stopShortNote, unfinishedStep, unverifiedNote, isRequest, keepIds, mayNudge, nudge, nudged, questionsOf, requestIndex,
   stateOf, TAG, type Message,
 } from './gate'
 import { redact } from '../../engine/privacy'
@@ -75,7 +76,7 @@ test('the budget keeps the newest check, keeps output ends, and says how many we
 test('the questions are ones the API accepts, and the claims are the choice offered', () => {
   const found = ['Fixed it.', 'All tests pass.']
   const q = checkQuestions(questionsOf(found))
-  expect(Object.keys(q)).toEqual(['claims_done', 'supported', 'unverified_checks', 'weakest'])
+  expect(Object.keys(q)).toEqual(['claims_done', 'supported', 'cannot_tell', 'unverified_checks', 'weakest'])
   expect(q.weakest!.criteria).toEqual({ claim_0: 'Fixed it.', claim_1: 'All tests pass.', none: 'every claim is supported by the evidence' })
   expect(Object.keys(questionsOf([]))).not.toContain('weakest')
 })
@@ -92,31 +93,67 @@ const pick = (c: string): Answer => ({ type: 'choice', choice: c, probabilities:
 test("answers are read only when every yes/no came back, and a pick off the list is no pick", () => {
   const found = ['Fixed it.']
   expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2) }, found)).toBe(null)
-  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('claim_0') }, found))
-    .toEqual({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.1, weakest: 0 })
-  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('none') }, found)?.weakest).toBe('none')
-  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('claim_7') }, found)?.weakest).toBe(null)
+  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('claim_0') }, found)).toBe(null) // no cannot_tell
+  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), cannot_tell: noul(0.3), weakest: pick('claim_0') }, found))
+    .toEqual({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.1, cannot_tell: 0.3, weakest: 0 })
+  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), cannot_tell: noul(0), weakest: pick('none') }, found)?.weakest).toBe('none')
+  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), cannot_tell: noul(0), weakest: pick('claim_7') }, found)?.weakest).toBe(null)
 })
 
-test('the verdict nudges only when a claim is made and Jev is sure enough it is unshown', () => {
+const ans = (supported: number, unverified_checks: number, cannot_tell: number, weakest: number | 'none' | null, claims_done = 0.9) =>
+  ({ claims_done, supported, unverified_checks, cannot_tell, weakest })
+
+test('each claim verdict: none, shown, not shown, could not tell', () => {
   const found = ['Fixed it.', 'All tests pass.']
-  expect(decide({ claims_done: 0.3, supported: 0, unverified_checks: 1, weakest: 1 }, found, 0.7)).toEqual({ nudge: false, why: 'no claim' })
-  expect(decide({ claims_done: 0.9, supported: 0.4, unverified_checks: 0.2, weakest: 0 }, found, 0.7)).toEqual({ nudge: false, why: 'supported' })
-  expect(decide({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.1, weakest: 0 }, found, 0.7))
-    .toEqual({ nudge: true, claim: 'Fixed it.', checks: false, confidence: 0.8 })
-  expect(decide({ claims_done: 0.9, supported: 0.9, unverified_checks: 0.85, weakest: 1 }, found, 0.7))
-    .toEqual({ nudge: true, claim: 'All tests pass.', checks: true, confidence: 0.85 })
-  expect(decide({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.1, weakest: null }, found, 0.7)).toMatchObject({ nudge: true, claim: null })
+  // no claim made
+  expect(decide(ans(0, 1, 0, 1, 0.3), found, 0.7)).toEqual({ verdict: 'none' })
+  // shown: Jev names none unsupported, or leans supported
+  expect(decide(ans(0.2, 0.9, 0, 'none'), found, 0.7)).toEqual({ verdict: 'shown' })
+  expect(decide(ans(0.7, 0.2, 0.1, 0), found, 0.7)).toEqual({ verdict: 'shown' })
+  // not shown: sure the evidence lacks it or contradicts it
+  expect(decide(ans(0.2, 0.1, 0.1, 0), found, 0.7)).toEqual({ verdict: 'not-shown', claim: 'Fixed it.', checks: false, confidence: 0.8 })
+  expect(decide(ans(0.9, 0.85, 0.1, 1), found, 0.7)).toEqual({ verdict: 'not-shown', claim: 'All tests pass.', checks: true, confidence: 0.85 })
+  expect(decide(ans(0.2, 0.1, 0.1, null), found, 0.7)).toMatchObject({ verdict: 'not-shown', claim: null })
+  // could not tell: Jev says the evidence cannot show it either way
+  expect(decide(ans(0.5, 0.3, 0.8, 1), found, 0.7)).toEqual({ verdict: 'could-not-tell', claim: 'All tests pass.', confidence: 0.8, reason: 'thin' })
+  // ... or a low-confidence answer: leans unshown but under minConfidence
+  expect(decide(ans(0.4, 0.2, 0.1, 0), found, 0.7)).toEqual({ verdict: 'could-not-tell', claim: 'Fixed it.', confidence: 0.6, reason: 'unsure' })
+})
+
+test('the could-not-tell band is lower when the evidence was cut to fit, and never overrides a sure supported', () => {
+  const found = ['Fixed it.']
+  expect(decide(ans(0.5, 0.2, 0.5, 0), found, 0.7)).toMatchObject({ verdict: 'could-not-tell', reason: 'unsure' })
+  expect(decide(ans(0.5, 0.2, 0.5, 0), found, 0.7, true)).toMatchObject({ verdict: 'could-not-tell', reason: 'thin' })
+  expect(decide(ans(0.9, 0.1, 0.9, 0), found, 0.7)).toEqual({ verdict: 'shown' })
+  // sure it is unshown and cannot-tell low: accused even when cut
+  expect(decide(ans(0.1, 0.1, 0.2, 0), found, 0.7, true)).toMatchObject({ verdict: 'not-shown' })
+})
+
+test('evidence says when something was cut to fit', () => {
+  expect(evidence([user('go'), said('', bash('ls', 'a'))], 6000).cut).toBe(false)
+  const many = Array.from({ length: 30 }, (_, i) => bash(`cat f${i}`, 'z'.repeat(500)))
+  expect(evidence([user('go'), said('', ...many)], 1000).cut).toBe(true)
+  expect(evidence([user('go'), said('', bash('npm test', 'x'.repeat(5000)))], 6000).cut).toBe(true)
 })
 
 test('the nudge names the claim, asks to verify or say what is unverified, and rules out hard-to-undo steps', () => {
-  const text = nudge({ nudge: true, claim: 'All tests pass.', checks: true, confidence: 0.9 })
+  const text = nudge({ verdict: 'not-shown', claim: 'All tests pass.', checks: true, confidence: 0.9 })
   expect(text.startsWith(TAG)).toBe(true)
   expect(text).toContain('"All tests pass."')
   expect(text).toContain('no run of them appears after your last change')
   expect(text).toContain('say plainly in your answer what is not verified')
   expect(text).toContain('Do not take destructive or hard-to-undo steps')
-  expect(nudge({ nudge: true, claim: null, checks: false, confidence: 0.9 })).toContain('that the work is complete')
+  expect(nudge({ verdict: 'not-shown', claim: null, checks: false, confidence: 0.9 })).toContain('that the work is complete')
+})
+
+test('the could-not-tell note is shorter, names the claim, and asks only to say it is unverified', () => {
+  const text = unverifiedNote({ verdict: 'could-not-tell', claim: 'All tests pass.', confidence: 0.8, reason: 'thin' })
+  expect(text.startsWith(TAG)).toBe(true)
+  expect(text).toContain('"All tests pass."')
+  expect(text).toContain('Run nothing more')
+  expect(text).toContain('unverified')
+  expect(text).not.toContain('verify it now')
+  expect(text.length).toBeLessThan(nudge({ verdict: 'not-shown', claim: 'All tests pass.', checks: false, confidence: 0.9 }).length)
 })
 
 test('nudges are capped per prompt and start again with the next one', () => {
@@ -170,7 +207,7 @@ test('an edit after an earlier check means the check no longer shows the work', 
 })
 
 test('the nudge says what was read, not that nothing in the session shows it', () => {
-  const text = nudge({ nudge: true, claim: 'CI passed.', checks: false, confidence: 0.9 })
+  const text = nudge({ verdict: 'not-shown', claim: 'CI passed.', checks: false, confidence: 0.9 })
   expect(text).not.toContain("nothing in this session's tool output")
   expect(text).toContain('earlier commands')
 })
@@ -253,8 +290,8 @@ test('plans, conditionals, questions and unfinished work are not claims', () => 
 
 test("when Jev picks no claim as unsupported, the gate does not nudge with a generic one", () => {
   const found = ['Fixed it.']
-  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('none') }, found)?.weakest).toBe('none')
-  expect(decide({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.9, weakest: 'none' }, found, 0.7)).toEqual({ nudge: false, why: 'supported' })
+  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), cannot_tell: noul(0), weakest: pick('none') }, found)?.weakest).toBe('none')
+  expect(decide({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.9, cannot_tell: 0, weakest: 'none' }, found, 0.7)).toEqual({ verdict: 'shown' })
 })
 
 test('an unverified completion claim with no evidence at all is still nudged', () => {
@@ -263,7 +300,78 @@ test('an unverified completion claim with no evidence at all is still nudged', (
   const ev = evidence([user('fix the parser'), said('Done. All tests pass and CI is green.')], 6000)
   expect(ev.commands).toEqual([])
   expect(ev.ran_checks).toBe(false)
-  const v = decide({ claims_done: 0.95, supported: 0.05, unverified_checks: 0.9, weakest: 0 }, found, 0.7)
-  expect(v).toMatchObject({ nudge: true, claim: found[0], checks: true })
-  expect(nudge(v as Extract<typeof v, { nudge: true }>)).toContain(`"${found[0]}"`)
+  const v = decide({ claims_done: 0.95, supported: 0.05, unverified_checks: 0.9, cannot_tell: 0.1, weakest: 0 }, found, 0.7)
+  expect(v).toMatchObject({ verdict: 'not-shown', claim: found[0], checks: true })
+  expect(nudge(v as Extract<typeof v, { verdict: 'not-shown' }>)).toContain(`"${found[0]}"`)
+})
+
+// ── stopping short ─────────────────────────────────────────────────────────────
+
+test('a final sentence that promises the next step is a candidate, with its step', () => {
+  expect(unfinishedStep('Parser fixed. Let me run the tests next.')).toEqual({ sentence: 'Let me run the tests next.', step: 'run the tests', kind: 'promise' })
+  expect(unfinishedStep('Next I\'ll update the docs.')).toMatchObject({ kind: 'promise', step: 'update the docs' })
+  expect(unfinishedStep("Now I'm going to fix the failing import.")).toMatchObject({ kind: 'promise', step: 'fix the failing import' })
+  expect(unfinishedStep('The next step is to add a test.')).toMatchObject({ kind: 'promise', step: 'add a test' })
+})
+
+test('a final sentence that asks leave for work is a candidate, with its step', () => {
+  expect(unfinishedStep('I found the bug in parse(). Want me to go ahead and fix it?')).toEqual({ sentence: 'Want me to go ahead and fix it?', step: 'fix it', kind: 'permission' })
+  expect(unfinishedStep('Shall I run the tests?')).toMatchObject({ kind: 'permission', step: 'run the tests' })
+  expect(unfinishedStep("Let me know if you'd like me to update the docs.")).toMatchObject({ kind: 'permission', step: 'update the docs' })
+  expect(unfinishedStep("I can fix the types if you'd like.")).toMatchObject({ kind: 'permission', step: 'fix the types' })
+})
+
+test('real questions, choices, waiting and mid-message promises are not candidates', () => {
+  for (const text of ['Which file should I edit?', 'Should I use Postgres or SQLite?', 'What should the endpoint be called?',
+    'Do you want the old behaviour or the new one?', 'Let me know if you need anything else.', "I'll wait for your answer.",
+    'I ran the tests. They pass.', 'Let me run the tests next. All 12 pass.', 'If the build fails, let me look at it.',
+    'Which of these two do you prefer?', 'I need access to the staging server to continue.'])
+    expect(unfinishedStep(text)).toBe(null)
+})
+
+test('a pending step that is hard to undo is recognised, so the agent is never sent back to take it', () => {
+  for (const step of ['push the branch', 'deploy it to production', 'delete the old files', 'install the dependencies', 'run the migration', 'migrate the database', 'send the email',
+    'force push', 'merge the PR', 'publish the package'])
+    expect(isConsequential(step)).toBe(true)
+  for (const step of ['run the tests', 'update the docs', 'fix it', 'add a test', 'read the config'])
+    expect(isConsequential(step)).toBe(false)
+  // the candidate still parses; the glue holds it back
+  expect(isConsequential(unfinishedStep('Want me to go ahead and push it?')!.step)).toBe(true)
+})
+
+test('a message that ran tools after the sentence did the step; the final text alone did not', () => {
+  const sentence = 'Let me run the tests next.'
+  expect(actedAfter([user('go'), said(sentence)], sentence)).toBe(false)
+  expect(actedAfter([user('go'), said(sentence, bash('npm test', 'ok'))], sentence)).toBe(true)
+  expect(actedAfter([user('go'), said('earlier', bash('ls', 'a')), said(sentence)], sentence)).toBe(false)
+})
+
+test('the stop-short questions are ones the API accepts, and the state holds the request, the last message and the step, redacted', () => {
+  expect(Object.keys(checkQuestions(shortQuestions()))).toEqual(['stopped_short', 'requested', 'needs_person'])
+  const pending = unfinishedStep('Let me run the SECRET tests next.')!
+  const state = shortStateOf('fix SECRET', 'All fixed. Let me run the SECRET tests next.', pending, t => t.replaceAll('SECRET', '[x]'))
+  expect(JSON.stringify(state)).not.toContain('SECRET')
+  expect(Object.keys(state)).toEqual(['task', 'user_request', 'final_message', 'last_sentence', 'pending_step'])
+})
+
+test('stop-short is flagged only when asked for, left undone, and not a real question to the person', () => {
+  const a = { type: 'noul' as const }
+  expect(shortAnswersOf({ stopped_short: { ...a, noul: 0.9 }, requested: { ...a, noul: 0.8 } })).toBe(null)
+  expect(shortAnswersOf({ stopped_short: { ...a, noul: 0.9 }, requested: { ...a, noul: 0.8 }, needs_person: { ...a, noul: 0.1 } }))
+    .toEqual({ stopped_short: 0.9, requested: 0.8, needs_person: 0.1 })
+  expect(decideShort({ stopped_short: 0.9, requested: 0.8, needs_person: 0.1 }, 0.7)).toEqual({ short: true, confidence: 0.8 })
+  expect(decideShort({ stopped_short: 0.9, requested: 0.4, needs_person: 0.1 }, 0.7).short).toBe(false) // not asked for
+  expect(decideShort({ stopped_short: 0.5, requested: 0.9, needs_person: 0.1 }, 0.7).short).toBe(false) // done, or not a promise
+  expect(decideShort({ stopped_short: 0.9, requested: 0.9, needs_person: 0.8 }, 0.7).short).toBe(false) // a real question
+})
+
+test('the stop-short note names the step, asks to do it or say why, and never urges risk', () => {
+  const promise = stopShortNote(unfinishedStep('Let me run the tests next.')!)
+  expect(promise.startsWith(TAG)).toBe(true)
+  expect(promise).toContain('"Let me run the tests next."')
+  expect(promise).toContain('run the tests')
+  expect(promise).toContain('Carry it out now, or say plainly in your answer why you stopped')
+  expect(promise).toContain('hard to undo')
+  expect(promise).not.toContain('need their leave')
+  expect(stopShortNote(unfinishedStep('Want me to go ahead and fix it?')!)).toContain('do not need their leave')
 })

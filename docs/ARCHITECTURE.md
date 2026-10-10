@@ -85,7 +85,14 @@ engine, so neither can keep a turn going. The settings `Stop` event can: the mod
 "Stop hook feedback"). Stop fires only when the main agent ends a turn normally: not on an
 interrupt, an API error (StopFailure) or a subagent (SubagentStop). The completion gate lets the
 settings Stop hooks beneath it answer first, and leaves a block of theirs as it is. Its own cap
-(maxNudges per prompt, keyed by the event's `prompt_id`) bounds the loop. `src/stop-gate.test.ts`
+(maxNudges per prompt, keyed by the event's `prompt_id`) bounds the loop, and is shared by its
+two checks. The claims check gives a three-way verdict on the weakest claim (shown, not shown,
+could not tell): a not-shown claim sends the agent back to verify, a could-not-tell one only to
+say it is unverified. The stop-short check finds a last sentence that promises the next step or
+asks leave (local patterns), has the decision model confirm the person asked for it and it was
+not done, and never sends the agent back to a hard-to-undo step. Verdicts and outcomes are
+counted in `activity` (shown, not-shown, could-not-tell, nudged, noted, continued, step-held;
+in shadow would-nudge, would-note, would-continue), which is what the dashboard charts. `src/stop-gate.test.ts`
 raises Stop through the kit; the path that asks the backend is checked live.
 
 ## State

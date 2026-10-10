@@ -113,17 +113,21 @@ export const FEATURES: readonly Feature[] = [
   {
     id: 'stop-gate',
     title: 'Completion gate',
-    summary: 'Checks that a turn claiming the work is done has the evidence to show it',
-    help: 'When the main agent ends a turn saying the work is done or that checks pass, the decision model reads the request, '
-      + 'that final message and what the turn ran (edited files, commands and the head and tail of their output, then the session\'s earlier commands as far as they fit) and judges whether the '
-      + 'claims are shown. on: when it is sure enough they are not, the agent is told which claim is unshown and asked to verify '
-      + 'it or say plainly what is unverified, never to take a destructive step; at most maxNudges times per prompt. '
-      + 'shadow: the same judgement, in the background, counted as would-nudge or passed; the agent is never stopped or kept waiting. off: nothing is read or sent. '
+    summary: 'Checks that a turn claiming the work is done has the evidence to show it, and that it does not stop short of a step you asked for',
+    help: 'Two checks when the main agent ends a turn. Claims: if the final message says the work is done or that checks pass, the decision model reads the request, '
+      + 'that message and what the turn ran (edited files, commands and the head and tail of their output, then the session\'s earlier commands as far as they fit) and gives a verdict on the weakest claim: '
+      + 'shown, not shown (the evidence lacks it or contradicts it) or could not tell (evidence cut to fit, a claim about something no command here could show, or a low-confidence answer). '
+      + 'Stopping short: if the message ends on a promise of the next step ("Let me run the tests next.") or asks leave for work you already asked for ("Want me to fix it?"), '
+      + 'the model reads your request and that message and confirms it was asked for and left undone. A real question to you is not stopping short. '
+      + 'on: a not-shown claim sends the agent back to verify it or say plainly what is unverified; a could-not-tell claim sends it back only to say it is unverified, with a shorter note and no more steps; '
+      + 'a stopped-short turn is sent back to do the step or say why it stopped, but never when the step is hard to undo (push, deploy, delete, install, migrate, send). '
+      + 'All share maxNudges per prompt, and none ever urges a destructive step. '
+      + 'shadow: the same judgement, in the background, counted per verdict (shown, not-shown, could-not-tell) and as would-nudge, would-note or would-continue; the agent is never stopped or kept waiting. off: nothing is read or sent. '
       + 'The gate skips the turn, silently, when the request, the message or the evidence holds a secret-shaped word, since none of it may be sent.',
     modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
       maxNudges: { type: 'int', title: 'Nudges per prompt', help: 'How many times one prompt\'s turn may be sent back to verify; 0 never sends it back.', default: 2, min: 0, max: 5 },
-      minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown before the agent is sent back.', default: 0.7, min: 0, max: 1 },
+      minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown, or that a turn stopped short of work you asked for, before the agent is sent back. A claim it leans against but is less sure of counts as could-not-tell.', default: 0.7, min: 0, max: 1 },
       evidenceChars: { type: 'int', title: 'Evidence sent', help: 'About how many characters of commands and output are sent with each judgement: more sees more, and costs more.', default: 6000, min: 1000, max: 20000 },
     },
   },

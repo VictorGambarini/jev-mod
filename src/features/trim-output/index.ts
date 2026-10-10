@@ -9,9 +9,11 @@ import * as memory from '../../core/memory'
 import { isPrivate, jevDir } from '../../core/settings'
 import { ask, costOf, JevError, type Asked } from '../../engine/client'
 import { isSensitive } from '../../engine/privacy'
+import * as tests from './testlog'
 import {
-  changed, chunk, chunkText, drop, fold, linesOf, MAX_SENT_CHUNKS, pack, render, request, type Row,
+  changed, chunk, chunkText, drop, fold, linesOf, MAX_SENT_CHUNKS, pack, render, request, type Row, type SameRange,
 } from './trim'
+import { encode } from '../../engine/pyjson'
 
 // Output trimming: a long Bash output is cut down to what the current goal needs before the
 // model reads it, and the full output is kept in a file the model can read for more.
@@ -24,11 +26,26 @@ import {
 // looks like it holds a secret get the folding alone. In shadow the judgement runs in the
 // background, so it adds nothing to the command's wait.
 //
+// Test logs: when the output is a test runner's (testlog.ts), it is split into passing tests,
+// other output, failures and the summary. Failures and the summary are never asked about. Every
+// other block goes to the decision model in one request, and is dropped only when "not needed"
+// is at least 90% likely. Other output keeps the chunking above.
+//
+// Two folds need no model. A block that repeats an earlier one verbatim becomes a marker. And a
+// test failure identical to the same failure in the previous run of the same command, in this
+// session, becomes "still failing with the same output as the previous run". The last run's
+// failures are kept per session and per command, as hashes, for at most 20 commands. They are
+// forgotten at a compaction (forget), because the model may no longer have the earlier output;
+// they are not used for a subagent, whose context is not the session's, and they are only
+// written when the output reached the model whole.
+//
 // Subagents: their goal is their own task prompt, which this hook does not see; judged against
 // the person's latest request, a subagent could lose what its own task needs. Folding asks no
 // one and loses nothing a marker does not point back to, so subagents get that and no more.
 
-export type TrimSpace = { trimmed?: number; charsSaved?: number }
+/** A command's last run: when, and each named failure's signature. */
+type Run = { at: number; fails: Record<string, string> }
+export type TrimSpace = { trimmed?: number; charsSaved?: number; runs?: Record<string, Run> }
 
 const ID = 'trim-output'
 /** All the decision model may add to a command's wait, across every request for one output. */
@@ -65,7 +82,7 @@ export type Call = {
   screen?: (text: string) => Promise<string | null>
 }
 
-type Source = { text: string; put: (text: string) => unknown }
+type Source = { text: string; put: (text: string) => unknown; /** The model would see only a preview of the output as it came. */ persisted: boolean }
 
 /**
  * The text the model would read, and how to put a shorter one in its place. A failed command
@@ -76,7 +93,7 @@ type Source = { text: string; put: (text: string) => unknown }
  * cannot be.
  */
 async function sourceOf(io: IO, result: unknown, screen?: Call['screen']): Promise<Source | null> {
-  if (typeof result === 'string') return { text: result, put: text => text }
+  if (typeof result === 'string') return { text: result, put: text => text, persisted: false }
   const record = result as Record<string, unknown> | null
   if (!record || typeof record !== 'object' || typeof record.stdout !== 'string') return null
   if (record.isImage || record.backgroundTaskId || record.interrupted) return null
@@ -93,12 +110,32 @@ async function sourceOf(io: IO, result: unknown, screen?: Call['screen']): Promi
   }
   return {
     text,
+    persisted: persisted !== null,
     put: out => {
       if (persisted && out.length > INLINE_CHARS) return null
       const { persistedOutputPath: _p, persistedOutputSize: _s, ...rest } = record
       return { ...rest, stdout: out }
     },
   }
+}
+
+/** The last runs forgotten: the model may no longer have what they showed (a compaction). */
+export async function forget(io: IO): Promise<void> {
+  await memory.load(io)
+  const space = memory.space<TrimSpace>(ID)
+  if (!space.runs || !Object.keys(space.runs).length) return
+  space.runs = {}
+  await memory.save(io)
+}
+
+/** This run's failures kept for the next run of the command, the oldest command's dropped past the bound. */
+function remember(io: IO, command: string, fails: Record<string, string>): void {
+  const space = memory.space<TrimSpace>(ID)
+  const runs = (space.runs ??= {})
+  runs[tests.commandKey(command)] = { at: Date.now(), fails }
+  const newest = Object.entries(runs).sort(([, a], [, b]) => b.at - a.at).slice(0, tests.MAX_COMMANDS)
+  space.runs = Object.fromEntries(newest)
+  void memory.save(io)
 }
 
 // What archive() names its files, and the ring's numbered files from before (pruned the same way).
@@ -149,8 +186,8 @@ async function prune(io: IO, dir: string, now = Date.now()): Promise<void> {
  * Step 2: the folded rows with the chunks the decision model judged unneeded replaced by
  * markers. Every request runs at once within BUDGET_MS; a failure keeps its chunks.
  */
-async function judge(io: IO, rows: Row[], goal: string, command: string, threshold: number, shadow: boolean): Promise<Row[]> {
-  const chunks = chunk(rows)
+async function judge(io: IO, rows: Row[], goal: string, command: string, threshold: number, shadow: boolean, log: tests.TestLog | null): Promise<Row[]> {
+  const chunks = log ? tests.chunks(rows, log) : chunk(rows)
   const texts = new Map<number, string>()
   chunks.forEach((c, id) => {
     if (c.keep || texts.size >= MAX_SENT_CHUNKS) return
@@ -164,7 +201,9 @@ async function judge(io: IO, rows: Row[], goal: string, command: string, thresho
   const calls: Asked[] = []
   const errors: string[] = []
   const need = new Map<number, number>()
-  await Promise.all(pack(texts).map(async ids => {
+  // a test log is asked about in one request; other output in as many as its size needs
+  const batches = log ? [tests.oneRequest(texts, text => encode(text, { ensureAscii: true }).length + 16)] : pack(texts)
+  await Promise.all(batches.map(async ids => {
     if (limits) {
       const [allowed] = await limits.admit(shadow)
       if (!allowed) return
@@ -184,7 +223,8 @@ async function judge(io: IO, rows: Row[], goal: string, command: string, thresho
     }
   }))
   await recordCalls(io, calls, errors, ID)
-  return need.size ? drop(rows, chunks, need, threshold) : rows
+  if (!need.size) return rows
+  return log ? drop(rows, chunks, tests.dropOnly(need), 0.5) : drop(rows, chunks, need, threshold)
 }
 
 /** Shadow's count: what the rows would have saved, or that they changed nothing. */
@@ -218,7 +258,13 @@ export async function trim(io: IO, call: Call, result: unknown): Promise<unknown
     if (!source || source.text.length > MAX_CHARS) return null
     const lines = linesOf(source.text)
     if (lines.length < minLines) return null
-    const folded = fold(lines)
+    const log = tests.parse(lines, call.command)
+    // failures identical to this command's previous run: only when the model will read the result, and not a subagent's
+    const last = log && !shadow && !call.subagent ? memory.space<TrimSpace>(ID).runs?.[tests.commandKey(call.command)] : undefined
+    const same: SameRange[] = log && last
+      ? tests.unchanged(lines, log, last.fails).map(s => ({ start: s.start, end: s.end, names: tests.nameList(s.names) }))
+      : []
+    const folded = fold(lines, same)
     // the goal and the command go out redacted; one that looks like it holds a secret is not sent at all
     const goalNow = goal
     const send = !localOnly && !call.subagent && folded.length > minLines && !coolingOff()
@@ -226,20 +272,24 @@ export async function trim(io: IO, call: Call, result: unknown): Promise<unknown
       && !(await isPrivate(io, await jevDir(io)))
     if (shadow) {
       if (!send) countShadow(io, source.text, lines, folded)
-      else inBackground(async () => countShadow(io, source.text, lines, await judge(io, folded, goalNow, call.command, threshold, true)))
+      else inBackground(async () => countShadow(io, source.text, lines, await judge(io, folded, goalNow, call.command, threshold, true, log)))
       return null
     }
-    const rows = send ? await judge(io, folded, goalNow, call.command, threshold, false) : folded
+    const rows = send ? await judge(io, folded, goalNow, call.command, threshold, false, log) : folded
+    // what the model sees of this run's failures: all of them, unless it only gets a preview
+    const seen = () => { if (log && !call.subagent && !source.persisted) remember(io, call.command, tests.remembered(lines, log)) }
     if (!changed(rows)) {
+      seen()
       void activity.count(io, ID, 'kept')
       return null
     }
     const path = await archive(io, source.text)
     if (!path) return null
     const out = render(rows, lines.length, path)
-    if (out.length >= source.text.length) return null
+    if (out.length >= source.text.length) { seen(); return null }
     const replaced = source.put(out)
     if (replaced === null) return null
+    if (log && !call.subagent) remember(io, call.command, tests.remembered(lines, log))
     const space = memory.space<TrimSpace>(ID)
     space.trimmed = (space.trimmed ?? 0) + 1
     space.charsSaved = (space.charsSaved ?? 0) + source.text.length - out.length

@@ -108,6 +108,63 @@ test('fold: two similar lines are left as they are, identical protected lines st
     .toBe('warning: w  (repeated 3 times)')
 })
 
+const block = (tag: string) => Array.from({ length: 6 }, (_, i) => `step ${tag}: loading the configuration file number ${String.fromCharCode(97 + i)} from disk`)
+
+test('fold: a block that comes again verbatim keeps its first copy; each later copy is one marker naming the lines', () => {
+  const trace = ['Error: boom', '  at a (x.js:1:1)', '  at b (x.js:2:1)', '  at c (x.js:3:1)', '  at d (x.js:4:1)', '  at e (x.js:5:1)']
+  const lines = ['h1', 'h2', 'unique alpha', 'unique beta', ...trace, 'something else entirely', 'and a different line', ...trace, 'between the two copies', ...trace, 't1', 't2', 't3', 't4', 't5']
+  const rows = fold(lines)
+  const copies = rows.filter(r => r.kind === 'copy')
+  expect(copies.map(r => [r.from, r.to, r.of, r.count])).toEqual([[13, 18, 5, 6], [20, 25, 5, 6]])
+  expect(show(rows).filter(l => l.includes('exactly'))).toEqual([
+    '[jev-mod: lines 13–18 repeat lines 5–10 exactly]',
+    '[jev-mod: lines 20–25 repeat lines 5–10 exactly]'])
+  expect(show(rows).slice(4, 10)).toEqual(trace) // the first copy, whole
+  for (let i = 1; i < rows.length; i++) expect(rows[i]!.from).toBe(rows[i - 1]!.to + 1)
+  expect(rows[rows.length - 1]!.to).toBe(lines.length)
+  expect(changed(rows)).toBe(true)
+})
+
+test('fold: short, poor, overlapping and pinned repeats are not folded as blocks', () => {
+  const braces = ['  }', '  ]', '}', '', '  }', '  ]', '}', '']
+  expect(fold(['h1', 'h2', 'x1', ...braces, 'y2', ...braces, 'z3', 'a', 'b', 'c', 'd', 'e']).some(r => r.kind === 'copy')).toBe(false)
+  const three = block('a').slice(0, 3)
+  expect(fold(['h1', 'h2', ...three, 'mid', ...three, 'z', 'a', 'b', 'c', 'd', 'e']).some(r => r.kind === 'copy')).toBe(false)
+  // a block in the last lines stays, and a run of identical lines is still a repeat
+  expect(fold(['h1', 'h2', ...block('a'), 'mid', ...block('a')]).some(r => r.kind === 'copy')).toBe(false)
+  const runs = fold(['h1', 'h2', ...Array(8).fill('same same same same same same'), 'x', 'a', 'b', 'c', 'd', 'e'])
+  expect(runs.map(r => r.kind)).toContain('repeat')
+  expect(runs.some(r => r.kind === 'copy')).toBe(false)
+  // the same block three times in a row: each later copy repeats the first
+  const period = block('p')
+  const rows = fold(['h1', 'h2', ...period, ...period, ...period, 'a', 'b', 'c', 'd', 'e'])
+  expect(rows.filter(r => r.kind === 'copy').map(r => [r.from, r.to, r.of])).toEqual([[9, 14, 3], [15, 20, 3]])
+})
+
+test('drop: the chunk holding what a shown copy marker repeats is kept, whatever it was scored', () => {
+  const lines = ['h1', 'h2', 'pre one is here', 'pre two is here', 'pre three is here', ...block('a'), '', 'unrelated line one', 'unrelated line two', 'unrelated line three', 'unrelated line four', '', ...block('a'), 'last', 'a', 'b', 'c', 'd', 'e']
+  const rows = fold(lines)
+  const chunks = chunk(rows)
+  const copyAt = chunks.findIndex(c => rows.slice(c.start, c.end + 1).some(r => r.kind === 'copy'))
+  expect(copyAt).toBeGreaterThan(1)
+  const sourceAt = chunks.findIndex(c => rows.slice(c.start, c.end + 1).some(r => r.text === block('a')[0]))
+  expect(sourceAt).toBeLessThan(copyAt)
+  // the copy's chunk is needed and the chunk with the first copy is not: it is kept all the same
+  const need = new Map(chunks.map((_, id) => [id, id === copyAt ? 1 : 0]))
+  const out = show(drop(rows, chunks, need, 0.35))
+  expect(out).toContain(block('a')[0]!)
+  expect(out.some(l => l.includes('repeat lines 6–11 exactly'))).toBe(true)
+  // and when the copy's chunk goes too, so does the first copy
+  const gone = show(drop(rows, chunks, new Map(chunks.map((_, id) => [id, 0])), 0.35))
+  expect(gone).not.toContain(block('a')[0]!)
+})
+
+test('a "still failing" marker names the tests and nothing else', () => {
+  const rows = fold(['h1', 'h2', 'x1', 'x2', 'x3', 'x4', 'z', 'a', 'b', 'c', 'd', 'e'], [{ start: 2, end: 5, names: 'a > one, b > two' }])
+  expect(show(rows)[2]).toBe('[still failing with the same output as the previous run: a > one, b > two]')
+  expect(rows[2]).toMatchObject({ kind: 'same', from: 3, to: 6, keep: true })
+})
+
 test('the live check: 5000 numbered lines and an error fold to a handful', () => {
   const text = Array.from({ length: 5000 }, (_, i) => `line ${i + 1}`).join('\n') + '\nERROR: boom\n'
   const rows = fold(linesOf(text))

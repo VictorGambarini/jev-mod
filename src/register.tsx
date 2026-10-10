@@ -296,8 +296,11 @@ export const register: Register = (on, given) => {
     return { suggestions: [...(await next(e)).suggestions, ...mine] }
   }).catch(($, e, next) => next(e))
 
-  // Only the compaction /jev-mod compact queued; /compact and auto-compaction pass untouched.
+  // The compaction /jev-mod compact queued is answered here; /compact and auto-compaction pass untouched.
+  // Any compaction, though, makes output trimming forget the last runs of each command: the
+  // model may no longer have the output a "still failing" marker would point back to.
   on('session.compact', async ($, e, next) => {
+    if (!e.agentId) await trimOutput.forget(ioOf($)).catch(() => {})
     if (!compact.isOurs(e)) return next(e)
     const compacted = await compact.compact(ioOf($), e.messages)
     await refresh($)

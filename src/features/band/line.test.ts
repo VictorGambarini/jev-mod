@@ -68,3 +68,11 @@ test('why a turn was not routed, and a refused key in words', () => {
   expect(plain(refused)).toBe('🧭 not routed  $0.00000 (1)  🔌 jev ✗ auth_failed (key refused), retry in 31m')
   expect(refused.find(s => s.text.startsWith('🔌'))!.color).toBe('red')
 })
+
+test('what the web filter cut, and in shadow what it would have', () => {
+  const on = line({ jev: { calls: 2, cost: 0.0001 }, 'web-filter': { results: 4, chunks: 3, chars: 12_345 } }, 0)!
+  expect(plain(on)).toBe('🧭 not routed  $0.00010 (2)  🔎 cut 7 · 12.3k chars  🔌 jev')
+  const shadow = line({ jev: { calls: 2, cost: 0.0001 }, 'web-filter': { would: 5 } }, 0)!
+  expect(plain(shadow)).toBe('🧭 not routed  $0.00010 (2)  🔎 would cut 5  🔌 jev')
+  expect(shadow.find(s => s.text.startsWith('🔎'))!.dim).toBe(true)
+})

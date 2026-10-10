@@ -321,6 +321,14 @@ def line_jev(data: Dict[str, Any]) -> Optional[str]:
         parts.append(c(money, YELLOW) + c(f" ({calls['calls']})", DIM))
     if screening.get("withheld"):
         parts.append("🛡 " + c(f"withheld {screening['withheld']}", RED))
+    web = features.get("web-filter") or {}
+    cut = (web.get("results") or 0) + (web.get("chunks") or 0)
+    if cut:
+        chars = web.get("chars") or 0
+        size = f"{chars / 1000:.1f}k chars" if chars >= 1000 else f"{chars} chars"
+        parts.append(f"🔎 cut {cut}" + (f" · {size}" if chars else ""))
+    elif web.get("would"):
+        parts.append(c(f"🔎 would cut {web['would']}", DIM))
 
     where = f"🔌 {backend(calls.get('model'))}"
     error = calls.get("error")

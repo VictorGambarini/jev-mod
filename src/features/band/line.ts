@@ -1,5 +1,5 @@
 // The jev-mod band above the prompt: what jev-mod decided this turn, its cost this session, what
-// screening withheld, which access categories this session has opened (🔓, so an open door is
+// screening withheld, what the web filter cut, which access categories this session has opened (🔓, so an open door is
 // always in sight), and which backend answers (red, with the reason, while it is failing).
 // Pure: the session's record in, coloured segments out; register.tsx draws them.
 
@@ -30,6 +30,11 @@ function backend(model: string | undefined): string {
   const [owner, id] = model.includes('/') ? model.split('/', 2) : ['', model]
   const short = id!.replace(/^(jev-\d+\.\d+).*$/, '$1')
   return owner ? `${short} · ${owner}` : short
+}
+
+/** 12345 -> "12.3k chars". */
+export function chars(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k chars` : `${n} chars`
 }
 
 /** What a new install is told until its config file exists: the band line and the once-per-session toast. */
@@ -63,6 +68,10 @@ export function line(features: Features, now: number): Segment[] | null {
   } else out.push({ text: `🧭 not routed${lane && routing.why ? ` · ${routing.why}` : ''}`, dim: true })
   if (calls.calls) out.push({ text: '  ' }, { text: money(Number(calls.cost ?? 0)), color: 'yellow' }, { text: ` (${calls.calls})`, dim: true })
   if (screening.withheld) out.push({ text: '  ' }, { text: `🛡 withheld ${screening.withheld}`, color: 'red' })
+  const web = features['web-filter'] ?? {}
+  const cut = Number(web.results ?? 0) + Number(web.chunks ?? 0)
+  if (cut) out.push({ text: '  ' }, { text: `🔎 cut ${cut}${web.chars ? ` · ${chars(Number(web.chars))}` : ''}` })
+  else if (web.would) out.push({ text: '  ' }, { text: `🔎 would cut ${web.would}`, dim: true })
   if (features.browser?.running && features.browser.line) out.push({ text: '  ' }, { text: String(features.browser.line) })
   out.push(...unlocked)
   const where = `🔌 ${backend(calls.model)}`

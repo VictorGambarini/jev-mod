@@ -198,6 +198,11 @@ test('the gate asks on a broken limit, or on an unasked call that is hard to und
   const broke = decide({ asked: n(0.9), irreversible: n(0.9), breaks: n(0.8) }, risk, mine, 0.7)
   expect(broke.ask).toBe(true)
   expect(broke.reason).toContain("don't push")
+  // the model says a limit is broken, not which one: every stated limit is named, none singled out
+  const two = { prompts: ['fix the test'], constraints: ["don't push", 'stay in src/'] }
+  const brokeOne = decide({ breaks: n(0.9) }, risk, two, 0.7).reason
+  expect(brokeOne).toContain('one of the limits you stated')
+  expect(brokeOne).toContain('"don\'t push"; "stay in src/"')
   expect(decide({ asked: n(0.2), irreversible: n(0.8) }, risk, mine, 0.7).ask).toBe(true)
   expect(decide({ asked: n(0.2), irreversible: n(0.3) }, risk, mine, 0.7).ask).toBe(false) // easy to undo
   expect(decide({ asked: n(0.9), irreversible: n(0.9), breaks: n(0.1) }, risk, mine, 0.7).ask).toBe(false)

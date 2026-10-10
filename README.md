@@ -146,7 +146,9 @@ the config file. Without bun or node it writes a read-only copy of the page inst
 verdict. A call your rules refuse, or already ask you about, is left alone; one they would allow
 and the gate doubts becomes an ask, never a deny. Only consequential calls are sent (reads,
 builds, tests and edits inside the project never are), with your last few prompts (redacted) and
-any limits you stated; a call carrying a secret is not sent. Subagents' calls are gated too: a
+any limits you stated. A call carrying a secret is never sent; in `on` it is put to you instead,
+with the reason that it was not judged, so check it yourself (`asked-secret`; shadow counts
+`would-ask-secret`). Subagents' calls are gated too: a
 subagent is where text fetched from elsewhere most often steers a call. No answer within
 `timeoutMs`, private mode, the daily budget or a backend cool-off: the call goes on as Claude
 Code decided. In `bypassPermissions`, `auto` and `dontAsk` modes, and in `claude -p`, the mode

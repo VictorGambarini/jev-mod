@@ -140,7 +140,8 @@ status closes it at once, and every browser closes when the session ends.
   password, email or text-area field). Enter in any other form is gated like its submit button.
 - **Approve is explicit.** `approve` does exactly that one action, the one the answer named, if
   the element still says the same; it is the model's job to ask the person first. An approved
-  step is not gated again.
+  step is not gated again. A `blocked` option the agent approves is not gated at all: it runs
+  directly, without the consequential-step check, so the agent decides and no person is asked.
 - **Page content is data.** The model is told so in every answer; the decision model is told so
   in every request; injected instructions are withheld before either reads them.
 - **Fails closed for the browser, open for the session.** No key, private mode, the daily budget,

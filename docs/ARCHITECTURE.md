@@ -26,7 +26,7 @@ src/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
     tool-gate/         index.ts (glue, on tool.check) · rules.ts (pure: risk classifier, state, verdict) · rules.test.ts
     trim-output/       index.ts (glue, archive) · trim.ts (fold, chunk, drop: pure) · their tests
-    compact/           /jev-mod compact: index.ts · keep.ts (pure) · keep.test.ts
+    compact/           /jev-mod compact: index.ts · index.test.ts · keep.ts (pure) · keep.test.ts
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
     access-gate/       index.ts (glue: the session's allows in $.state, /jev-mod access) · rules.ts (pure: the
                        categories, hosts, keys, the verdict, the refusal) · their tests; src/access-gate.test.ts

@@ -1,6 +1,6 @@
 {
   "name": "jev-mod",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "A cheap decision model picks each turn's skill, model and effort, compacts on request, and withholds injected text",
   "author": {
     "name": "Victor Gambarini"

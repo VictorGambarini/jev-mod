@@ -214,12 +214,16 @@ export function stateOf(request: string, final: string, found: readonly string[]
   }
 }
 
-// Git hashes and CI run ids, held aside from `redact`: its digest and phone rules would turn
-// "c39353a…" into [hex] and a run id into [phone], and the claim could not be matched to the
-// output. A hash needs a digit and a letter (so no phone number is one); a run id needs to sit
-// after runs/, run, job, # or id, or in a tab-separated field as gh prints it. A secret's
-// label still masks what follows it, held-aside value and all.
-const IDS = /(?<![A-Za-z0-9_])(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,40}(?![A-Za-z0-9_])|(?<=(?:\b(?:[Rr]uns?|[Jj]obs?|[Ii][Dd])[\s/:=#]*|#|\t))\d{6,20}(?=\t|\s|$|[/?#.,)])/gm
+// Git hashes and CI run ids, held aside from `redact`: its digest and phone rules would turn a
+// full hash into [hex] and a run id into [phone], and the claim could not be matched to them. A short hash (7-12 hex, with a
+// digit and a letter, so no phone number is one) is kept anywhere; a full 40-character one only
+// after "commit " or a "sha", "headSha" or "oid" key, since bare it could be a token. A run id
+// needs to sit after runs/, run, job, # or id. A secret's label still masks what follows it.
+const IDS = new RegExp([
+  String.raw`(?<![A-Za-z0-9_])(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,12}(?![A-Za-z0-9_])`,
+  String.raw`(?<=\bcommit |"(?:headSha|sha|oid)"\s*:\s*")[0-9a-f]{40}(?![A-Za-z0-9_])`,
+  String.raw`(?<=(?:\b(?:[Rr]uns?|[Jj]obs?|[Ii][Dd])[\s/:=#]*|#))\d{6,20}(?=\s|$|[/?#.,)])`,
+].join('|'), 'gm')
 const HELD = /\uE000(\d+)\uE001/g
 
 /** `redact` that leaves git hashes and CI run ids readable, so a claim can be matched to them. */

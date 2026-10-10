@@ -217,20 +217,29 @@ test('editing only docs or memory after the checks still counts as checked', () 
   expect(evidence([user('go'), said('', bash('npm test', 'ok'), edit('/p/src/a.ts'), edit('/p/README.md'))], 6000).checks_after_last_edit).toBe(false)
 })
 
-test('short git hashes and run ids stay readable to Jev; secrets are still masked', () => {
+test('short git hashes and run ids stay readable to Jev; secrets, bare full hashes and phones are still masked', () => {
   const keep = keepIds(redact)
   const sha = 'c39353a9f1e2d3c4b5a69788776655443322110f'
-  const out = keep(`completed\tsuccess\tc39353a fix\tCI\tmain\tpush\t12345678901\t1m\nfull ${sha}\nrun https://github.com/o/r/actions/runs/9876543210`, 4000)
+  const out = keep(`completed\tsuccess\tc39353a fix\tCI\tmain\nrun https://github.com/o/r/actions/runs/9876543210\nrun 12345678901 and job #4567890123\n`
+    + `commit ${sha}\n{"headSha":"${sha}"}`, 4000)
   expect(out).toContain('c39353a fix')
-  expect(out).toContain(sha)
-  expect(out).toContain('12345678901')
   expect(out).toContain('runs/9876543210')
-  const secret = keep(`GITHUB_TOKEN=${sha} and ghp_abcdefghijklmnopqrstuvwxyz0123 and call 415 555 0134 and AKIAABCDEFGHIJKLMNOP`, 4000)
+  expect(out).toContain('run 12345678901')
+  expect(out).toContain('#4567890123')
+  expect(out).toContain(`commit ${sha}`)
+  expect(out).toContain(`"headSha":"${sha}"`)
+  // a full-length hex with no git label is masked as before: it could be a token
+  expect(keep(`token ${sha} here`, 4000)).toBe('token [hex] here')
+  expect(keep('c39353a9f1e2d3c4b5', 4000)).toBe('c39353a9f1e2d3c4b5') // longer than a short hash: left to redact
+  // a phone in a tab-separated line is masked, as redact masks it
+  expect(keep('completed\tsuccess\tc39353a\t4155550134\t1m', 4000)).toContain('[phone]')
+  const secret = keep(`GITHUB_TOKEN=${sha} and GH_TOKEN=c39353a and ghp_abcdefghijklmnopqrstuvwxyz0123 and call 415 555 0134 and AKIAABCDEFGHIJKLMNOP`, 4000)
   expect(secret).not.toContain(sha)
+  expect(secret).toContain('GH_TOKEN=[secret]')
   expect(secret).not.toContain('ghp_')
   expect(secret).not.toContain('AKIA')
   expect(secret).toContain('[phone]')
-  expect([...keep(`${sha} `.repeat(100), 100)].length).toBeLessThan(120)
+  expect([...keep('c39353a '.repeat(100), 100)].length).toBeLessThan(120)
 })
 
 test('plans, conditionals, questions and unfinished work are not claims', () => {

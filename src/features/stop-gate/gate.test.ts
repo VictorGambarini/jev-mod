@@ -2,9 +2,10 @@ import { test, expect } from 'claude-code/testing'
 import type { Answer } from '../../engine/client'
 import { checkQuestions } from '../../engine/client'
 import {
-  answersOf, claims, claimsCompletion, decide, evidence, isRequest, mayNudge, nudge, nudged, questionsOf, requestIndex,
+  answersOf, claims, claimsCompletion, decide, evidence, isRequest, keepIds, mayNudge, nudge, nudged, questionsOf, requestIndex,
   stateOf, TAG, type Message,
 } from './gate'
+import { redact } from '../../engine/privacy'
 
 const user = (text: string): Message => ({ role: 'user', text })
 const said = (text: string, ...toolUses: Message['toolUses'] & object[]): Message => ({ role: 'assistant', text, toolUses })
@@ -47,7 +48,7 @@ test('evidence starts at the request: edited files once each, checks with their 
   expect(ev.edited_files).toEqual(['/src/b.ts', '/src/a.ts'])
   expect(ev.other_tools).toEqual({ Read: 1 })
   expect(ev.commands.map(c => [c.command, c.check, c.failed])).toEqual([['npm test', true, false], ['ls', false, false]])
-  expect(ev.commands[0]!.output_tail).toBe('ran 12 tests\n12 passed')
+  expect(ev.commands[0]!.output).toBe('ran 12 tests\n12 passed')
   expect(ev.ran_checks).toBe(true)
   expect(ev.checks_after_last_edit).toBe(true)
 })
@@ -59,13 +60,13 @@ test('a check run before the last edit does not count as checking it', () => {
   expect(evidence([user('do it'), said('', edit('/x.py'))], 6000).ran_checks).toBe(false)
 })
 
-test('the budget keeps the newest checks first, keeps output tails, and says how many were left out', () => {
+test('the budget keeps the newest check, keeps output ends, and says how many were left out', () => {
   const long = 'line\n'.repeat(2000) + 'FAILED 1 of 40'
   const uses = [bash('echo one', 'one'), bash('cargo test', long, true), ...Array.from({ length: 30 }, (_, i) => bash(`cat f${i}`, 'z'.repeat(500)))]
   const ev = evidence([user('go'), said('', ...uses)], 1000)
   expect(ev.commands[0]!.command).toBe('cargo test')
   expect(ev.commands[0]!.failed).toBe(true)
-  expect(ev.commands[0]!.output_tail.endsWith('FAILED 1 of 40')).toBe(true)
+  expect(ev.commands[0]!.output.endsWith('FAILED 1 of 40')).toBe(true)
   expect(ev.commands.length + ev.commands_left_out).toBe(32)
   expect(ev.commands_left_out).toBeGreaterThan(20)
   expect(JSON.stringify(ev).length).toBeLessThan(2000)
@@ -93,7 +94,7 @@ test("answers are read only when every yes/no came back, and a pick off the list
   expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2) }, found)).toBe(null)
   expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('claim_0') }, found))
     .toEqual({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.1, weakest: 0 })
-  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('none') }, found)?.weakest).toBe(null)
+  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('none') }, found)?.weakest).toBe('none')
   expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('claim_7') }, found)?.weakest).toBe(null)
 })
 
@@ -141,4 +142,128 @@ test('quoted words and inline code are talked about, not claimed, and are shown 
   expect(claims('"Done." only meant the command ended.')).toEqual([])
   expect(claims('I left out the word "done" on purpose; see `tests pass`.')).toEqual([])
   expect(claims('Fixed the `parse()` bug in "lexer.ts".')).toEqual(['Fixed the parse() bug in "lexer.ts".'])
+})
+
+// ── what real use flagged wrongly ────────────────────────────────────────────
+
+test('commands from before the latest request are shown too, tagged earlier, after this turn\'s', () => {
+  const messages = [
+    user('push it and check CI'),
+    said('', bash('gh run list --limit 3', 'completed\tsuccess\tc39353a fix\tCI\tmain\tpush\t12345678901\t1m\t2m')),
+    user('thanks, is CI green?'),
+    said('', bash('git status', 'clean')),
+  ]
+  const ev = evidence(messages, 6000)
+  expect(ev.commands.map(c => [c.command, c.earlier ?? false])).toEqual([['gh run list --limit 3', true], ['git status', false]])
+  expect(ev.ran_checks).toBe(true)
+  expect(ev.checks_after_last_edit).toBe(true)
+  // the current turn fills the budget first: a tight budget drops the earlier command, not this turn's
+  const tight = evidence([...messages.slice(0, 3), said('', bash('git status', 'x'.repeat(150)))], 330)
+  expect(tight.commands.map(c => c.command)).toEqual(['git status'])
+  expect(tight.commands_left_out).toBe(1)
+})
+
+test('an edit after an earlier check means the check no longer shows the work', () => {
+  const ev = evidence([user('a'), said('', bash('npm test', '12 passed')), user('b'), said('', edit('/src/x.ts'))], 6000)
+  expect(ev.ran_checks).toBe(true)
+  expect(ev.checks_after_last_edit).toBe(false)
+})
+
+test('the nudge says what was read, not that nothing in the session shows it', () => {
+  const text = nudge({ nudge: true, claim: 'CI passed.', checks: false, confidence: 0.9 })
+  expect(text).not.toContain("nothing in this session's tool output")
+  expect(text).toContain('earlier commands')
+})
+
+test('caveats, interruptions and skill bodies are not the request', () => {
+  for (const text of ['Caveat: The messages below were generated by the user while running local commands.',
+    '[Request interrupted by user]', 'Base directory for this skill: /home/u/.claude/skills/tdd\n\n# TDD\nWrite the test first.'])
+    expect(isRequest(user(text))).toBe(false)
+  expect(requestIndex([user('fix it'), said('ok'), user('[Request interrupted by user for tool use]')])).toBe(0)
+  expect(isRequest(user('Caveat emptor: fix the price parser'))).toBe(true)
+})
+
+test('CI, PR checks and type checks are checks; a check word given to grep, cat or ls is not', () => {
+  for (const command of ['gh run list --limit 5', 'gh run view 123 --log-failed', 'gh run watch', 'gh pr checks 12',
+    'npm run typecheck', 'pnpm typecheck', 'npm run ci', 'cd app && npm test 2>&1 | tail -20'])
+    expect(evidence([user('go'), said('', bash(command, 'ok'))], 6000).ran_checks).toBe(true)
+  for (const command of ['grep -rn test src', 'rg "build" .', 'cat tests/a.ts', 'ls test', 'sed -n 1,20p test/x.ts',
+    'head -5 build.log', 'tail -n 20 lint.txt', 'npm ci'])
+    expect(evidence([user('go'), said('', bash(command, 'ok'))], 6000).ran_checks).toBe(false)
+})
+
+test('long output keeps its head and its tail', () => {
+  const runs = 'completed\tsuccess\tc39353a newest\n' + 'completed\tfailure\told\n'.repeat(200) + 'END'
+  const ev = evidence([user('go'), said('', bash('git log --oneline', runs))], 6000)
+  expect(ev.commands[0]!.output.startsWith('completed\tsuccess\tc39353a')).toBe(true)
+  expect(ev.commands[0]!.output.endsWith('END')).toBe(true)
+  expect(ev.commands[0]!.output).toContain('…')
+})
+
+test('big checks do not push every other command out: after the newest check, newest first', () => {
+  const big = 'x'.repeat(5000) + '\n40 passed'
+  const uses = [bash('npm test', big), bash('pytest', big), bash('git push', 'pushed'), bash('git log -1', 'c39353a done')]
+  const ev = evidence([user('go'), said('', ...uses)], 2000)
+  const kept = ev.commands.map(c => c.command)
+  expect(kept).toContain('pytest')
+  expect(kept).toContain('git log -1')
+  expect(kept).toContain('git push')
+  expect(ev.commands.find(c => c.command === 'pytest')!.output.endsWith('40 passed')).toBe(true)
+})
+
+test('editing only docs or memory after the checks still counts as checked', () => {
+  for (const path of ['/p/README.md', '/home/u/.claude/projects/p/memory/notes.md', '/p/docs/guide.mdx'])
+    expect(evidence([user('go'), said('', edit('/p/src/a.ts'), bash('npm test', 'ok'), edit(path))], 6000).checks_after_last_edit).toBe(true)
+  expect(evidence([user('go'), said('', bash('npm test', 'ok'), edit('/p/src/a.ts'), edit('/p/README.md'))], 6000).checks_after_last_edit).toBe(false)
+})
+
+test('short git hashes and run ids stay readable to Jev; secrets, bare full hashes and phones are still masked', () => {
+  const keep = keepIds(redact)
+  const sha = 'c39353a9f1e2d3c4b5a69788776655443322110f'
+  const out = keep(`completed\tsuccess\tc39353a fix\tCI\tmain\nrun https://github.com/o/r/actions/runs/9876543210\nrun 12345678901 and job #4567890123\n`
+    + `commit ${sha}\n{"headSha":"${sha}"}`, 4000)
+  expect(out).toContain('c39353a fix')
+  expect(out).toContain('runs/9876543210')
+  expect(out).toContain('run 12345678901')
+  expect(out).toContain('#4567890123')
+  expect(out).toContain(`commit ${sha}`)
+  expect(out).toContain(`"headSha":"${sha}"`)
+  // a full-length hex with no git label is masked as before: it could be a token
+  expect(keep(`token ${sha} here`, 4000)).toBe('token [hex] here')
+  expect(keep('c39353a9f1e2d3c4b5', 4000)).toBe('c39353a9f1e2d3c4b5') // longer than a short hash: left to redact
+  // a phone in a tab-separated line is masked, as redact masks it
+  expect(keep('completed\tsuccess\tc39353a\t4155550134\t1m', 4000)).toContain('[phone]')
+  const secret = keep(`GITHUB_TOKEN=${sha} and GH_TOKEN=c39353a and ghp_abcdefghijklmnopqrstuvwxyz0123 and call 415 555 0134 and AKIAABCDEFGHIJKLMNOP`, 4000)
+  expect(secret).not.toContain(sha)
+  expect(secret).toContain('GH_TOKEN=[secret]')
+  expect(secret).not.toContain('ghp_')
+  expect(secret).not.toContain('AKIA')
+  expect(secret).toContain('[phone]')
+  expect([...keep('c39353a '.repeat(100), 100)].length).toBeLessThan(120)
+})
+
+test('plans, conditionals, questions and unfinished work are not claims', () => {
+  for (const text of ['I will run the tests and confirm they pass.', "I'll fix the parser next.", "I'm going to make it pass.",
+    'Once CI passes, it is ready to merge.', 'If the tests pass, we are done.', 'When the build is green, ship it.',
+    'Next, verify the fix.', 'Want me to push the fixed branch?', 'Should I merge now that it passes?', 'Is it working on your side?',
+    'The migration is not done yet.', 'Nothing is done until the review.', 'The plan: fix the parser, then confirm.'])
+    expect(claims(text)).toEqual([])
+  expect(claims('Fixed the parser. All 12 tests pass. I will open the PR next.')).toEqual(['Fixed the parser.', 'All 12 tests pass.'])
+})
+
+test("when Jev picks no claim as unsupported, the gate does not nudge with a generic one", () => {
+  const found = ['Fixed it.']
+  expect(answersOf({ claims_done: noul(0.9), supported: noul(0.2), unverified_checks: noul(0.1), weakest: pick('none') }, found)?.weakest).toBe('none')
+  expect(decide({ claims_done: 0.9, supported: 0.2, unverified_checks: 0.9, weakest: 'none' }, found, 0.7)).toEqual({ nudge: false, why: 'supported' })
+})
+
+test('an unverified completion claim with no evidence at all is still nudged', () => {
+  const found = claims('Done. All tests pass and CI is green.')
+  expect(found.length).toBeGreaterThan(0)
+  const ev = evidence([user('fix the parser'), said('Done. All tests pass and CI is green.')], 6000)
+  expect(ev.commands).toEqual([])
+  expect(ev.ran_checks).toBe(false)
+  const v = decide({ claims_done: 0.95, supported: 0.05, unverified_checks: 0.9, weakest: 0 }, found, 0.7)
+  expect(v).toMatchObject({ nudge: true, claim: found[0], checks: true })
+  expect(nudge(v as Extract<typeof v, { nudge: true }>)).toContain(`"${found[0]}"`)
 })

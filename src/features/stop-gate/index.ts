@@ -8,7 +8,7 @@ import { limitsOf } from '../../core/limits'
 import { isPrivate, jevDir } from '../../core/settings'
 import { ask, costOf, JevError } from '../../engine/client'
 import { isSensitive, redact } from '../../engine/privacy'
-import { answersOf, claims, decide, evidence, mayNudge, nudge, nudged, questionsOf, requestIndex, stateOf, type Cap, type Verdict } from './gate'
+import { answersOf, claims, decide, evidence, keepIds, mayNudge, nudge, nudged, questionsOf, requestIndex, stateOf, type Cap, type Verdict } from './gate'
 
 // The completion gate: when the main agent ends a turn (the settings Stop event: a normal end,
 // never an interrupt or an API error, never a subagent), and its final message claims the work
@@ -65,14 +65,14 @@ async function judge(io: IO, final: string, found: ReturnType<typeof claims>, kn
   const at = requestIndex(messages)
   const request = at >= 0 ? messages[at]!.text : ''
   const ev = evidence(messages, knob('evidenceChars', 6000))
-  const raw = [request, final, ...ev.edited_files, ...ev.commands.flatMap(c => [c.command, c.output_tail])].join('\n')
+  const raw = [request, final, ...ev.edited_files, ...ev.commands.flatMap(c => [c.command, c.output])].join('\n')
   if (isSensitive(raw)) { await outcome('skipped'); return null } // redaction is a backstop, not a licence
 
   const limits = await limitsOf(io)
   if (limits && !(await limits.admit(shadow))[0]) { await outcome('skipped'); return null }
   let reply
   try {
-    reply = await ask(hostOf(io), stateOf(request, final, found, ev, redact), questionsOf(found), { timeoutMs: TIMEOUT_MS })
+    reply = await ask(hostOf(io), stateOf(request, final, found, ev, keepIds(redact)), questionsOf(found), { timeoutMs: TIMEOUT_MS })
   } catch (error) {
     await recordCalls(io, [], [error instanceof JevError ? error.code : 'network'], ID)
     await outcome('skipped')

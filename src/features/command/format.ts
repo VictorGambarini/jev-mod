@@ -7,9 +7,9 @@ import { WORDS } from './parse'
 export type Shown = { feature: Feature; resolved: Resolved }
 
 /** The layers, first that says wins (config.ts): a lower number overrides a higher one. */
-const RANK: Record<Source, number> = { 'kill file': 0, '/config': 1, project: 2, user: 3, 'older setting': 4, default: 5 }
+const RANK: Record<Source, number> = { 'kill file': 0, '/config': 1, 'bench overlay': 1.5, project: 2, user: 3, 'older setting': 4, default: 5 }
 
-const LAYER: Record<Source, string> = { 'kill file': 'a kill file', '/config': '/config', project: 'the project file',
+const LAYER: Record<Source, string> = { 'kill file': 'a kill file', '/config': '/config', 'bench overlay': 'a bench run\'s overlay', project: 'the project file',
   user: 'your file', 'older setting': 'an older setting', default: 'the default' }
 const from = (source: Source) => LAYER[source]
 const origin = (source: Source) => (source === 'default' ? 'the default' : `from ${LAYER[source]}`)

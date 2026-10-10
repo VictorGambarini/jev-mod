@@ -11,6 +11,7 @@ src/
     host.ts            the engine's Host, built from IO
     registry.ts        every feature, declared once: modes, default, knobs, help text
     config.ts          which features are on and how: kill files, /config, the project and user files, older switches
+    bench-overlay.ts   a bench run's settings overlay (JEV_MOD_BENCH_OVERLAY) and its cost ledger
     settings.ts        jev's folder and private mode
     limits.ts          the daily budget, shared with the `jev` command
     memory.ts          per-session memory, one namespace per feature, in the mod's store
@@ -25,7 +26,7 @@ src/
     skills/
     screening/         index.ts · targets.ts (pure) · targets.test.ts
     tool-gate/         index.ts (glue, on tool.check) · rules.ts (pure: risk classifier, state, verdict) · rules.test.ts
-    trim-output/       index.ts (glue, archive, last-run memory) · trim.ts (fold, chunk, drop: pure) · testlog.ts (test-runner blocks: pure) · bench.ts (offline benchmark: pure) · their tests
+    trim-output/       index.ts (glue, archive, last-run memory) · trim.ts (fold, chunk, drop: pure) · testlog.ts (test-runner blocks: pure) · their tests
     web-filter/        index.ts (glue: the goal, one request, counts) · filter.ts (pure: hits, duplicates, hosts,
                        units and overlapping chunks, what stays without asking, markers) · their tests;
                        src/web-filter.test.ts drives it after screening through the kit
@@ -44,6 +45,9 @@ src/
     browser/           the browse tool: index.ts (glue: the loop, pauses) · rules.ts (pure: hosts, the action table,
                        consequential steps, questions, the answer) · child.ts (the driver process, the install) ·
                        driver.mjs and client.mjs (node, outside the mod) · their tests; driver.check.mjs (by hand)
+    <feature>/bench/   a feature's benchmark: cases, adapter.ts, results/ (real runs and their plots),
+                       fake/ (the fake backend's example, labelled FAKE); compact, trim-output, rules-gate
+  bench/               the benchmark harness, run with bun outside the mod (src/bench/README.md)
   engine/              the decision engine, ported from jev-skills (docs/PORTING.md)
 statusline/            the two-line status line (reads core/memory.ts's records)
 test/parity/           fixtures captured from jev-skills; the engine port must match them
@@ -114,7 +118,11 @@ raises Stop through the kit; the path that asks the backend is checked live.
   the backend's cost, for the last 30 local days. Counts gather in the process and are written
   one after another, so features counting at once lose nothing.
 - **Settings:** `core/config.ts`, read from the layers on each use; `/jev-mod` writes the user
-  or project file through `config.write` and `config.reset`.
+  or project file through `config.write` and `config.reset`. A bench run adds one layer,
+  `core/bench-overlay.ts`: a JSON file named by `JEV_MOD_BENCH_OVERLAY`, below the kill files and
+  `/config`, above both files. It may only tighten a protective feature and only lower the browser,
+  never sets their knobs, and is refused whole if any field is named like a key. It is how
+  `src/bench/` sets a feature for one headless `claude -p` run without touching the person's file.
 - **Across sessions:** the decision backend's own config (keys, tuning), outside the mod.
 
 ## The dashboard

@@ -181,8 +181,8 @@ dd { margin: 0; overflow-wrap: anywhere; }
 const BOOT = /*__BOOT__*/null || { mode: 'static', state: null }
 const LIVE = BOOT.mode === 'live'
 const TABS = [['features', 'Features'], ['activity', 'Activity'], ['budget', 'Budget'], ['backend', 'Backend']]
-const RANK = { 'kill file': 5, '/config': 4, project: 3, user: 2, 'older setting': 1, default: 0 }
-const SOURCE = { default: 'default', user: 'user', project: 'project', 'kill file': 'kill file', '/config': '/config', 'older setting': 'older setting' }
+const RANK = { 'kill file': 5, '/config': 4, 'bench overlay': 3.5, project: 3, user: 2, 'older setting': 1, default: 0 }
+const SOURCE = { default: 'default', user: 'user', project: 'project', 'kill file': 'kill file', '/config': '/config', 'bench overlay': 'bench overlay', 'older setting': 'older setting' }
 const KEYS = { environment: 'from the environment', settings: "from jev-mod's settings (Claude Code's credential store)",
   keychain: "from the OS secret store (jev-skills' setup-key)", file: "from ~/.config/jev (jev-skills' setup-key)", none: 'none found' }
 const PROVIDERS = { typesafe: 'TypeSafe', openrouter: 'OpenRouter', venice: 'Venice', zen: 'OpenCode Zen', absent: 'none' }

@@ -1,6 +1,6 @@
 import { test, expect } from 'claude-code/testing'
-import { CASES } from '../../../evals/trim-tests/fixtures'
-import { fakeDecide, goalWords, keepFailuresOnly, table, withDecisionModel, type Decide } from './bench'
+import { CASES } from './cases'
+import { fakeDecide, goalWords, keepFailuresOnly, table, withDecisionModel, type Decide } from './pipeline'
 
 test('the fixtures are test logs long enough to be trimmed, each with gold lines that are in the log', () => {
   expect(CASES.map(c => c.name)).toEqual(['vitest', 'jest', 'pytest', 'go test'])

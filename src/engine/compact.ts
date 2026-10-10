@@ -8,7 +8,7 @@
 // One request
 // per batch of up to 40 turns, packed by encoded size; a long turn is judged on its first and
 // last 350 characters, redacted. Dropping is the only fate that cannot be undone, so it needs a
-// confident answer: a drop below DROP_CONFIDENCE is a keep. The digest and handoff prompts are for jev-skills' handoff writer, which
+// confident answer: a drop below DROP_CONFIDENCE (or the caller's `dropConfidence`) is a keep. The digest and handoff prompts are for jev-skills' handoff writer, which
 // the mod does not have.
 
 import { ask, choice, JevError, type Asked, type Host } from './client'
@@ -77,9 +77,11 @@ export type Selection = {
 }
 
 /** A fate for every message index. The last `keepLast` are always kept, and so is a system turn. */
-export async function select(host: Host, messages: readonly Message[], opts: { keepLast?: number; timeoutMs?: number } = {}): Promise<Selection> {
+export async function select(host: Host, messages: readonly Message[],
+  opts: { keepLast?: number; timeoutMs?: number; dropConfidence?: number } = {}): Promise<Selection> {
   const total = messages.length
   const keepLast = opts.keepLast ?? KEEP_LAST
+  const dropConfidence = opts.dropConfidence ?? DROP_CONFIDENCE
   const fates = new Map<number, Fate>()
   for (let i = Math.max(0, total - keepLast); i < total; i++) fates.set(i, 'keep')
   let judged = [...Array(total).keys()].filter(i => !fates.has(i))
@@ -108,7 +110,7 @@ export async function select(host: Host, messages: readonly Message[], opts: { k
     for (const i of sendable) {
       answered.add(i)
       const answer = reply.answers[`t${i}`] as { choice: Fate; confidence: number }
-      if (answer.choice === 'drop' && answer.confidence < DROP_CONFIDENCE) continue
+      if (answer.choice === 'drop' && answer.confidence < dropConfidence) continue
       fates.set(i, answer.choice)
     }
   }

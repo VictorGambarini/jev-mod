@@ -1,5 +1,6 @@
 import { costOf, loadingPauseMs, OUTAGES, REFUSED, warnings, type Asked } from '../engine/client'
 import * as activity from './activity'
+import { ledger } from './bench-overlay'
 import type { IO } from './io'
 import * as memory from './memory'
 
@@ -55,7 +56,8 @@ export async function record(io: IO, call: { calls: number; cost: number; error:
   // A call that answered ends any cool-off: the backend (or the replaced key) works again.
   if (call.error !== null) quietUntil = Math.max(quietUntil, now + coolOff)
   else if (call.calls > 0) quietUntil = 0
-  await Promise.all([memory.save(io), feature ? activity.count(io, feature, 'asked', call.calls, call.cost, now) : undefined])
+  await Promise.all([memory.save(io), feature ? activity.count(io, feature, 'asked', call.calls, call.cost, now) : undefined,
+    ledger(io, { feature, calls: call.calls, cost: call.cost, model: call.model, error: call.error })])
 }
 
 /** The requests an engine call made (and the error codes of those that failed), recorded as above. */

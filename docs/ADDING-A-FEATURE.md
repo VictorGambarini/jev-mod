@@ -64,6 +64,7 @@
 
     Keep a long page that already exists in `docs/` (as `docs/BROWSER.md` and `docs/ACCESS.md`
     are) and link to it from the feature README.
-11. **Benchmark it.** A feature gets a `bench/` folder, `src/features/<name>/bench/`, with its
-    cases and scorer. How the harness runs it and writes the Benchmarks section:
-    [src/bench/README.md](../src/bench/README.md).
+11. **Benchmark it**, if it decides with a threshold: `src/features/<name>/bench/` with synthetic
+    cases and an adapter, one line in `src/bench/features.ts`, and a fake-backend test
+    ([src/bench/README.md](../src/bench/README.md), *Write a bench*). A real run then gives the
+    threshold per backend, and the report fills the feature README's Benchmarks section.

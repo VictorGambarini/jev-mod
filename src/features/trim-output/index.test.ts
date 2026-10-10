@@ -2,7 +2,7 @@ import { test, expect } from 'claude-code/testing'
 import type { FetchInit, IO } from '../../core/io'
 import { settled } from '../../core/background'
 import { screenWhole } from '../screening'
-import { CASES } from '../../../evals/trim-tests/fixtures'
+import { CASES } from './bench/cases'
 import { forget, noteGoal, trim } from './index'
 
 const USER = '/home/u/.config/jev-mod/config.json'

@@ -6,7 +6,7 @@ import { coolingOff, recordCalls } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
 import * as memory from '../../core/memory'
 import { isPrivate, jevDir } from '../../core/settings'
-import { ask, costOf, JevError, MAX_STATE_CHARS, type Asked, type Host } from '../../engine/client'
+import { activeBackend, ask, costOf, JevError, MAX_STATE_CHARS, type Asked, type Host } from '../../engine/client'
 import { encode } from '../../engine/pyjson'
 import { isSensitive, redact } from '../../engine/privacy'
 import { screenResult, withholdText } from '../../engine/screen'
@@ -123,6 +123,8 @@ type Ctx = {
   limits: Awaited<ReturnType<typeof limitsOf>>
   confirm: number
   floor: number
+  /** Times an action is seen to change nothing on a page before it is no longer offered there. */
+  deadRepeats?: number
   textChars: number
   max: number
   step: number
@@ -273,7 +275,7 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
     ctx.step++
     const values = s.values
     const page = await prepare(ctx, s, obs)
-    const table = buildTable(obs, { inputs: Object.keys(s.values), hosts: s.hosts, values, dead: s.dead,
+    const table = buildTable(obs, { inputs: Object.keys(s.values), hosts: s.hosts, values, dead: s.dead, deadRepeats: ctx.deadRepeats,
       without: s.notDone === fingerprint(obs) ? new Set(['done']) : undefined })
     const request = stepRequest(s.goal, page, obs, table, s.steps, values)
     const reply = await askJev(ctx, fit(request.state), request.questions, STEP_MS)
@@ -430,9 +432,16 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
     if (coolingOff()) return fail('the decision backend is cooling off after a failure; try again in a few minutes')
     if (goal && isSensitive(goal)) return fail('the goal looks like it holds a secret; put secrets in inputs, which the decision model never sees')
 
+    // A named backend's own tuning wins over the knobs: its confidences are not Jev's numbers.
+    // Only a value the backend sets: Jev's shipped 0.65 for choose.min_confidence stopped nearly
+    // every step here, so without one the step floor stays the knob's.
+    const host = hostOf(io)
+    let tuning: Record<string, number> = {}
+    try { tuning = (await activeBackend(host))?.tuning ?? {} } catch { /* misconfigured: the ask says so */ }
     const ctx: Ctx = {
-      io, host: hostOf(io), deps, limits: await limitsOf(io),
-      confirm: knob('confirmConfidence', 0.85), floor: knob('stepFloor', 0.4), textChars: knob('textChars', 6000),
+      io, host, deps, limits: await limitsOf(io),
+      confirm: knob('confirmConfidence', 0.85), floor: tuning['choose.min_confidence'] ?? knob('stepFloor', 0.4),
+      deadRepeats: tuning['choose.dead_repeats'], textChars: knob('textChars', 6000),
       max, step: 0, screened: new Map(),
     }
 

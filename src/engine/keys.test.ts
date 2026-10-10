@@ -33,8 +33,26 @@ test("the mod's key is for the provider picked beside it, after the environment 
 
 test("a named backend takes the mod's backend key, never the provider key", async () => {
   const lais: Backend = { name: 'lais05', url: 'https://x/v1/systemone', model: 'm', protocol: 'systemone', keyEnv: '', tuning: {} }
-  const h = host({}, { api_key: 'ts-settings-0001', backend_api_key: 'be-settings-0001' }, {}, { 'Jev backend lais05/JEV_BACKEND_LAIS05_API_KEY': 'be-keychain-0001' })
+  const file = { '/home/u/.config/jev/backends.json': '{"default": "lais05", "backends": {}}' }
+  const h = host({}, { api_key: 'ts-settings-0001', backend_api_key: 'be-settings-0001' }, file, { 'Jev backend lais05/JEV_BACKEND_LAIS05_API_KEY': 'be-keychain-0001' })
   expect(await backendKey(h, lais)).toBe('be-settings-0001')
   expect(await backendKeySource(h, lais)).toBe('settings')
   expect(await backendKey(host({}, { api_key: 'ts-settings-0001' }), lais)).toBe(undefined)
+})
+
+test("the mod's backend key is only for the backend backends.json names as default", async () => {
+  const other: Backend = { name: 'other', url: 'https://other.example/v1/systemone', model: 'm', protocol: 'systemone', keyEnv: '', tuning: {} }
+  const lais: Backend = { ...other, name: 'lais05', url: 'https://x/v1/systemone' }
+  const settings = { backend_api_key: 'be-settings-0001' }
+  const file = { '/home/u/.config/jev/backends.json': '{"default": "lais05", "backends": {}}' }
+  // Another backend reads its own stores, never the setting.
+  expect(await backendKey(host({}, settings, file), other)).toBe(undefined)
+  expect(await backendKeySource(host({}, settings, file), other)).toBe('none')
+  expect(await backendKey(host({}, settings, file, { 'Jev backend other/JEV_BACKEND_OTHER_API_KEY': 'other-keychain-0001' }), other)).toBe('other-keychain-0001')
+  // No file, no default, or a file that cannot be read: the setting belongs to nobody.
+  expect(await backendKey(host({}, settings), lais)).toBe(undefined)
+  expect(await backendKey(host({}, settings, { '/home/u/.config/jev/backends.json': '{"backends": {}}' }), lais)).toBe(undefined)
+  expect(await backendKey(host({}, settings, { '/home/u/.config/jev/backends.json': 'not json' }), lais)).toBe(undefined)
+  // JEV_BACKENDS moves the file, and the default is read from there.
+  expect(await backendKey(host({ JEV_BACKENDS: '~/b.json' }, settings, { '/home/u/b.json': '{"default": "lais05"}' }), lais)).toBe('be-settings-0001')
 })

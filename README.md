@@ -209,9 +209,35 @@ the same `/v1/systemone` protocol (a self-hosted decision model, a gateway) can 
  "backends": {"lais05": {"protocol": "systemone", "url": "https://lais05.example/v1/systemone", "model": "Cloudflare/clef-flash"}}}
 ```
 
-Its key goes in the *named backend key* setting. Every threshold was measured on Jev; another
+Its key goes in the *named backend key* setting, which is used only for the backend the file
+names as `"default"`: a backend picked with `JEV_BACKEND`, or any other, reads its own key
+(`JEV_BACKEND_<NAME>_API_KEY` or its `key_env`, then what `jev setup-key --backend` stored), so
+the setting's key never goes to another backend's URL. Every threshold was measured on Jev; another
 model's confidences are not the same numbers, so a backend can carry its own `tuning` and its
-own copy of a policy (`~/.config/jev/backends/<name>/policies/`).
+own copy of a policy (`~/.config/jev/backends/<name>/policies/`). The mod reads
+`skillpick.need_threshold`, `skillpick.match_threshold`, `skillpick.shortlist_floor` and
+`webscreen.injection_threshold`; the browser takes `choose.min_confidence` as its step floor and
+`choose.dead_repeats` as how often a step may change nothing before it is dropped, each only when
+the backend sets it (over the `stepFloor` knob and 2; `choose.min_confidence` is bounded to
+0.5-0.99 as in jev-skills, so it can raise the floor, not lower it). `search.sufficiency_threshold` is accepted,
+since jev-skills' search reads it from the same file, but nothing in the mod uses it.
+
+## Environment variables
+
+Read when a hook runs, so set them where Claude Code starts. Each one is optional.
+
+| Variable | What it does |
+|---|---|
+| `JEV_BACKEND` | Picks a backend from `backends.json` by name over the file's `"default"`; `default`, `none` or a provider's name uses the built-in providers. |
+| `JEV_BACKENDS` | Where `backends.json` is (`~` allowed), instead of `~/.config/jev/backends.json`. |
+| `JEV_PROVIDER` | Picks the provider (`typesafe`, `openrouter`, `venice`, `zen`) when this machine has a key for it, over TypeSafe first. |
+| `JEV_MODEL` | The model id sent to a named backend, over the one in its `backends.json` entry. |
+| `TYPESAFE_MODEL` | The model id sent to a built-in provider, over the provider's default. |
+| `TYPESAFE_BASE_URL` | Sends decisions to a compatible server at `<url>/v1/systemone` instead of a provider or a named backend; it gets no provider key, only `JEV_PROXY_API_KEY`. The official `https://api.typesafe.ai` counts as unset. |
+| `JEV_PROXY_API_KEY` | The key sent to the `TYPESAFE_BASE_URL` server, and nowhere else. |
+| `JEV_LIMITS` | `off` (or `0`, `false`, `no`) turns off the daily budget and per-minute brake shared with jev-skills (`limits.json`). |
+| `JEV_HOME` | Where the mod reads jev's `routing.json` and `limits.json` (and keeps the budget's count), instead of `~/.config/jev`; keys and `backends.json` are still read from `~/.config/jev`. |
+| `JEV_MOD_DASHBOARD` | For testing, comma-separated: `no-browser` opens nothing, `static` writes the read-only page even when bun or node is there. |
 
 ## What it looks like
 

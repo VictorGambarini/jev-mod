@@ -67,7 +67,7 @@ export const MAX_FIELDS = 15
 export const MAX_INPUTS = 10
 export const MAX_TABLE = 200
 export const LABEL_CHARS = 100
-/** An action seen to change nothing this many times on a page is not offered there again. */
+/** An action seen to change nothing this many times on a page is not offered there again (a backend's `choose.dead_repeats` overrides it). */
 export const DEAD_REPEATS = 2
 
 // ── hosts ────────────────────────────────────────────────────────────────────
@@ -237,6 +237,8 @@ export type TableOptions = {
   dead?: ReadonlyMap<string, number>
   /** Rows not to offer on this page (done after the page check said not yet). */
   without?: ReadonlySet<string>
+  /** Times seen to change nothing before a row goes; DEAD_REPEATS unless the backend tunes it. */
+  deadRepeats?: number
 }
 
 /**
@@ -285,7 +287,8 @@ export function buildTable(obs: Observation, o: TableOptions): Action[] {
   if (obs.canGoBack) tail.push({ id: 'back', kind: 'back', text: 'go back to the previous page' })
   tail.push({ id: 'done', kind: 'done', text: 'the goal is achieved on this page now: stop' })
   tail.push({ id: 'abstain', kind: 'abstain', text: 'stop: nothing here moves toward the goal' })
-  const live = (a: Action) => (o.dead?.get(actionKey(obs.url, a)) ?? 0) < DEAD_REPEATS && !o.without?.has(a.id)
+  const repeats = o.deadRepeats ?? DEAD_REPEATS
+  const live = (a: Action) => (o.dead?.get(actionKey(obs.url, a)) ?? 0) < repeats && !o.without?.has(a.id)
   const kept = tail.filter(live)
   return [...rows.filter(live).slice(0, MAX_TABLE - kept.length), ...kept]
 }

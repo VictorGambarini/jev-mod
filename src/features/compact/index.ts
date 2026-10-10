@@ -3,12 +3,15 @@ import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
 import { recordCalls } from '../../core/jev'
 import { select } from '../../engine/compact'
-import { keepOnly } from './keep'
+import { keepOnly, unitsOf } from './keep'
 
-// /jev-mod compact: a compaction with no summariser. Jev marks each turn keep or drop;
-// only a turn it confidently marks drop goes (the last few and both halves of any kept tool
-// call stay), and what is left is the new context. In doubt, a turn is kept; a turn Jev did not
-// judge (a partial answer, a sensitive turn) is kept. `/compact` itself is untouched.
+// /jev-mod compact: a compaction with no summariser. Jev judges keep or drop for each message's
+// text and for each tool call together with its result (the call's tool and main argument, the
+// result's head and tail, redacted; a pair is never split). A message goes only when Jev
+// confidently marked drop every part of it; the last few messages and both halves of any kept
+// tool call stay, and what is left is the new context. In doubt, a part is kept; a part Jev did
+// not judge (Jev down, a partial answer, a turn or pair too sensitive to send) keeps its message.
+// `/compact` itself is untouched.
 //
 // A command's own hook may not compact (the turn it holds would be compacted under it), so the
 // command queues the built-in /compact with a marker from a timer, and `compact` below answers
@@ -33,11 +36,7 @@ export function isOurs(e: { instructions?: string; agentId?: string }): boolean 
 /** The kept messages, or a reason nothing was cut. Never runs the summariser. */
 export async function compact(io: IO, messages: readonly any[]): Promise<{ messages: any[] } | { skip: string }> {
   pending = false
-  const sent: number[] = []
-  const toJev: { role: string; content: string }[] = []
-  messages.forEach((m, i) => {
-    if (typeof m.text === 'string' && m.text.trim()) { sent.push(i); toJev.push({ role: m.role, content: m.text }) }
-  })
+  const { units, toJev } = unitsOf(messages)
   const done = (skip: string) => {
     io.toast(`jev-mod compact: ${skip}.`)
     void activity.count(io, 'compact', 'skipped')
@@ -46,19 +45,21 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
   if (toJev.length === 0) return done('nothing to judge')
   let out
   try {
-    out = await select(hostOf(io), toJev)
+    out = await select(hostOf(io), toJev, { keepLast: 0 }) // the tail is kept by message, in keepOnly
   } catch {
     return done('Jev did not answer; nothing was removed')
   }
   await recordCalls(io, out.calls ?? [], out.errors, 'compact')
   if (out.status === 'fail_open') return done('Jev did not answer; nothing was removed')
-  const kept = keepOnly(messages, sent, out.fates)
+  const kept = keepOnly(messages, units, out.fates)
   if (kept.length === messages.length) return done('Jev marked no turn drop; nothing to remove')
   const note = {
     role: 'user',
     text: `[jev-mod compact] Earlier parts of this conversation were removed by a decision model, which kept ` +
       `${kept.length} of ${messages.length} messages and dropped the ones it confidently judged to be chatter, ` +
-      `superseded or repeated, or detail nothing later depends on. Everything else was kept as it was. Nothing was summarised. If something you need is ` +
+      `superseded or repeated, or detail nothing later depends on. A tool call and its result were judged together, ` +
+      `from the call and the start and end of the result, and kept or dropped together. Everything else, including ` +
+      `anything it did not judge, was kept as it was. Nothing was summarised. If something you need is ` +
       `missing, ask for it rather than guessing.`,
     toolUses: [],
   }

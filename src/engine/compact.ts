@@ -23,6 +23,8 @@ export const BATCH = 40
 export const STATE_BUDGET = 40_000
 const PER_TURN_OVERHEAD = 16
 export const DROP_CONFIDENCE = 0.7
+/** The last turns kept without asking; /jev-mod compact keeps the same number of messages. */
+export const KEEP_LAST = 6
 export const FATE = {
   keep: 'Carries a decision, a constraint, a user preference, an unfinished task, an exact value, path, id, '
     + 'command or error that later work depends on, or is background whose gist later work needs',
@@ -77,7 +79,7 @@ export type Selection = {
 /** A fate for every message index. The last `keepLast` are always kept, and so is a system turn. */
 export async function select(host: Host, messages: readonly Message[], opts: { keepLast?: number; timeoutMs?: number } = {}): Promise<Selection> {
   const total = messages.length
-  const keepLast = opts.keepLast ?? 6
+  const keepLast = opts.keepLast ?? KEEP_LAST
   const fates = new Map<number, Fate>()
   for (let i = Math.max(0, total - keepLast); i < total; i++) fates.set(i, 'keep')
   let judged = [...Array(total).keys()].filter(i => !fates.has(i))

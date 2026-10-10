@@ -33,9 +33,14 @@ export type TrimSpace = { trimmed?: number; charsSaved?: number }
 const ID = 'trim-output'
 /** All the decision model may add to a command's wait, across every request for one output. */
 export const BUDGET_MS = 4_000
-/** Larger outputs pass as they came: the KEEP_FILES archives kept stay a few tens of MB at most. */
+/** Larger outputs pass as they came: the MAX_FILES archives kept stay a few hundred MB at most. */
 export const MAX_CHARS = 1_000_000
-export const KEEP_FILES = 50
+/** An archive is kept this long, so a marker earlier in a long session still names a file that exists. */
+export const KEEP_MS = 7 * 24 * 3600 * 1000
+/** The most archives kept, whatever their age (never an archive this session wrote), so the disk cannot fill. */
+export const MAX_FILES = 500
+/** Every archive this process wrote: a marker in this session names one of them, so none is pruned. */
+const written = new Set<string>()
 /** Claude Code shows a persisted output as a 2KB preview above this; a trim that does not fit gains nothing. */
 const INLINE_CHARS = 30_000
 
@@ -109,8 +114,8 @@ function randomId(): string {
 
 /**
  * Where a full output is kept: a file of its own under the user's cache folder, named by the
- * time and a random id, so two outputs at once never share one. The folder is pruned to the
- * newest KEEP_FILES afterwards, in the background.
+ * time and a random id, so two outputs at once never share one. The folder is pruned afterwards,
+ * in the background (see prune).
  */
 async function archive(io: IO, text: string): Promise<string | null> {
   const home = await io.home()
@@ -119,15 +124,24 @@ async function archive(io: IO, text: string): Promise<string | null> {
   const dir = `${cache}/jev-mod/outputs`
   const path = `${dir}/${Date.now()}-${randomId()}.txt`
   await io.writeFile(path, text)
+  written.add(path)
   inBackground(() => prune(io, dir))
   return path
 }
 
-/** The folder's archives past the newest KEEP_FILES, removed; nothing else in it is touched. */
-async function prune(io: IO, dir: string): Promise<void> {
+/**
+ * The folder's archives older than KEEP_MS removed, then the oldest past MAX_FILES; an archive
+ * this session wrote is never removed, and nothing else in the folder is touched.
+ */
+async function prune(io: IO, dir: string, now = Date.now()): Promise<void> {
   const ours = (await io.files(dir)).filter(f => ARCHIVE_NAME.test(f.name))
-  if (ours.length <= KEEP_FILES) return
-  const old = ours.sort((a, b) => b.mtimeMs - a.mtimeMs || b.name.localeCompare(a.name)).slice(KEEP_FILES)
+  const newestFirst = ours.sort((a, b) => b.mtimeMs - a.mtimeMs || b.name.localeCompare(a.name))
+  const removable = (f: { name: string }) => !written.has(`${dir}/${f.name}`)
+  const expired = newestFirst.filter(f => now - f.mtimeMs > KEEP_MS && removable(f))
+  const rest = newestFirst.filter(f => !expired.includes(f))
+  const surplus = rest.slice(MAX_FILES).filter(removable)
+  const old = [...expired, ...surplus]
+  if (!old.length) return
   await io.run(['rm', '-f', '--', ...old.map(f => `${dir}/${f.name}`)], { timeoutMs: 5000 })
 }
 

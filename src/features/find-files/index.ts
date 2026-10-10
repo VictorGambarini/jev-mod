@@ -40,14 +40,15 @@ export const SPEC = {
   description: 'Find the files that implement something, described in plain words ("where retries with backoff are '
     + 'done", "the code that parses the config file"). Returns a ranked list of file paths, each with a short reason, '
     + 'so you can open the right file instead of running a chain of Grep and Glob calls. Use Grep instead when you '
-    + 'know an exact name or string. It searches the project (or `path`, a folder inside it), respects .gitignore, '
-    + 'and reads only each file\'s first lines.',
+    + 'know an exact name or string. It searches the project (or `path`, a folder inside it), skips build and dependency '
+    + 'folders (and honours .gitignore in a git project), and sends the decision model only short cards made from '
+    + 'each file\'s first lines.',
   inputSchema: {
     type: 'object',
     properties: {
       query: { type: 'string', description: 'What the code does, in plain words.' },
       path: { type: 'string', description: 'A folder to search, absolute or relative to the project root. Default: the project root.' },
-      limit: { type: 'integer', minimum: 1, maximum: 50, description: 'How many files to return. Default 10.' },
+      limit: { type: 'integer', minimum: 1, maximum: 50, description: 'How many files to return. Default: the `limit` setting (10 unless changed).' },
     },
     required: ['query'],
   },
@@ -143,12 +144,12 @@ export async function narrow(io: IO, folder: string, files: readonly string[], t
 
 // ── the decision model's step ────────────────────────────────────────────────
 
-type Judged = { answers: Map<number, Answer>; note?: string }
+type Judged = { answers: Map<number, Answer>; note?: string; batches: number; failed: number }
 
 /** The decision model's verdicts on the candidates it may see; a failure keeps what it had. */
 async function judge(io: IO, query: string, candidates: readonly Candidate[], terms: readonly string[], timeoutMs: number): Promise<Judged> {
   const sendable = candidates.map((c, id) => ({ c, id })).filter(({ c }) => !isSensitive(cardText(c.path, c.head, terms)))
-  if (!sendable.length) return { answers: new Map(), note: 'every candidate looked like it held a secret' }
+  if (!sendable.length) return { answers: new Map(), note: 'every candidate looked like it held a secret', batches: 0, failed: 0 }
   const cards = sendable.map(({ c }) => cardOf(c.path, c.head, terms))
   const host = hostOf(io)
   const limits = await limitsOf(io)
@@ -157,10 +158,12 @@ async function judge(io: IO, query: string, candidates: readonly Candidate[], te
   const errors: string[] = []
   let refused: string | undefined
   const answers = new Map<number, Answer>()
-  await Promise.all(pack(cards).map(async ids => {
+  const batches = pack(cards)
+  let failed = 0
+  await Promise.all(batches.map(async ids => {
     if (limits) {
       const [allowed, reason] = await limits.admit(false)
-      if (!allowed) { refused = reason || 'the daily budget is spent'; return }
+      if (!allowed) { refused = reason || 'the daily budget is spent'; failed++; return }
     }
     const { state, questions } = request(query, cards, ids)
     try {
@@ -174,6 +177,7 @@ async function judge(io: IO, query: string, candidates: readonly Candidate[], te
     } catch (error) {
       if (!(error instanceof JevError)) throw error
       errors.push(error.code)
+      failed++
     }
   }))
   await recordCalls(io, calls, errors, ID)
@@ -181,7 +185,7 @@ async function judge(io: IO, query: string, candidates: readonly Candidate[], te
     : errors.includes('no_key') ? 'no decision backend key'
       : refused ? `limits: ${refused}`
         : errors.length ? `the decision backend failed: ${errors[0]}` : undefined
-  return { answers, note }
+  return { answers, note, batches: batches.length, failed }
 }
 
 // ── the tool ─────────────────────────────────────────────────────────────────
@@ -220,6 +224,7 @@ export async function find(io: IO, input: Input): Promise<string> {
 
     let note: string | undefined
     let answers = new Map<number, Answer>()
+    let unjudged: { batches: number; failed: number } | undefined
     if (await isPrivate(io, await jevDir(io))) note = 'private mode'
     else if (coolingOff()) note = 'the decision backend is cooling off after a failure'
     else if (isSensitive(query)) note = 'the query looks like it holds a secret'
@@ -228,6 +233,7 @@ export async function find(io: IO, input: Input): Promise<string> {
         const judged = await judge(io, query, candidates, terms, timeoutMs)
         answers = judged.answers
         note = judged.note
+        if (judged.failed) unjudged = { batches: judged.batches, failed: judged.failed }
       } catch {
         note = 'the decision model could not be asked'
       }
@@ -235,7 +241,7 @@ export async function find(io: IO, input: Input): Promise<string> {
     const ranked = rank(candidates, answers, terms)
     if (answers.size) {
       void activity.count(io, ID, 'ranked')
-      return render(query, ranked, limit, { ...outcome, by: 'jev' })
+      return render(query, ranked, limit, { ...outcome, by: 'jev', ...(unjudged ? { batches: unjudged } : {}) })
     }
     void activity.count(io, ID, 'local-only')
     return render(query, ranked, limit, { ...outcome, note })

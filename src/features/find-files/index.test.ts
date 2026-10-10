@@ -22,7 +22,7 @@ const TREE: Record<string, string> = {
 
 type Fake = IO & { disk: Record<string, string>; store: Record<string, unknown>; asked: { state: any; questions: Record<string, unknown> }[]; ran: string[][] }
 
-type Opts = { settings?: Record<string, unknown>; backend?: 'judge' | 'down' | 'none'; git?: boolean; options?: Record<string, unknown> }
+type Opts = { settings?: Record<string, unknown>; backend?: 'judge' | 'down' | 'none'; git?: boolean; judgeOnly?: number; options?: Record<string, unknown> }
 
 function io(opts: Opts = {}): Fake {
   const files: Record<string, string> = { [USER]: JSON.stringify({ features: { 'find-files': opts.settings ?? { mode: 'on' } } }) }
@@ -65,7 +65,7 @@ function io(opts: Opts = {}): Fake {
     storeSet: async (key: string, value: unknown) => { store[key] = value },
     status: () => {}, toast: () => {},
     fetch: async (_url: string, init?: FetchInit) => {
-      if (backend !== 'judge') return { status: 503, ok: false, text: '' }
+      if (backend !== 'judge' || (opts.judgeOnly !== undefined && asked.length >= opts.judgeOnly)) { asked.push({ state: null, questions: {} }); return { status: opts.judgeOnly !== undefined ? 400 : 503, ok: false, text: '' } }
       const body = JSON.parse(init!.body!)
       asked.push(body)
       // implements: the retry module; related: anything else naming retries; the rest unrelated
@@ -106,6 +106,14 @@ test('with the decision model: the implementing file first, unrelated files left
 test('the limit cuts the list, and the model\'s limit wins over the knob', async () => {
   const out = await find(io({ settings: { mode: 'on', limit: 5 } }), { query: 'retry backoff', limit: 1 })
   expect(out.split('\n').length).toBe(2)
+})
+
+// A refused batch (400), not an outage: an outage would start the cool-off for the tests after it.
+test('when some batches fail, the header says how many were judged', async () => {
+  const fake = io({ git: false, judgeOnly: 1 })
+  for (let i = 0; i < 50; i++) fake.disk[`${ROOT}/src/extra/retry${i}.ts`] = '// Retry helper.\nexport const retry = 1\n'
+  const out = await find(fake, { query: 'retry backoff' })
+  expect(out.split('\n')[0]).toContain('ranked by the decision model (1 of 2 batches judged)')
 })
 
 test('no key: the local ranking, labelled, and nothing fails', async () => {

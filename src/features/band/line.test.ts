@@ -2,9 +2,15 @@ import { test, expect } from 'claude-code/testing'
 import { line, money, plain, shortModel } from './line'
 
 test('a routed turn reads as difficulty, model and effort, cost, and the backend', () => {
-  const got = line({ routing: { lane: 'small', lastModel: 'claude-haiku-4-5-20251001', changed: true, effort: 'low' },
+  const got = line({ routing: { lane: 'medium', lastModel: 'claude-sonnet-4-6', changed: true, effort: 'low' },
     jev: { calls: 112, cost: 0.0043, model: 'typesafe/jev-1.13-20260917', error: null } }, 0)
-  expect(plain(got!)).toBe('🧭 easy → haiku 4.5 · low  $0.0043 (112)  🔌 jev-1.13 · typesafe')
+  expect(plain(got!)).toBe('🧭 normal → sonnet 4.6 · low  $0.0043 (112)  🔌 jev-1.13 · typesafe')
+})
+
+test('a model with no effort set reads without one', () => {
+  const got = line({ routing: { lane: 'small', lastModel: 'claude-haiku-4-5-20251001', changed: true },
+    jev: { calls: 112, cost: 0.0043, model: 'typesafe/jev-1.13-20260917', error: null } }, 0)
+  expect(plain(got!)).toBe('🧭 easy → haiku 4.5  $0.0043 (112)  🔌 jev-1.13 · typesafe')
 })
 
 test('kept, withheld, failing, and nothing yet', () => {

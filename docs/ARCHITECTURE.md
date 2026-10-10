@@ -67,7 +67,8 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
   (`ioOf($)`) and passes that everywhere. The validator still lists everything the mod reaches
   (`claude plugin validate .` shows each call "via ioOf").
 - **Environment variables are named by literal** (`$.env.get('HOME')`), so the variables a mod
-  reads can be listed. The IO has `home()`, not `env(name)`.
+  reads can be listed. The IO's `env(name)` is a switch over those literals in `register.tsx`; any other
+  name is read by running printenv.
 - **A command's own hook may not compact.** `/jev-mod compact` queues the built-in `/compact` with a
   marker from a timer, and answers that compaction itself.
 - **The kit cannot raise `turn.step`, and does not route a mod's `$.process.run` to a test's
@@ -260,4 +261,3 @@ may only turn it off (a mode no further on than the layers beneath give), and it
   answered by the mod itself, for local models.
 - **One request per prompt.** Skills and routing each ask the engine at submit, in parallel.
   With the engine in TypeScript they become one request (the questions side by side).
-- **A status row drawn by the mod** (`AbovePrompt`), from the same memory records.

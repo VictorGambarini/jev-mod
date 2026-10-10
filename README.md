@@ -12,7 +12,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | Feature | When | What it decides |
 |---|---|---|
 | **Routing** | each turn | The turn's lane (small / medium / high / escalate) sets its effort, and its model while the context is small. Follow-ups step down one lane at most; corrections hold or raise it; above 40k tokens the model only moves up. |
-| **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and each at most once a session. |
+| **Skills** | each prompt | The one installed skill the prompt needs, if any, added as context beside it. Only skills the session itself lists can be suggested, and of those only ones in the project's or your own `.claude/skills` folder: a plugin's skills (listed as `plugin:skill`) are never suggested. Each at most once a session, in shadow too (counted as would-suggest once). |
 | **Screening** | after WebFetch, WebSearch, every MCP tool, and Bash commands that fetch (`curl`, `wget`, `gh api`, ...) | Sentences carrying instructions aimed at an AI are withheld before Claude reads them; the rest of the result is kept. |
 | **Tool-call gate** (off by default) | before a consequential tool call Claude Code would allow: Bash that pushes, deletes, rewrites history, publishes, installs, deploys, migrates or writes outside the project; Write/Edit outside the project; MCP tools that send, create, change or delete | Whether you asked for it, whether it breaks a limit you stated ("don't push"), and whether it is hard to undo. A doubtful call is put to you in the permission dialog with the reason, instead of running unasked. It only tightens Claude Code's decision, never loosens it. |
 | **Completion gate** (`stop-gate`, off by default) | when the main agent ends a turn claiming the work is done or checks pass | Whether the evidence (edited files, the commands this turn ran and, as far as they fit, the session's earlier ones, each with the head and tail of its output) shows each claim. Plans, conditionals and questions are not claims. In `on`, an unshown claim sends the agent back once more, naming it and asking it to verify or say plainly what is unverified, never to take a hard-to-undo step; at most twice per prompt. |
@@ -218,7 +218,7 @@ own copy of a policy (`~/.config/jev/backends/<name>/policies/`).
 Above the prompt, after the first turn:
 
 ```text
-🧭 easy → haiku 4.5 · low  $0.0043 (112)  🛡 withheld 2  🔌 jev-1.13 · typesafe
+🧭 easy → haiku 4.5  $0.0043 (112)  🛡 withheld 2  🔌 jev-1.13 · typesafe
 ```
 
 The lane reads as difficulty (easy, normal, hard, critical), then the model and effort the mod

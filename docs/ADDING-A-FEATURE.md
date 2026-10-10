@@ -49,4 +49,21 @@
    let it count its own outcome.
 9. **Check it:** `claude plugin validate .`, `claude plugin test .`, then live: a headless
    `claude -p ... --plugin-dir .` run (stream-json for anything that needs the session open).
-10. **Document it** in the README's feature table.
+10. **Document it.** Give the feature its own `src/features/<name>/README.md`, and a row in the
+    main README's feature table (feature linked to its README, when it runs, what it decides in
+    one short sentence, its default). The feature README uses these headings, skipping any that
+    do not apply:
+    - What it decides
+    - When it runs
+    - How it decides (local rules, the questions sent to the decision model, thresholds)
+    - Settings (each knob with its default and range, as in `src/core/registry.ts`)
+    - Failing open, privacy and budget
+    - Limits
+    - Benchmarks: between `<!-- bench:start -->` and `<!-- bench:end -->`, so the harness can
+      replace it
+
+    Keep a long page that already exists in `docs/` (as `docs/BROWSER.md` and `docs/ACCESS.md`
+    are) and link to it from the feature README.
+11. **Benchmark it.** A feature gets a `bench/` folder, `src/features/<name>/bench/`, with its
+    cases and scorer. How the harness runs it and writes the Benchmarks section:
+    [src/bench/README.md](../src/bench/README.md).

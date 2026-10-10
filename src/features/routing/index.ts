@@ -39,7 +39,7 @@ export type RoutingSpace = {
 const prompts = new Map<string, string>()                // turnId -> the person's text
 const decisions = new Map<string, Lane | null>()         // turnId -> the lane (null: as is)
 const changedTurns = new Map<string, boolean>()          // turnId -> whether any step of it was changed
-const preclassified = new Map<string, LaneName | null>() // prompt text -> Jev's lane, read at submit
+const preclassified = new Map<string, Classified>()      // prompt text -> what Jev answered, read at submit
 let config: { at: number; policy: Policy | null; tables: unknown[] } | null = null
 
 function remember<V>(map: Map<string, V>, key: string, value: V): void {
@@ -82,7 +82,11 @@ async function loadConfig(io: IO): Promise<{ policy: Policy | null; tables: unkn
   return config
 }
 
-async function classify(io: IO, text: string): Promise<LaneName | null> {
+// What classify read: null when Jev gave no answer at all (an error, the cool-off, private mode,
+// no policy, a fallback); { lane: null } when Jev did answer, but with no lane (keep_current).
+type Classified = { lane: LaneName | null } | null
+
+async function classify(io: IO, text: string): Promise<Classified> {
   if (!text.trim() || text.trimStart().startsWith('/') || coolingOff() || await modeOf(io, 'routing') === 'off') return null
   if (await isPrivate(io, await jevDir(io))) return null
   const { policy, tables } = await loadConfig(io)
@@ -93,8 +97,9 @@ async function classify(io: IO, text: string): Promise<LaneName | null> {
     await record(io, { calls: 1, cost: decision.cost_usd, model: decision.jev_model,
       error: decision.error && OUTAGES.includes(decision.error) ? decision.error : null }, 'routing')
   }
-  if (!out.target || out.lane === 'keep_current') return null
-  return out.lane as LaneName
+  if (decision.fallback_used) return null
+  if (!out.target || out.lane === 'keep_current') return { lane: null }
+  return { lane: out.lane as LaneName }
 }
 
 async function lanes(io: IO): Promise<Table> {
@@ -117,7 +122,9 @@ async function decide(io: IO, text: string, mine: RoutingSpace): Promise<Lane | 
   const recent = previous !== null && now - previous.at <= FOLLOW_UP_MS
   if (!text.trim()) return recent && previous ? { lane: previous.lane, ...(await lanes(io))[previous.lane] } : null
   const classified = preclassified.has(text) ? (preclassified.get(text) ?? null) : await classify(io, text)
-  const ruled = sessionLane(classified, previous, text, now)
+  // No answer from Jev is not a follow-up: the turn runs as is and the session's lane stays.
+  if (classified === null) return null
+  const ruled = sessionLane(classified.lane, previous, text, now)
   if (ruled.lane === null) return null
   mine.previous = { lane: ruled.lane, at: now, corrections: ruled.corrections }
   return { lane: ruled.lane, ...(await lanes(io))[ruled.lane] }

@@ -232,7 +232,7 @@ shows the step while it runs (`memory.space('browser')`). docs/BROWSER.md has th
 ## Failure
 
 Every feature fails open: an answer it cannot get, or cannot trust, leaves the request as Claude
-Code would have sent it. `core/jev.ts` stops asking for five minutes after a failure. A hook that
+Code would have sent it. `core/jev.ts` stops asking for five minutes after an outage (client.ts's OUTAGES), thirty after the key or the account is refused (REFUSED). A hook that
 throws would be skipped by the engine; each of the mod's hooks carries a `.catch` that passes the
 event on unchanged, so that is the mod's own choice (`claude plugin validate` lists each gating
 hook "with .catch"). Both are silent: test the glue live, not only the rules.

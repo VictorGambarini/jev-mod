@@ -1,6 +1,8 @@
 import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
 import { recordCalls } from '../../core/jev'
+import { limitsOf } from '../../core/limits'
+import * as memory from '../../core/memory'
 import { problems, resolve, snapshot } from '../../core/config'
 import { FEATURES } from '../../core/registry'
 import { isPrivate, jevDir } from '../../core/settings'
@@ -13,6 +15,7 @@ import { report, scrub, type Facts } from './report'
 
 // /jev-mod status: which decision backend the mod uses, where its key came from (never the key),
 // one check call with jev-skills' own verification question, each feature's mode and today's spend.
+// The check is charged to the daily budget like any other call, and not made once it is spent.
 
 async function readJson(io: IO, path: string): Promise<any> {
   try { return JSON.parse(await io.readFile(path)) } catch { return undefined }
@@ -44,24 +47,30 @@ export async function run(io: IO): Promise<{ text: string }> {
     problems: problems(snap),
     budget: null,
   }
-  if (!facts.private) {
+  const limits = facts.private ? undefined : await limitsOf(io)
+  const [admitted, refused] = limits ? await limits.admit(false) : [true, '']
+  if (!facts.private && !admitted) facts.check = { ok: false, error: refused, said: '' }
+  else if (!facts.private) {
     const started = Date.now()
     try {
       const reply: Asked = await ask(host, 'The build finished and all tests passed.',
         { ok: noul('The text reports a successful outcome') }, { timeoutMs: 15_000 })
       facts.check = { ok: true, model: reply.jev_model, ms: Date.now() - started, cost: costOf(reply) }
-      await recordCalls(io, [reply])
+      await Promise.all([recordCalls(io, [reply]), limits?.charge(costOf(reply))])
     } catch (error) {
       const code = error instanceof JevError ? error.code : 'error'
       const said = error instanceof JevError ? error.message.replace(new RegExp(`^${code}:? ?`), '') : ''
       facts.check = { ok: false, error: code, said: said.slice(0, 200) }
     }
   }
-  const limits = limitConfig(await readJson(io, `${dir}/limits.json`))
+  await memory.load(io)
+  const { personModel, drift, untuned } = memory.space<{ personModel?: string; drift?: string; untuned?: string }>('routing')
+  facts.routing = { personModel, drift, untuned }
+  const config = limitConfig(await readJson(io, `${dir}/limits.json`))
   const state = await readJson(io, `${dir}/limits.state.json`)
   const today = new Date()
   const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  facts.budget = { spent: state?.day === day ? Number(state.usd ?? 0) : 0, daily: limits.daily_usd }
+  facts.budget = { spent: state?.day === day ? Number(state.usd ?? 0) : 0, daily: config.daily_usd }
   const keys = [backend ? await backendKey(host, backend) : undefined, chosen !== 'absent' ? await providerKey(host, chosen) : undefined]
   return { text: scrub(report(facts), keys) }
 }

@@ -2,9 +2,11 @@ import { hostOf } from '../../core/host'
 import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
+import { limitsOf } from '../../core/limits'
 import * as memory from '../../core/memory'
 import { modeOf } from '../../core/config'
 import { isPrivate, jevDir } from '../../core/settings'
+import { costOf } from '../../engine/client'
 import { discover, pick, type Skill } from '../../engine/skills'
 import { listedOnly, note, repeat } from './catalog'
 
@@ -48,11 +50,16 @@ export async function analyse(io: IO, text: string): Promise<string | null> {
   const setting = await modeOf(io, 'skills')
   if (setting === 'off' || await isPrivate(io, dir)) return null
   const { skills, listed } = await catalog(io)
+  // One pick against the daily budget (its two stages are charged together); past it, no suggestion.
+  const limits = await limitsOf(io)
+  if (limits && !(await limits.admit(setting !== 'on'))[0]) return null
   const picked = await pick(hostOf(io), text, skills, { topK: 1 })
   const mine = memory.space<SkillsSpace>('skills')
   mine.catalog = skills.length
   mine.listed = listed
-  await recordCalls(io, picked.calls ?? [], picked.errors ?? [], 'skills')
+  const calls = picked.calls ?? []
+  await Promise.all([recordCalls(io, calls, picked.errors ?? [], 'skills'),
+    limits?.charge(calls.reduce((sum, c) => sum + costOf(c), 0))])
   await memory.save(io)
   const chosen = picked.skills[0]
   if (!chosen) return null

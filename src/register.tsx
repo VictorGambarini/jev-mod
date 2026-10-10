@@ -86,7 +86,10 @@ async function refresh($: any): Promise<void> {
   try {
     bandOn = await modeOf(ioOf($), 'band') !== 'off'
     const io = ioOf($)
-    const mod = { configured: await configured(io) }
+    // Whether a feature that judges each prompt is on (the idle band's hint), and routing's mode
+    // (a lane recorded before routing was switched off is not shown as this turn's).
+    const [routingMode, skillsMode] = await Promise.all([modeOf(io, 'routing'), modeOf(io, 'skills')])
+    const mod = { configured: await configured(io), routing: routingMode !== 'off', judging: routingMode !== 'off' || skillsMode !== 'off' }
     const open = await accessGate.open(io)
     await update($, band, () => ({ ...memory.snapshot(), mod, ...(open.length ? { access: { open } } : {}) }))
   } catch { /* the band is cosmetic */ }
@@ -253,6 +256,16 @@ export const register: Register = (on, given) => {
     const note = await stopGate.check(ioOf($), { promptId: e.prompt_id, last: e.last_assistant_message })
     await refresh($) // the gate's call is on the band's tally
     return note ? { ...ran, block: note } : ran
+  }).catch(($, e, next) => next(e))
+
+  // The person choosing the session's model (/model, the picker, an IDE): routing leaves it be.
+  on('classic.PostModelSwitch', async ($, e, next) => {
+    const ran = await next(e)
+    const io = ioOf($)
+    await memory.load(io)
+    await routing.modelChosen(io, e)
+    await refresh($)
+    return ran
   }).catch(($, e, next) => next(e))
 
   on('turn.step', async function* ($, e, next) {

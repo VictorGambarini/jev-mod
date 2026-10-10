@@ -296,6 +296,11 @@ const STATUS: Record<number, string> = {
   401: 'auth_failed', 403: 'auth_failed', 402: 'credits_exhausted', 429: 'rate_limited', 529: 'overloaded',
 }
 export const RETRYABLE = new Set(['rate_limited', 'overloaded', 'network', 'http_500', 'http_502', 'http_503', 'http_504'])
+// The failures that are the backend's, not the request's: every code a retry is for, and a
+// timeout. core/jev.ts cools off after one, and /jev-mod status calls it an outage. A refusal
+// of the key or the account (REFUSED) cools off too, longer: it does not mend by itself.
+export const OUTAGES: readonly string[] = [...RETRYABLE, 'timeout']
+export const REFUSED: readonly string[] = ['auth_failed', 'credits_exhausted']
 export const MAX_RETRY_AFTER_MS = 60_000
 
 /**

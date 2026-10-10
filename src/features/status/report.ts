@@ -1,6 +1,7 @@
 // /jev-mod status: what the mod is connected to and whether it answers. Pure: the facts in, the
 // lines out. Nothing here ever holds a key; the facts say only where one was found.
 
+import { OUTAGES } from '../../engine/client'
 import type { KeySource } from '../../engine/keys'
 
 export type Facts = {
@@ -18,6 +19,8 @@ export type Facts = {
   /** Config settings that were passed over, and why. */
   problems: string[]
   budget: { spent: number; daily: number } | null
+  /** What this session's routing holds to, from its record: the person's /model, a drift, an untuned backend. */
+  routing?: { personModel?: string; drift?: string; untuned?: string }
 }
 
 const SOURCE: Record<KeySource, string> = {
@@ -29,13 +32,15 @@ const SOURCE: Record<KeySource, string> = {
 const NAMES: Record<string, string> = { typesafe: 'TypeSafe', openrouter: 'OpenRouter', venice: 'Venice', zen: 'OpenCode Zen' }
 
 /** What to do about a failed check, by its code. */
-function advice(error: string, facts: Facts): string {
+export function advice(error: string, facts?: Facts): string {
   if (error === 'no_key') return "Set a key in jev-mod's settings: /plugin, or `claude plugin configure jev-mod@jev-mod --values-stdin` in your own terminal (README)."
-  if (error === 'auth_failed') return facts.backend ? "The server refused the key: set the named backend key in jev-mod's settings."
-    : `${NAMES[facts.provider] ?? 'The provider'} refused the key: replace it in jev-mod's settings.`
-  if (error === 'credits_exhausted') return 'The account is out of credit.'
+  const meanwhile = 'The mod stops asking for 30 minutes, or until this check passes again; every feature fails open meanwhile.'
+  if (error === 'auth_failed') return (facts?.backend ? "The server refused the key: set the named backend key in jev-mod's settings."
+    : `${NAMES[facts?.provider ?? ''] ?? 'The provider'} refused the key: replace it in jev-mod's settings.`) + ` ${meanwhile}`
+  if (error === 'credits_exhausted') return `The account is out of credit. ${meanwhile}`
   if (error === 'backend_misconfigured') return 'Fix ~/.config/jev/backends.json (see below).'
-  if (['network', 'timeout', 'http_502', 'http_503', 'http_504', 'overloaded', 'rate_limited'].includes(error)) return 'The backend did not answer; every feature fails open meanwhile.'
+  if (error === 'skipped_budget') return "Today's daily budget is spent (limits.json); the mod asks nothing more until tomorrow."
+  if (OUTAGES.includes(error)) return 'The backend did not answer; the mod stops asking for five minutes, and every feature fails open meanwhile.'
   return 'Every feature fails open meanwhile: Claude Code runs as if the mod were not there.'
 }
 
@@ -51,6 +56,9 @@ export function report(f: Facts): string {
   else lines.push(`check: failed (${f.check.error})${f.check.said ? `: ${f.check.said}` : ''}. ${advice(f.check.error, f)}`)
   const modes = f.features.map(x => `${x.id} ${x.mode}${x.source === 'default' ? '' : ` (${x.source})`}`)
   lines.push(`features: ${modes.join(' · ')}${f.private ? ' · private (nothing is sent)' : ''}`)
+  if (f.routing?.personModel) lines.push(`routing: holding your /model (${f.routing.personModel}) this session; choosing Default in /model hands it back`)
+  if (f.routing?.drift) lines.push(`routing: not routed · ${f.routing.drift}: the lane policy keeps the current model on a Jev it was not tuned on`)
+  if (f.routing?.untuned) lines.push(`routing: the lane policy was not tuned for ${f.routing.untuned}; its thresholds are Jev's`)
   for (const problem of f.problems) lines.push(`config: ${problem}`)
   if (f.budget) lines.push(`today: $${f.budget.spent.toFixed(4)} of the $${f.budget.daily.toFixed(2)} daily budget`)
   return lines.join('\n')

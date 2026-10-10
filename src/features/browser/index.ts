@@ -186,8 +186,11 @@ async function screen(ctx: Ctx, text: string): Promise<string> {
   if (!text.trim()) return text
   const known = ctx.screened.get(text)
   if (known !== undefined) return known
-  const verdict = await screenResult(ctx.host, 'browse', text, { send: true, raw: true, timeoutMs: SCREEN_MS })
-  await recordCalls(ctx.io, verdict.calls ?? [], verdict.errors ?? [], ID)
+  // Against the daily budget like the rest of the run; past it the page is screened locally.
+  const send = ctx.limits ? (await ctx.limits.admit(false))[0] : true
+  const verdict = await screenResult(ctx.host, 'browse', text, { send, raw: true, timeoutMs: SCREEN_MS })
+  await Promise.all([recordCalls(ctx.io, verdict.calls ?? [], verdict.errors ?? [], ID),
+    ctx.limits?.charge((verdict.calls ?? []).reduce((sum, c) => sum + costOf(c), 0))])
   const withheld = withholdText('browse', text, true, verdict)
   if (withheld !== null) void activity.count(ctx.io, ID, 'withheld', verdict.flagged.length)
   const out = withheld ?? text

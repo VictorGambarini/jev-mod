@@ -18,8 +18,10 @@ import { callIsSensitive, decide, questionsFor, remember as rememberPrompt, risk
 //
 // It sits on `tool.check`, the engine's permission decision, and only ever tightens it: a call
 // Claude Code would refuse or already put to the person is left alone, and one it would allow
-// becomes an ask, never a deny. Every failure (no answer in time, private mode, a secret in the
-// call, the budget, the cool-off) leaves Claude Code's own verdict standing.
+// becomes an ask, never a deny. A risky call that carries a secret is never sent: it is put to the
+// person locally instead, since a credential riding on a push or a POST is exactly what the gate
+// is for. Every other failure (no answer in time, private mode, the budget, the cool-off) leaves
+// Claude Code's own verdict standing.
 
 export const ID = 'tool-gate'
 
@@ -35,12 +37,19 @@ export async function analyse(io: IO, text: string): Promise<void> {
 
 export type Gate = { decision: 'ask'; reason: string } | null
 
+/** The reason the person reads when a risky call carries a secret and so was not judged. */
+export function secretReason(why: string): string {
+  return `jev-mod tool gate: this ${why} and carries a credential, so it was not sent to the decision model; check it yourself`
+}
+
 type Call = { tool: string; input: unknown; agentId?: string }
 
 /**
  * What the gate makes of one call Claude Code would allow: an ask with the reason the person
  * reads, or null to leave the verdict as it is. Counts what it did (or in shadow would have
- * done) for the calls it looked at; calls it does not consider risky are not counted. Off, or a
+ * done) for the calls it looked at; calls it does not consider risky are not counted. A risky
+ * call carrying a secret is never sent: on, it is put to the person with secretReason; shadow
+ * counts would-ask-secret. Off, or a
  * call that is not risky, costs one read of the config and nothing else. In shadow the
  * judgement runs in the background: nothing changes, so the call never waits for it.
  */
@@ -52,6 +61,12 @@ export async function check(io: IO, e: Call): Promise<Gate> {
   const risk = riskOf(e.tool, e.input, scope, root, home)
   if (!risk) return null
   await memory.load(io)
+  if (callIsSensitive(e.tool, e.input)) {
+    // Never sent, whatever the mode; judged by the person instead. Shadow only counts it.
+    if (resolved.mode !== 'on') { await activity.count(io, ID, 'would-ask-secret'); return null }
+    await noteAsk(io, risk.why, 'asked-secret')
+    return { decision: 'ask', reason: secretReason(risk.why) }
+  }
   const minConfidence = Number(resolved.knobs.minConfidence?.value ?? 0.7)
   const timeoutMs = Number(resolved.knobs.timeoutMs?.value ?? 2000)
   if (resolved.mode !== 'on') {
@@ -60,11 +75,15 @@ export async function check(io: IO, e: Call): Promise<Gate> {
   }
   const verdict = await judge(io, e, risk, minConfidence, timeoutMs, false)
   if (!verdict) return null
+  await noteAsk(io, risk.why, 'asked-person')
+  return { decision: 'ask', reason: verdict.reason }
+}
+
+async function noteAsk(io: IO, why: string, outcome: string): Promise<void> {
   const mine = memory.space<ToolGateSpace>(ID)
   mine.asked = (mine.asked ?? 0) + 1
-  mine.last = risk.why
-  await Promise.all([memory.save(io), activity.count(io, ID, 'asked-person')])
-  return { decision: 'ask', reason: verdict.reason }
+  mine.last = why
+  await Promise.all([memory.save(io), activity.count(io, ID, outcome)])
 }
 
 /** The decision model's verdict on a risky call when it doubts it, else null; every outcome but the ask counted here. */
@@ -72,7 +91,7 @@ async function judge(io: IO, e: Call, risk: Risk, minConfidence: number, timeout
   const skip = async (): Promise<null> => { await activity.count(io, ID, 'skipped'); return null }
   const mine = memory.space<ToolGateSpace>(ID)
   if (!mine.prompts?.length) return skip() // nothing to judge it against
-  if (coolingOff() || callIsSensitive(e.tool, e.input)) return skip()
+  if (coolingOff()) return skip()
   const dir = await jevDir(io)
   if (await isPrivate(io, dir)) return skip()
   const limits = await limitsOf(io)

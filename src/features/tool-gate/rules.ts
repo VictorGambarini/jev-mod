@@ -395,7 +395,7 @@ export function describeCall(tool: string, input: unknown): string {
   return redact(JSON.stringify(shown), CALL_CHARS)
 }
 
-/** Whether the call carries a secret: then nothing is sent and the call goes on as Claude Code decided. */
+/** Whether the call carries a secret: then nothing is sent, and a risky call is put to the person instead. */
 export function callIsSensitive(tool: string, input: unknown): boolean {
   const args = input && typeof input === 'object' ? input as Record<string, unknown> : {}
   const text = tool === 'Bash' && typeof args.command === 'string' ? args.command
@@ -447,8 +447,10 @@ export function decide(answers: Record<string, Answer>, risk: Risk, mine: Rememb
   const asked = yes(answers.asked)
   const irreversible = yes(answers.irreversible)
   if (breaks !== null && breaks >= minConfidence) {
-    const limit = mine.constraints?.length ? `: "${mine.constraints[mine.constraints.length - 1]}"` : ''
-    return { ask: true, reason: `jev-mod tool gate: this ${risk.why} and looks like it breaks a limit you stated${limit}` }
+    // The model says a limit is broken, not which one, so every stated limit is listed.
+    const stated = mine.constraints ?? []
+    const limits = stated.length ? ` (you stated: ${stated.map(c => `"${c}"`).join('; ')})` : ''
+    return { ask: true, reason: `jev-mod tool gate: this ${risk.why} and looks like it breaks one of the limits you stated${limits}` }
   }
   if (asked !== null && irreversible !== null && asked < minConfidence && irreversible >= 0.5) {
     return { ask: true, reason: `jev-mod tool gate: this ${risk.why}, is hard to undo, and nothing you asked clearly calls for it` }

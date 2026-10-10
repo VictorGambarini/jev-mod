@@ -83,14 +83,16 @@ export const FEATURES: readonly Feature[] = [
       + 'stated, and whether it is hard to undo. on: a doubtful call is put to you in the permission dialog, with the '
       + 'reason, instead of running unasked. shadow: decided in the background and counted (would-ask, passed, skipped); nothing changes and no call waits for it; on counts asked-person. '
       + 'It only tightens Claude Code\'s own decision: a call your rules refuse or already ask about is left alone. '
-      + 'Reads, builds, tests and edits inside the project are never sent. No answer in time, private mode, a secret '
-      + 'in the call, the daily budget or a backend cool-off: the call goes on as Claude Code decided. In '
+      + 'Reads, builds, tests and edits inside the project are never sent. A call that carries a secret is never sent: on, it is '
+      + 'put to you with that reason (shadow counts would-ask-secret, on counts asked-secret). No answer in time, private '
+      + 'mode, the daily budget or a backend cool-off: the call goes on as Claude Code decided. In '
       + 'bypassPermissions, auto and dontAsk modes the mode settles the ask (it may allow or refuse it without you).',
     modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
       minConfidence: { type: 'number', title: 'Confidence', default: 0.7, min: 0, max: 1,
-        help: 'How sure the decision model must be that you asked for a hard-to-undo call for it to run unasked, '
-          + 'and that a call breaks a limit you stated for it to be put to you. Higher asks more often.' },
+        help: 'One bar used two ways. A hard-to-undo call runs unasked only if the decision model is at least this sure '
+          + 'you asked for it, so higher asks more often there. A call is put to you for breaking a limit you stated only '
+          + 'if the model is at least this sure it does, so higher asks less often there.' },
       scope: { type: 'choice', title: 'Which calls', default: 'all-risky', options: ['bash', 'bash+edits', 'all-risky'],
         help: 'bash: consequential Bash commands only. bash+edits: also Write/Edit outside the project. all-risky: also '
           + 'MCP tools whose names send, create, change or delete.' },

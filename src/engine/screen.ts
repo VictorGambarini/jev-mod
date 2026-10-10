@@ -698,6 +698,7 @@ export const BATCH = 60
 export const MAX_BATCHES = 8
 export const MAX_CHUNKS = BATCH * MAX_BATCHES
 export const INJECTION_THRESHOLD = 0.5
+/** Under this a text is screened on this machine only; the backend is asked about longer ones. */
 export const SCREEN_MIN_CHARS = 200
 
 /**

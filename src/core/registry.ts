@@ -68,8 +68,11 @@ export const FEATURES: readonly Feature[] = [
     id: 'screening',
     title: 'Screening',
     summary: 'Withholds instructions aimed at the model in fetched text',
-    help: 'on: WebFetch, WebSearch, MCP results and Bash output fetched from the network are screened, and the sentences '
-      + 'that carry instructions are withheld. shadow: screened and counted, nothing withheld.',
+    help: 'on: WebFetch, WebSearch, MCP results and the output (stdout, stderr, failed or not) of Bash commands that fetch from '
+      + 'the network or show others\' text (curl, wget, gh api, gh issue/pr view, gh run view, ...) are screened. The sentences the local '
+      + 'patterns recognise as instructions are withheld; a passage only the decision model flags (200+ characters) is withheld whole. '
+      + 'The decision model judges the first 8 long texts of a result; the rest get the local patterns only, and the result says so. '
+      + 'Without an answer from the decision model the local patterns decide. shadow: screened and counted, nothing withheld.',
     modes: ['off', 'shadow', 'on'], default: 'on', knobs: {}, protective: true,
     legacy: { option: 'screening', unset: 'default', state: 'hook_screen' },
   },
@@ -174,7 +177,7 @@ export const FEATURES: readonly Feature[] = [
       + 'lines are folded locally; then the decision model judges each remaining chunk against your latest request, and '
       + 'chunks it scores under keepThreshold are replaced by a marker naming their lines. Errors, warnings, failures, stack '
       + 'traces, summaries and the first and last lines are always kept. The full output is saved under '
-      + '~/.cache/jev-mod/outputs/ (the last 50) and the trimmed output names the file. '
+      + '~/.cache/jev-mod/outputs/ (kept 7 days, never one from the running session, at most 500) and the trimmed output names the file. '
       + 'shadow: what would be cut is computed in the background and counted; nothing is changed and the command never waits for it. '
       + 'Subagents, private profiles and localOnly get the local folding only.',
     modes: ['off', 'shadow', 'on'], default: 'off',

@@ -59,24 +59,40 @@ test('on, local only: the output is folded, the original archived, and the heade
   expect(Object.keys(fake.files).filter(p => p.startsWith(ARCHIVE)).length).toBe(2)
 })
 
-test('two outputs at once never share an archive, and the folder is pruned to the newest 50', async () => {
+test('two outputs at once never share an archive; pruning is by age and cap, and spares this session\'s archives', async () => {
   const fake = io({ mode: 'on', localOnly: true })
   const removed: string[] = []
-  const old = Array.from({ length: 52 }, (_, i) => ({ name: `${1000 + i}-${'a'.repeat(16)}.txt`, mtimeMs: 1000 + i }))
+  const name = (n: number) => `${n}-${'a'.repeat(16)}.txt`
+  const day = 24 * 3600 * 1000
+  const now = Date.now()
+  let listing: { name: string; mtimeMs: number }[] = []
   Object.assign(fake, {
-    files: async (dir: string) => (dir === ARCHIVE ? [...old, { name: 'notes.md', mtimeMs: 1 }] : []),
+    files: async (dir: string) => (dir === ARCHIVE ? [...listing, { name: 'notes.md', mtimeMs: 1 }] : []),
     run: async (argv: string[]) => { removed.push(...argv); return { exitCode: 0, stdout: '', stderr: '' } },
   })
   const outs = await Promise.all([1, 2, 3].map(() => trim(fake, { command: 'seq', subagent: false }, bash(numbered)))) as { stdout: string }[]
-  const paths = new Set(outs.map(o => /in (\S+)\]/.exec(o.stdout)?.[1]))
-  expect(paths.size).toBe(3)
+  const paths = [...new Set(outs.map(o => /in (\S+)\]/.exec(o.stdout)?.[1]!))]
+  expect(paths.length).toBe(3)
   await settled()
-  // the two oldest go, by path under the archive folder only; nothing else in the folder is touched
+  // this session's own archive, listed as ancient, is never removed; an old one of another session is
+  const mine = paths[0]!.slice(ARCHIVE.length + 1)
+  listing = [{ name: mine, mtimeMs: now - 30 * day }, { name: name(1), mtimeMs: now - 30 * day }, { name: name(2), mtimeMs: now - 1000 }]
+  removed.length = 0
+  await trim(fake, { command: 'seq', subagent: false }, bash(numbered))
+  await settled()
   expect(removed.slice(0, 3)).toEqual(['rm', '-f', '--'])
-  expect(removed).toContain(`${ARCHIVE}/1000-${'a'.repeat(16)}.txt`)
-  expect(removed).toContain(`${ARCHIVE}/1001-${'a'.repeat(16)}.txt`)
-  expect(removed).not.toContain(`${ARCHIVE}/1002-${'a'.repeat(16)}.txt`)
+  expect(removed).toContain(`${ARCHIVE}/${name(1)}`)
+  expect(removed).not.toContain(`${ARCHIVE}/${mine}`)
+  expect(removed).not.toContain(`${ARCHIVE}/${name(2)}`)
   expect(removed.some(p => p.endsWith('notes.md'))).toBe(false)
+  // fresh archives are kept up to the cap, then the oldest go
+  listing = Array.from({ length: 502 }, (_, i) => ({ name: name(10 + i), mtimeMs: now - 100_000 + i }))
+  removed.length = 0
+  await trim(fake, { command: 'seq', subagent: false }, bash(numbered))
+  await settled()
+  expect(removed.slice(3).length).toBe(2)
+  expect(removed).toContain(`${ARCHIVE}/${name(10)}`)
+  expect(removed).toContain(`${ARCHIVE}/${name(11)}`)
 })
 
 test('a failed command (one string) is trimmed too; short outputs and off are left alone', async () => {

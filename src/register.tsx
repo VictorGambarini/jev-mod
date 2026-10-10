@@ -336,6 +336,8 @@ export const register: Register = (on, given) => {
       const result = await screening.filter(io, kind, e.tool, ran.result)
       if (result !== null) ran = { ...ran, result }
     }
+    // a failed call's text is screened too: a failing curl can still print a hostile page
+    if (kind && failed) ran = (await screening.filterFailed(io, kind, e.tool, ran)) ?? ran
     // trim-output: a long Bash output (a failed command's error text included), after screening.
     // A persisted output is read whole from its file, so for a command screening looks at, that
     // text goes through the same screen first.

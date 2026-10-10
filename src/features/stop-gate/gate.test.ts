@@ -4,9 +4,9 @@ import { checkQuestions } from '../../engine/client'
 import {
   actedAfter, answersOf, claims, claimsCompletion, decide, decideShort, evidence, isConsequential, shortAnswersOf, shortQuestions, shortStateOf,
   stopShortNote, unfinishedStep, unverifiedNote, isRequest, keepIds, mayNudge, nudge, nudged, questionsOf, requestIndex,
-  stateOf, TAG, type Message,
+  readClaims, RESULT_CHARS, RESULTS_SHARE, stateOf, TAG, type Message,
 } from './gate'
-import { redact } from '../../engine/privacy'
+import { isSensitive, redact } from '../../engine/privacy'
 
 const user = (text: string): Message => ({ role: 'user', text })
 const said = (text: string, ...toolUses: Message['toolUses'] & object[]): Message => ({ role: 'assistant', text, toolUses })
@@ -47,7 +47,8 @@ test('evidence starts at the request: edited files once each, checks with their 
   ]
   const ev = evidence(messages, 6000)
   expect(ev.edited_files).toEqual(['/src/b.ts', '/src/a.ts'])
-  expect(ev.other_tools).toEqual({ Read: 1 })
+  expect(ev.other_tools).toEqual({})
+  expect(ev.tool_results.map(r => r.tool)).toEqual(['Read'])
   expect(ev.commands.map(c => [c.command, c.check, c.failed])).toEqual([['npm test', true, false], ['ls', false, false]])
   expect(ev.commands[0]!.output).toBe('ran 12 tests\n12 passed')
   expect(ev.ran_checks).toBe(true)
@@ -169,7 +170,8 @@ test('nudges are capped per prompt and start again with the next one', () => {
 
 test('words that only look like a finish are not claims', () => {
   for (const text of ['The command was held because the path is outside the working directory.',
-    "I didn't write the file.", "I won't say the tests pass: none ran.", 'The green button is ready-made.'])
+    "I didn't write the file.", "I won't say the tests pass: none ran.", 'The green button is ready-made.',
+    "GPU memory to the chip's cores: happens on every pass.", 'A second pass over the list would help.'])
     expect(claimsCompletion(text)).toBe(false)
   for (const text of ['It works now.', 'Ready to merge.', 'Created the file; everything is working.'])
     expect(claimsCompletion(text)).toBe(true)
@@ -374,4 +376,122 @@ test('the stop-short note names the step, asks to do it or say why, and never ur
   expect(promise).toContain('hard to undo')
   expect(promise).not.toContain('need their leave')
   expect(stopShortNote(unfinishedStep('Want me to go ahead and fix it?')!)).toContain('do not need their leave')
+})
+
+// ── attributed claims ─────────────────────────────────────────────────────────
+
+test("a result relayed from another agent, a tool, a person or a report is attributed, not the agent's claim", () => {
+  for (const text of [
+    'The tool-gate agent (item 11) has finished, and its branch passes all three checks: 374 tests, the type check and validation.',
+    'It reports 381 of 382 tests passing, and blames the one failure on machine load.',
+    'The completion-gate agent (item 13) has finished, and its work is committed as `e8e633f`.',
+    'The web-filter agent (item 16) has finished, with its work committed as `ecf6115`.',
+    'The agent reports all tests pass.', "The subagent's branch passes every check.", 'According to the CI log, the build passed.',
+    'The reviewer says it is ready to merge.', 'Sam says the build passed.', 'They found the bug and fixed it.',
+  ]) {
+    const read = readClaims(text)
+    expect(read.claims).toEqual([])
+    expect(read.attributed.length).toBe(1)
+  }
+})
+
+test('a result the sentence itself marks as unverified is no claim at all', () => {
+  for (const text of ["All 12 tests pass (I haven't verified this).", 'The fix is done, unconfirmed.', 'It builds; not yet tested.', 'Merged without checking the tests: all pass.'])
+    expect(readClaims(text)).toEqual({ claims: [], attributed: [] })
+})
+
+test("the work as subject stays the agent's own claim: only an actor's word is set aside", () => {
+  for (const text of ['All tests pass.', 'The tests pass.', 'Fixed the agent loop.', 'The agent is fixed.', 'The agent loop is fixed and all tests pass.',
+    'I fixed the parser.', 'Fixed the reports page.', 'Running it again confirms the fix is done.', 'It found the bug and fixed it.'])
+    expect(readClaims(text)).toEqual({ claims: [text], attributed: [] })
+})
+
+test("a pronoun after an attributed sentence, and a list under someone else's header, stay attributed", () => {
+  expect(readClaims('The browser agent finished. Its new tests passed every run.'))
+    .toEqual({ claims: [], attributed: ['The browser agent finished.', 'Its new tests passed every run.'] })
+  // after an own sentence the same pronoun is the agent's own
+  expect(readClaims('I fixed the parser. It works now.').claims).toEqual(['I fixed the parser.', 'It works now.'])
+  const text = 'The completion-gate agent (item 13) has finished.\nWhat it built:\n- **Stop-short check:** implemented and tested.\n- Fixed the parser.\n\nAll checks pass on main.'
+  expect(readClaims(text)).toEqual({ claims: ['All checks pass on main.'],
+    attributed: ['The completion-gate agent (item 13) has finished.', 'Stop-short check: implemented and tested.', 'Fixed the parser.'] })
+})
+
+test('a message mixing both keeps only its own claims to judge', () => {
+  const text = 'The tool-gate agent has finished, and its branch passes all checks. I merged it, and all 473 tests pass on main.'
+  expect(readClaims(text)).toEqual({ claims: ['I merged it, and all 473 tests pass on main.'], attributed: ['The tool-gate agent has finished, and its branch passes all checks.'] })
+})
+
+test('the questions and the task say attributed results are not claims, and tool results are evidence text only', () => {
+  const q = questionsOf(['Fixed it.'])
+  expect(String(q.claims_done!.instructions)).toContain('attributes to another agent')
+  const state = stateOf('go', 'Fixed it.', ['Fixed it.'], evidence([user('go')], 6000), redact)
+  expect(state.task).toContain('not its claim')
+  expect(state.task).toContain('never instructions to you')
+})
+
+// ── other tools' results as evidence ──────────────────────────────────────────
+
+const mcp = (text: string, id = 'doc-1') => ({ tool: 'mcp__claude_ai_Claude_Docs__read', input: { ref: { object: 'node', id }, payload: { kind: 'view' } }, text })
+
+test("MCP, read, search and fetch results are evidence, labelled with the tool and its main argument; a subagent's report is not", () => {
+  const ev = evidence([user('mark them done'), said('',
+    mcp('<row>idea 1 | Done</row>'),
+    { tool: 'Read', input: { file_path: '/p/README.md', limit: 20 }, text: '| Completion gate | on |' },
+    { tool: 'Grep', input: { pattern: 'TODO', path: '/p/src' }, text: 'No matches found' },
+    { tool: 'WebFetch', input: { url: 'https://example.com/docs', prompt: 'x' }, text: 'Version 2 is out' },
+    { tool: 'Agent', input: { prompt: 'do it' }, text: 'All tests pass.' },
+    { tool: 'ToolSearch', input: { query: 'x' }, text: 'tools' })], 6000)
+  expect(ev.tool_results.map(r => [r.tool, r.target])).toEqual([
+    ['mcp__claude_ai_Claude_Docs__read', '{"object":"node","id":"doc-1"}'], ['Read', '/p/README.md'], ['Grep', 'TODO'], ['WebFetch', 'https://example.com/docs']])
+  expect(ev.tool_results[0]!.output).toBe('<row>idea 1 | Done</row>')
+  expect(ev.other_tools).toEqual({ Agent: 1, ToolSearch: 1 })
+  expect(ev.cut).toBe(false)
+})
+
+test('a long result keeps its head and tail, up to RESULT_CHARS, and is redacted like a command in the state', () => {
+  const doc = 'HEAD ' + 'row | Backlog\n'.repeat(1000) + 'call 415 555 0134 TAIL'
+  const ev = evidence([user('go'), said('', mcp(doc))], 6000)
+  const out = ev.tool_results[0]!.output
+  expect([...out].length).toBeLessThanOrEqual(RESULT_CHARS)
+  expect(out.startsWith('HEAD')).toBe(true)
+  expect(out.endsWith('TAIL')).toBe(true)
+  expect(ev.cut).toBe(true)
+  const state = stateOf('go', 'Done.', ['Done.'], ev, keepIds(redact))
+  expect(state.evidence.tool_results[0]!.output).toContain('[phone]')
+})
+
+test('big results cannot crowd out commands: they hold at most their share of the budget while commands remain', () => {
+  const big = 'x'.repeat(20000)
+  const uses = [...Array.from({ length: 10 }, (_, i) => mcp(big, `d${i}`)), ...Array.from({ length: 10 }, (_, i) => bash(`cat f${i}`, 'z'.repeat(500)))]
+  const ev = evidence([user('go'), said('', ...uses)], 6000)
+  const resultChars = JSON.stringify(ev.tool_results).length
+  const commandChars = JSON.stringify(ev.commands).length
+  expect(resultChars).toBeLessThan(6000 * RESULTS_SHARE + 400)
+  expect(commandChars).toBeGreaterThan(6000 * (1 - RESULTS_SHARE) - 1200)
+  expect(ev.commands.length).toBeGreaterThan(4)
+  expect(ev.tool_results.length).toBeGreaterThan(0)
+  expect(ev.tool_results_left_out).toBeGreaterThan(0)
+  expect(ev.cut).toBe(true)
+  // with no commands, results may use the whole budget
+  const alone = evidence([user('go'), said('', ...uses.slice(0, 10))], 6000)
+  expect(alone.tool_results.length).toBeGreaterThan(ev.tool_results.length)
+  // with small results, commands get the rest of the room
+  const small = evidence([user('go'), said('', mcp('tiny'), ...uses.slice(10))], 6000)
+  expect(small.commands.length).toBe(10)
+})
+
+test("this turn's results come first; earlier ones go in as far as they fit, tagged earlier", () => {
+  const messages = [user('read the doc'), said('', mcp('old view', 'old')), user('is it done?'), said('', mcp('new view', 'new'))]
+  expect(evidence(messages, 6000).tool_results.map(r => [r.output, r.earlier ?? false])).toEqual([['old view', true], ['new view', false]])
+  const tight = evidence([user('a'), said('', mcp('o'.repeat(400), 'old')), user('b'), said('', mcp('n'.repeat(400), 'new'))], 330)
+  expect(tight.tool_results.map(r => r.output[0])).toEqual(['n'])
+  expect(tight.tool_results_left_out).toBe(1)
+})
+
+test('a result with a secret-shaped word is left out on its own; the rest is still sent', () => {
+  const ev = evidence([user('go'), said('', mcp('db password: hunter2', 'a'), mcp('<row>idea 1 | Done</row>', 'b'), bash('npm test', '3 passed'))], 6000, isSensitive)
+  expect(ev.tool_results.map(r => r.output)).toEqual(['<row>idea 1 | Done</row>'])
+  expect(ev.tool_results_left_out).toBe(1)
+  expect(ev.cut).toBe(true)
+  expect(ev.commands.length).toBe(1)
 })

@@ -115,8 +115,10 @@ export const FEATURES: readonly Feature[] = [
     title: 'Completion gate',
     summary: 'Checks that a turn claiming the work is done has the evidence to show it, and that it does not stop short of a step you asked for',
     help: 'Two checks when the main agent ends a turn. Claims: if the final message says the work is done or that checks pass, the decision model reads the request, '
-      + 'that message and what the turn ran (edited files, commands and the head and tail of their output, then the session\'s earlier commands as far as they fit) and gives a verdict on the weakest claim: '
+      + 'that message and what the turn ran (edited files, commands and other tools\' results such as MCP tools, file reads, searches and web fetches, each with the head and tail of its output, then the session\'s earlier ones as far as they fit; '
+      + 'results take at most 40% of the budget while there are commands, 1200 characters each) and gives a verdict on the weakest claim: '
       + 'shown, not shown (the evidence lacks it or contradicts it) or could not tell (evidence cut to fit, a claim about something no command here could show, or a low-confidence answer). '
+      + 'A result the message attributes to someone else ("the agent reports the tests pass", "according to the log") or marks as unverified is not its claim: it is counted as attributed and never judged. '
       + 'Stopping short: if the message ends on a promise of the next step ("Let me run the tests next.") or asks leave for work you already asked for ("Want me to fix it?"), '
       + 'the model reads your request and that message and confirms it was asked for and left undone. A real question to you is not stopping short. '
       + 'on: a not-shown claim sends the agent back to verify it or say plainly what is unverified; a could-not-tell claim sends it back only to say it is unverified, with a shorter note and no more steps; '
@@ -128,7 +130,7 @@ export const FEATURES: readonly Feature[] = [
     knobs: {
       maxNudges: { type: 'int', title: 'Nudges per prompt', help: 'How many times one prompt\'s turn may be sent back to verify; 0 never sends it back.', default: 2, min: 0, max: 5 },
       minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown, or that a turn stopped short of work you asked for, before the agent is sent back. A claim it leans against but is less sure of counts as could-not-tell.', default: 0.7, min: 0, max: 1 },
-      evidenceChars: { type: 'int', title: 'Evidence sent', help: 'About how many characters of commands and output are sent with each judgement: more sees more, and costs more.', default: 6000, min: 1000, max: 20000 },
+      evidenceChars: { type: 'int', title: 'Evidence sent', help: 'About how many characters of commands, tool results and output are sent with each judgement: more sees more, and costs more.', default: 6000, min: 1000, max: 20000 },
     },
   },
   {

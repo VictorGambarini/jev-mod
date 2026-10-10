@@ -91,10 +91,17 @@ settings Stop hooks beneath it answer first, and leaves a block of theirs as it 
 (maxNudges per prompt, keyed by the event's `prompt_id`) bounds the loop, and is shared by its
 two checks. The claims check gives a three-way verdict on the weakest claim (shown, not shown,
 could not tell): a not-shown claim sends the agent back to verify, a could-not-tell one only to
-say it is unverified. The stop-short check finds a last sentence that promises the next step or
+say it is unverified. A local pass leaves out what is not the agent's own claim: plans,
+conditionals and questions, and results it attributes to someone else (another agent as the
+subject, "it reports", "according to", a pronoun or list that follows one); those are counted as
+attributed, and the decision model is told the same. The evidence is the edited files, Bash
+commands, and other tools' results (MCP tools, Read, Grep, Glob, WebFetch, WebSearch; not a
+subagent's report), each with the head and tail of its output, this turn's first; results take at
+most 40% of the budget while there are commands, and 1200 characters each, and one holding a
+secret-shaped word is left out on its own. The stop-short check finds a last sentence that promises the next step or
 asks leave (local patterns), has the decision model confirm the person asked for it and it was
 not done, and never sends the agent back to a hard-to-undo step. Verdicts and outcomes are
-counted in `activity` (shown, not-shown, could-not-tell, nudged, noted, continued, step-held;
+counted in `activity` (shown, not-shown, could-not-tell, nudged, noted, continued, step-held, attributed;
 in shadow would-nudge, would-note, would-continue), which is what the dashboard charts. `src/stop-gate.test.ts`
 raises Stop through the kit; the path that asks the backend is checked live.
 

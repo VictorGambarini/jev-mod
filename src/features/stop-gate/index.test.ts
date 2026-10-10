@@ -46,7 +46,7 @@ test('shadow lets the agent stop before a slow backend answers, then counts the 
 
 // ── on and shadow, with a fake backend that answers by question name ─────────────
 
-const rig = (mode: string, request: string, final: string, answer: (q: string) => number, tools: unknown[] = []) => {
+const rig = (mode: string, request: string, final: string, answer: (q: string, body: any) => number, tools: unknown[] = []) => {
   const store: Record<string, unknown> = {}
   const asked: string[][] = []
   const files: Record<string, string> = { [USER]: JSON.stringify({ features: { 'stop-gate': { mode } } }) }
@@ -65,7 +65,7 @@ const rig = (mode: string, request: string, final: string, answer: (q: string) =
       const body = JSON.parse(init!.body!)
       asked.push(Object.keys(body.questions))
       const answers = Object.fromEntries(Object.keys(body.questions).map(q => [q, q === 'weakest'
-        ? { type: 'choice', choice: 'claim_0', probabilities: Object.fromEntries(Object.keys(body.questions.weakest.criteria).map(k => [k, k === 'claim_0' ? 1 : 0])), confidence: 1 } : { type: 'noul', noul: answer(q) }]))
+        ? { type: 'choice', choice: 'claim_0', probabilities: Object.fromEntries(Object.keys(body.questions.weakest.criteria).map(k => [k, k === 'claim_0' ? 1 : 0])), confidence: 1 } : { type: 'noul', noul: answer(q, body) }]))
       return { status: 200, ok: true, text: JSON.stringify({ answers, model: 'jev-test', usage: { input_tokens: 10 } }) }
     },
   } as unknown as IO
@@ -143,4 +143,49 @@ test('on: each claim verdict is counted, and only not-shown and could-not-tell s
   const s = rig('on', 'fix it', final, q => (q === 'supported' ? 0.95 : q === 'cannot_tell' ? 0.02 : q === 'unverified_checks' ? 0.02 : 0.9))
   expect(await check(s.io, { promptId: 's', last: final })).toBe(null)
   expect(s.counts()).toMatchObject({ shown: 1 })
+})
+
+// ── attributed claims and other tools' results ─────────────────────────────────
+
+test('on: results relayed from subagents are not judged and never nudged, only counted', async () => {
+  for (const final of [
+    'The tool-gate agent (item 11) has finished, and its branch passes all three checks: 374 tests, the type check and validation.',
+    'It reports 381 of 382 tests passing, and blames the one failure on machine load.',
+    'The completion-gate agent (item 13) has finished, and its work is committed as `e8e633f`.',
+    'The web-filter agent (item 16) has finished, with its work committed as `ecf6115`.',
+  ]) {
+    const r = rig('on', 'how are the agents doing?', final, q => (q === 'supported' ? 0.05 : q === 'cannot_tell' ? 0.05 : 0.95))
+    expect(await check(r.io, { promptId: 'a', last: final })).toBe(null)
+    expect(r.asked).toEqual([])
+    expect(r.counts().attributed).toBe(1)
+  }
+})
+
+test('on: an own claim with no run in the session is still nudged', async () => {
+  const final = 'All tests pass.'
+  const r = rig('on', 'fix the parser', final, q => (q === 'supported' ? 0.05 : q === 'cannot_tell' ? 0.05 : 0.95))
+  expect(await check(r.io, { promptId: 'a', last: final })).toContain('"All tests pass."')
+  expect(r.counts()).toMatchObject({ 'not-shown': 1, nudged: 1 })
+  expect(r.counts().attributed).toBe(undefined)
+})
+
+// A fake decision model that reads the evidence: the claim is shown when a tool result says Done for every row.
+const reads = (q: string, body: any) => {
+  const shown = (body.state.evidence.tool_results as { output: string }[]).some(r => (r.output.match(/Done/g) ?? []).length >= 3)
+  return q === 'supported' ? (shown ? 0.95 : 0.05) : q === 'cannot_tell' ? 0.05 : q === 'unverified_checks' ? 0.05 : 0.95
+}
+const docRead = (rows: string) => ({ tool: 'mcp__claude_ai_Claude_Docs__read', input: { ref: { object: 'node', id: 'n1' }, payload: { kind: 'view' } }, text: rows })
+
+test('on: an MCP read whose result shows the claim is evidence, so no nudge', async () => {
+  const final = 'The 3 shipped ideas are marked Done.'
+  const r = rig('on', 'mark the shipped ideas done', final, reads, [docRead('<row>idea 1 | Done</row><row>idea 2 | Done</row><row>idea 3 | Done</row>')])
+  expect(await check(r.io, { promptId: 'a', last: final })).toBe(null)
+  expect(r.counts()).toMatchObject({ shown: 1 })
+})
+
+test('on: an MCP result that does not show the claim leaves it nudged', async () => {
+  const final = 'The 3 shipped ideas are marked Done.'
+  const r = rig('on', 'mark the shipped ideas done', final, reads, [docRead('<row>idea 1 | Backlog</row><row>idea 2 | Backlog</row>')])
+  expect(await check(r.io, { promptId: 'a', last: final })).toContain('verify it now')
+  expect(r.counts()).toMatchObject({ 'not-shown': 1, nudged: 1 })
 })

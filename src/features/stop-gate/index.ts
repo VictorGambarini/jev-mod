@@ -9,13 +9,15 @@ import { isPrivate, jevDir } from '../../core/settings'
 import { ask, costOf, JevError } from '../../engine/client'
 import { isSensitive, redact } from '../../engine/privacy'
 import {
-  actedAfter, answersOf, claims, decide, decideShort, evidence, isConsequential, keepIds, mayNudge, nudge, nudged, questionsOf, requestIndex,
+  actedAfter, answersOf, decide, decideShort, evidence, isConsequential, keepIds, mayNudge, nudge, nudged, questionsOf, readClaims, requestIndex,
   shortAnswersOf, shortQuestions, shortStateOf, stateOf, stopShortNote, unfinishedStep, unverifiedNote, type Cap, type Pending, type Verdict,
 } from './gate'
 
 // The completion gate: when the main agent ends a turn (the settings Stop event: a normal end,
 // never an interrupt or an API error, never a subagent), and its final message claims the work
 // is done, Jev judges whether the turn's evidence shows it: shown, not shown, or could not tell.
+// A result the message attributes to someone else (a subagent's report, a tool's or a person's
+// word) is not its claim, and is only counted.
 // In "on", an unshown claim sends the agent back once more with a short note naming it (Stop's
 // block); a claim the gate could not judge sends it back only to say it is unverified. A turn
 // that ends on a promise of the next step, or asks leave for work the person already asked for,
@@ -43,7 +45,9 @@ export async function check(io: IO, e: { promptId?: string; last?: string }): Pr
     const { mode, knobs } = await setting(io, ID)
     if (mode === 'off') return null
     const final = e.last ?? ''
-    const found = claims(final)
+    const { claims: found, attributed } = readClaims(final)
+    // A result relayed from someone else ("the agent reports all tests pass") is not the agent's claim: counted, never judged.
+    if (attributed.length) await activity.count(io, ID, 'attributed')
     const pending = unfinishedStep(final)
     if (!found.length && !pending) return null // nothing to judge, and nothing counted
     const knob = (name: string, fallback: number) => Number(knobs[name]?.value ?? fallback)
@@ -125,14 +129,15 @@ async function judgeShort(io: IO, final: string, pending: Pending, knob: (name: 
  * The verdict on a turn's claims when it asks for a note (not shown, could not tell), else null.
  * Every verdict is counted here (shown, not-shown, could-not-tell); what is done about it is the caller's, and in shadow counted here.
  */
-async function judge(io: IO, final: string, found: ReturnType<typeof claims>, knob: (name: string, fallback: number) => number,
+async function judge(io: IO, final: string, found: readonly string[], knob: (name: string, fallback: number) => number,
   shadow: boolean): Promise<Exclude<Verdict, { verdict: 'none' | 'shown' }> | null> {
   const outcome = (name: string) => activity.count(io, ID, name)
   const messages = await io.messages()
   const at = requestIndex(messages)
   const request = at >= 0 ? messages[at]!.text : ''
-  const ev = evidence(messages, knob('evidenceChars', 6000))
-  const raw = [request, final, ...ev.edited_files, ...ev.commands.flatMap(c => [c.command, c.output])]
+  // A tool result with a secret-shaped word is left out on its own; one in a command still skips the check, as before.
+  const ev = evidence(messages, knob('evidenceChars', 6000), isSensitive)
+  const raw = [request, final, ...ev.edited_files, ...ev.commands.flatMap(c => [c.command, c.output]), ...ev.tool_results.flatMap(r => [r.target, r.output])]
   const answers = await consult(io, raw, stateOf(request, final, found, ev, keepIds(redact)), questionsOf(found), shadow)
   if (!answers) return null
   const read = answersOf(answers, found)

@@ -278,17 +278,35 @@ const ASSIGNED = new RegExp(
   `(${SECRET_KEY}["'\`\\]]?\\s*(?:${TYPE}|:=|=>|=(?!=)|:(?!:)|\\s+is\\s+)\\s*)(${QUOTED}|${SCHEME}|${BARE})`, 'giu')
 // A command-line flag: --password hunter2, --api-key=…
 const FLAG = new RegExp(`((?<![\\w-])--?[\\w-]*(?:${SECRET_KEY_WORD})[\\w-]*(?:=|\\s+))(${QUOTED}|${BARE})`, 'giu')
+// curl's `-u admin:hunter2` / `--user=admin:hunter2`: the part after the colon.
+const USER_PASS = /((?<![\w-])(?:-u|--user)(?:=|\s+)["']?[^\s:"']+:)(?!\[secret\])[^\s"']+/gu
+// A password in a URL: scheme://user:pass@host.
+const URL_PASS = /(\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:)(?!\[secret\])[^\s/@]+(@)/giu
 const SCHEME_ANYWHERE = /\b((?:bearer|basic)\s+)([A-Za-z0-9._~+/-]{8,}=*)/giu
 const PRIVATE_KEY_BLOCK = /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/gu
 
 // What follows a secret's name in code without being its value: a type, an empty or absent
 // value, another name (`config.apiKey`, `getPassword(`), a placeholder already masked.
 const NOT_A_VALUE = /^(?:string|number|boolean|bool|str|int|bytes|any|unknown|null|undefined|none|nil|true|false|this|self|new|await|typeof|optional|required|\[secret\]|\[redacted\]|""|''|``)$/i
-const REFERENCE = /^[A-Za-z_$][\w$]*(?:(?:\.|\?\.|::)[A-Za-z_$][\w$]*)+$|^[A-Za-z_$][\w$]*\($|^(?:process\.env|os\.environ|env)\b/
+// A dotted value is a reference only when it reads as one: a part of it names a secret
+// (`config.apiKey`, `settings.DB_PASSWORD`) or it starts at a common object. A dot alone is not
+// enough: `correct.horse` and `prod.Xk9pLm2Q` are passwords.
+const DOTTED = /^[A-Za-z_$][\w$]*(?:(?:\.|\?\.|::)[A-Za-z_$][\w$]*)+$/
+const CALL = /^[A-Za-z_$][\w$.]*\($/
+const SECRET_KEY_PART = new RegExp(SECRET_KEY_WORD, 'i')
+const OBJECT_ROOTS = new Set(['this', 'self', 'config', 'cfg', 'conf', 'settings', 'options', 'opts', 'props', 'args', 'ctx',
+  'req', 'request', 'env', 'process', 'os', 'secrets', 'vault', 'credentials', 'params', 'data', 'user', 'auth'])
+
+function isReference(v: string): boolean {
+  if (CALL.test(v)) return true
+  if (!DOTTED.test(v)) return false
+  const parts = v.split(/\?\.|::|\./).filter(Boolean)
+  return OBJECT_ROOTS.has(parts[0]!.toLowerCase()) || parts.some(p => SECRET_KEY_PART.test(p))
+}
 
 function maskValue(value: string): string {
   const v = value.trim()
-  if (NOT_A_VALUE.test(v) || REFERENCE.test(v)) return value
+  if (NOT_A_VALUE.test(v) || isReference(v)) return value
   // A string literal keeps its quotes so the code still reads as code.
   const q = v[0]
   if ((q === '"' || q === "'" || q === '`') && v.endsWith(q) && v.length >= 2) {
@@ -305,6 +323,8 @@ export function maskSecretValues(text: string): string {
   out = out.replace(SCHEME_ANYWHERE, (_, lead: string) => `${lead}[secret]`)
   out = out.replace(ASSIGNED, (_, lead: string, value: string) => lead + maskValue(value))
   out = out.replace(FLAG, (_, lead: string, value: string) => lead + maskValue(value))
+  out = out.replace(USER_PASS, (_, lead: string) => `${lead}[secret]`)
+  out = out.replace(URL_PASS, (_, lead: string, at: string) => `${lead}[secret]${at}`)
   return out
 }
 

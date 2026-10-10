@@ -118,3 +118,22 @@ test('redactSecretValues leaves no value isSensitive would catch, only the names
   for (const value of ['hunter2', 'sk-abcdefghijklmnopqrstuv', 'abcdefgh12345678']) expect(out.includes(value)).toBe(false)
   expect(out).toContain('DB_PASSWORD=[secret]')
 })
+
+test('a dotted value is masked unless it reads as a reference; user:pass after -u and in a URL is masked', () => {
+  const masked: [string, string][] = [
+    ['password=correct.horse', 'password=[secret]'],
+    ['secret: prod.Xk9pLm2Q', 'secret: [secret]'],
+    ['token: abc.defGhi', 'token: [secret]'],
+    ['curl -u admin:hunter2 https://x', 'curl -u admin:[secret] https://x'],
+    ['curl --user=admin:hunter2 x', 'curl --user=admin:[secret] x'],
+    ['postgres://admin:hunter2@db:5432/x', 'postgres://admin:[secret]@db:5432/x'],
+  ]
+  for (const [input, out] of masked) {
+    expect(maskSecretValues(input)).toBe(out)
+    expect(redactSecretValues(input)).toBe(out)
+  }
+  for (const kept of ['apiKey: config.apiKey', 'password: opts.password', 'const apiKey = process.env.X',
+    'key: settings.DB_PASSWORD', 'password = getPassword()']) {
+    expect(redactSecretValues(kept)).toBe(kept)
+  }
+})

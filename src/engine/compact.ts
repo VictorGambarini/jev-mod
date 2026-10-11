@@ -22,7 +22,7 @@ export const BATCH = 40
 // are packed by that size and not by count; room is left for the questions.
 export const STATE_BUDGET = 40_000
 const PER_TURN_OVERHEAD = 16
-export const DROP_CONFIDENCE = 0.7
+export const DROP_CONFIDENCE = 0.5
 /** The last turns kept without asking; /jev-mod compact keeps the same number of messages. */
 export const KEEP_LAST = 6
 export const FATE = {

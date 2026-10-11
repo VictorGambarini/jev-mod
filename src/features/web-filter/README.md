@@ -28,7 +28,7 @@ After WebSearch, and after a WebFetch of 4,000 characters or more (`fetchMinChar
 
 | Setting | Default | Range | What it does |
 |---|---|---|---|
-| `minConfidence` | 0.8 | 0.5-1 | How sure the decision model must be that a result does not help, or a part is not needed, for it to be dropped. |
+| `minConfidence` | 0.9 | 0.5-1 | How sure the decision model must be that a result does not help, or a part is not needed, for it to be dropped. |
 | `keepTop` | 3 | 1-10 | The first this many distinct search results always stay, in their order. |
 | `fetchMinChars` | 4000 | 2000-100000 | A WebFetch result shorter than this is left alone. |
 | `timeoutMs` | 3000 | 1000-10000 | How long the result waits for the decision model before it passes unchanged. |
@@ -45,7 +45,7 @@ No key, private mode, the daily budget, a backend cool-off, no answer within `ti
 ## Benchmarks
 
 <!-- bench:start -->
-**Bench** (`bun src/bench/report.ts web-filter`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.8). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar drops fewer results and parts, and a dropped one is gone from what the model reads.
+**Bench** (`bun src/bench/report.ts web-filter`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.9). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar drops fewer results and parts, and a dropped one is gone from what the model reads.
 
 ![accuracy](bench/results/accuracy.svg)
 ![effect](bench/results/effect.svg)
@@ -57,5 +57,5 @@ No key, private mode, the daily budget, a backend cool-off, no answer within `ti
 
 Recommended per backend:
 
-- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 97.6%; today's 0.8: 96.4%)
+- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 97.6%; today's 0.9: 97.6%)
 <!-- bench:end -->

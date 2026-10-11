@@ -65,7 +65,7 @@ export const KNOBS: Record<string, [number, string, string]> = {
   'choose.min_confidence': [0.65, '0.5', '0.99'],
   'choose.dead_repeats': [2, '1', '10'],
   'skillpick.need_threshold': [0.5, '0.0', '1.0'],
-  'skillpick.match_threshold': [0.5, '0.0', '1.0'],
+  'skillpick.match_threshold': [0.75, '0.0', '1.0'],
   'skillpick.shortlist_floor': [0.02, '0.0', '0.5'],
   'search.sufficiency_threshold': [0.5, '0.0', '1.0'],
   'webscreen.injection_threshold': [0.5, '0.0', '1.0'],

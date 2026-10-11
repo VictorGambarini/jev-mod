@@ -146,7 +146,7 @@ test('a project file may only tighten a protective feature: a looser mode and it
   expect(await at({}, cloned, toolGate)).toBe('off project') // off is no looser than the default, so it stands
   expect(await at({}, cloned, stopGate)).toBe('shadow project') // stricter than the default off
   const snap = await snapshot(io({}, cloned))
-  expect(resolve(snap, toolGate).knobs.minConfidence).toEqual({ value: 0.7, source: 'default' })
+  expect(resolve(snap, toolGate).knobs.minConfidence).toEqual({ value: 0.8, source: 'default' })
   expect(resolve(snap, toolGate).knobs.scope).toEqual({ value: 'all-risky', source: 'default' })
   expect(problems(snap)).toEqual([
     'project config may not lower screening: off is looser than on (default), and a project may only make it stricter; it is passed over',

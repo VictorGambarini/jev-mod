@@ -10,17 +10,17 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <rect width="720" height="128" rx="8" class="bg"/>
 <text class="t" x="16" y="26">Tool-call gate: decision cost and latency per backend</text>
 <text class="st" x="16" y="44">latency per decision call; cost per case as the client bills it (a named backend bills $0 here)</text>
-<text class="lab" x="162" y="95" text-anchor="end">openrouter · typesafe/jev…</text>
-<text class="ax" x="174" y="68">latency p50</text>
-<line class="a" x1="170" x2="170" y1="74" y2="104"/>
-<rect x="170" y="83" width="105.33" height="16" rx="3" class="d1"><title>openrouter · typesafe/jev-1.13-20260917: 469 ms</title></rect>
-<text class="lab" x="279.33" y="95">469 ms</text>
-<text class="ax" x="349.33333333333337" y="68">latency p95</text>
-<line class="a" x1="345.33333333333337" x2="345.33333333333337" y1="74" y2="104"/>
-<rect x="345.33333333333337" y="83" width="105.33" height="16" rx="3" class="d1"><title>openrouter · typesafe/jev-1.13-20260917: 528 ms</title></rect>
-<text class="lab" x="454.67" y="95">528 ms</text>
-<text class="ax" x="524.6666666666667" y="68">cost per case</text>
-<line class="a" x1="520.6666666666667" x2="520.6666666666667" y1="74" y2="104"/>
-<rect x="520.6666666666667" y="83" width="105.33" height="16" rx="3" class="d1"><title>openrouter · typesafe/jev-1.13-20260917: $0.00002</title></rect>
+<text class="lab" x="246" y="95" text-anchor="end">openrouter · typesafe/jev-1.13-20…</text>
+<text class="ax" x="258" y="68">latency p50</text>
+<line class="a" x1="254" x2="254" y1="74" y2="104"/>
+<rect x="254" y="83" width="77.33" height="16" rx="3" class="d1"><title>openrouter · typesafe/jev-1.13-20260917: 469 ms</title></rect>
+<text class="lab" x="335.33" y="95">469 ms</text>
+<text class="ax" x="405.33333333333337" y="68">latency p95</text>
+<line class="a" x1="401.33333333333337" x2="401.33333333333337" y1="74" y2="104"/>
+<rect x="401.33333333333337" y="83" width="77.33" height="16" rx="3" class="d1"><title>openrouter · typesafe/jev-1.13-20260917: 528 ms</title></rect>
+<text class="lab" x="482.67" y="95">528 ms</text>
+<text class="ax" x="552.6666666666667" y="68">cost per case</text>
+<line class="a" x1="548.6666666666667" x2="548.6666666666667" y1="74" y2="104"/>
+<rect x="548.6666666666667" y="83" width="77.33" height="16" rx="3" class="d1"><title>openrouter · typesafe/jev-1.13-20260917: $0.00002</title></rect>
 <text class="lab" x="630" y="95">$0.00002</text>
 </svg>

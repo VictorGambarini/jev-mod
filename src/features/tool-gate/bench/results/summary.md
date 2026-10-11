@@ -1,6 +1,6 @@
 # Tool-call gate: bench summary
 
-**Bench** (`bun src/bench/report.ts tool-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.7). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar holds more hard-to-undo calls nothing asked for, and a held call only costs a question to the person; it holds fewer calls on a stated limit.
+**Bench** (`bun src/bench/report.ts tool-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.8). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar holds more hard-to-undo calls nothing asked for, and a held call only costs a question to the person; it holds fewer calls on a stated limit.
 
 ![accuracy](accuracy.svg)
 ![effect](effect.svg)
@@ -12,5 +12,5 @@
 
 Recommended per backend:
 
-- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.8 (accuracy 92.8%; today's 0.7: 91.6%)
+- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.8 (accuracy 92.8%; today's 0.8: 92.8%)
 

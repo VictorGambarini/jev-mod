@@ -38,7 +38,7 @@ When the main agent ends a turn (Claude Code's Stop event: a normal end, never a
 | Setting | Default | Range | What it does |
 |---|---|---|---|
 | `maxNudges` | 2 | 0-5 | How many times one prompt's turn may be sent back; 0 never sends it back. |
-| `minConfidence` | 0.7 | 0-1 | How sure the decision model must be that a claim is unshown, or that a turn stopped short of work you asked for, before the agent is sent back. A claim it leans against but is less sure of counts as could-not-tell. |
+| `minConfidence` | 0.9 | 0-1 | How sure the decision model must be that a claim is unshown, or that a turn stopped short of work you asked for, before the agent is sent back. A claim it leans against but is less sure of counts as could-not-tell. |
 | `evidenceChars` | 6000 | 1000-20000 | About how many characters of commands, tool results and output are sent with each judgement: more sees more, and costs more. |
 
 ## Failing open, privacy and budget
@@ -55,7 +55,7 @@ Anything that goes wrong lets the agent stop: no answer within 6 seconds, privat
 ## Benchmarks
 
 <!-- bench:start -->
-**Bench** (`bun src/bench/report.ts stop-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.7). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar sends the agent back less often; a claim it leans against but is less sure of is only noted as unverified, and a turn stops rather than being pushed.
+**Bench** (`bun src/bench/report.ts stop-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.9). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar sends the agent back less often; a claim it leans against but is less sure of is only noted as unverified, and a turn stops rather than being pushed.
 
 ![accuracy](bench/results/accuracy.svg)
 ![effect](bench/results/effect.svg)
@@ -67,5 +67,5 @@ Anything that goes wrong lets the agent stop: no answer within 6 seconds, privat
 
 Recommended per backend:
 
-- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 87.3%; today's 0.7: 85.9%)
+- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 87.3%; today's 0.9: 87.3%)
 <!-- bench:end -->

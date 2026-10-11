@@ -10,15 +10,15 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <rect width="720" height="128" rx="8" class="bg"/>
 <text class="t" x="16" y="26">Access gate: decision cost and latency per backend</text>
 <text class="st" x="16" y="44">latency per decision call; cost per case as the client bills it (a named backend bills $0 here)</text>
-<text class="lab" x="162" y="95" text-anchor="end">openrouter · ~typesafe/je…</text>
-<text class="ax" x="174" y="68">latency p50</text>
-<line class="a" x1="170" x2="170" y1="74" y2="104"/>
-<text class="ax" x="176" y="95">n/a</text>
-<text class="ax" x="349.33333333333337" y="68">latency p95</text>
-<line class="a" x1="345.33333333333337" x2="345.33333333333337" y1="74" y2="104"/>
-<text class="ax" x="351.33333333333337" y="95">n/a</text>
-<text class="ax" x="524.6666666666667" y="68">cost per case</text>
-<line class="a" x1="520.6666666666667" x2="520.6666666666667" y1="74" y2="104"/>
-<rect x="520.6666666666667" y="83" width="2" height="16" rx="3" class="d1"><title>openrouter · ~typesafe/jev-latest: $0</title></rect>
-<text class="lab" x="526.67" y="95">$0</text>
+<text class="lab" x="239" y="95" text-anchor="end">openrouter · ~typesafe/jev-latest</text>
+<text class="ax" x="251" y="68">latency p50</text>
+<line class="a" x1="247" x2="247" y1="74" y2="104"/>
+<text class="ax" x="253" y="95">n/a</text>
+<text class="ax" x="400.66666666666663" y="68">latency p95</text>
+<line class="a" x1="396.66666666666663" x2="396.66666666666663" y1="74" y2="104"/>
+<text class="ax" x="402.66666666666663" y="95">n/a</text>
+<text class="ax" x="550.3333333333333" y="68">cost per case</text>
+<line class="a" x1="546.3333333333333" x2="546.3333333333333" y1="74" y2="104"/>
+<rect x="546.3333333333333" y="83" width="2" height="16" rx="3" class="d1"><title>openrouter · ~typesafe/jev-latest: $0</title></rect>
+<text class="lab" x="552.33" y="95">$0</text>
 </svg>

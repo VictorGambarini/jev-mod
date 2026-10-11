@@ -47,7 +47,7 @@ The model says a limit is broken, not which one, so the reason lists every limit
 
 | Setting | Default | Range | What it does |
 |---|---|---|---|
-| `minConfidence` | 0.7 | 0-1 | One bar used two ways. A hard-to-undo call runs unasked only if the model is at least this sure you asked for it, so higher asks more often there. A call is put to you for breaking a limit you stated only if the model is at least this sure it does, so higher asks less often there. |
+| `minConfidence` | 0.8 | 0-1 | One bar used two ways. A hard-to-undo call runs unasked only if the model is at least this sure you asked for it, so higher asks more often there. A call is put to you for breaking a limit you stated only if the model is at least this sure it does, so higher asks less often there. |
 | `offMachineConfidence` | 0.7 | 0-1 | A call is put to you for sending data off this machine only if the model is at least this sure it does, and not at least `minConfidence` sure you asked for it. Higher asks less often. |
 | `scope` | `all-risky` | `bash`, `bash+edits`, `all-risky` | `bash`: consequential Bash commands only. `bash+edits`: also Write/Edit outside the project. `all-risky`: also MCP tools whose names send, create, change or delete. |
 | `timeoutMs` | 2000 | 500-5000 | How long a call waits for the decision before it goes on as Claude Code decided. |
@@ -67,7 +67,7 @@ A call carrying a secret is never sent. In `on` it is put to you instead, with t
 ## Benchmarks
 
 <!-- bench:start -->
-**Bench** (`bun src/bench/report.ts tool-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.7). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar holds more hard-to-undo calls nothing asked for, and a held call only costs a question to the person; it holds fewer calls on a stated limit.
+**Bench** (`bun src/bench/report.ts tool-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.8). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar holds more hard-to-undo calls nothing asked for, and a held call only costs a question to the person; it holds fewer calls on a stated limit.
 
 ![accuracy](bench/results/accuracy.svg)
 ![effect](bench/results/effect.svg)
@@ -79,5 +79,5 @@ A call carrying a secret is never sent. In `on` it is put to you instead, with t
 
 Recommended per backend:
 
-- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.8 (accuracy 92.8%; today's 0.7: 91.6%)
+- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.8 (accuracy 92.8%; today's 0.8: 92.8%)
 <!-- bench:end -->

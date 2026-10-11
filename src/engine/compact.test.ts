@@ -48,18 +48,25 @@ test('the question has exactly the criteria keep and drop', async () => {
 
 test('drop at 0.9 is dropped, drop at 0.5 is kept, keep is kept', async () => {
   const out = await select(fake(i => (i % 3 === 0 ? { choice: 'drop', confidence: 0.9 }
-    : i % 3 === 1 ? { choice: 'drop', confidence: 0.5 } : { choice: 'keep', confidence: 0.9 })), plain)
+    : i % 3 === 1 ? { choice: 'drop', confidence: 0.5 } : { choice: 'keep', confidence: 0.9 })), plain, { dropConfidence: 0.7 })
   expect(out.status).toBe('ok')
   for (let i = 0; i < FREE; i++) expect(out.fates[String(i)]).toBe(i % 3 === 0 ? 'drop' : 'keep')
   for (let i = FREE; i < 24; i++) expect(out.fates[String(i)]).toBe('keep')
   expect(out.counts).toEqual({ keep: 24 - 6, drop: 6 })
 })
 
-test('drop at exactly 0.7 is dropped, at 0.69 kept', async () => {
-  const sure = await select(fake(() => ({ choice: 'drop', confidence: 0.9 })), plain)
+test('drop at exactly 0.7 is dropped, at 0.69 kept (caller bar 0.7)', async () => {
+  const opts = { dropConfidence: 0.7 }
+  const sure = await select(fake(() => ({ choice: 'drop', confidence: 0.9 })), plain, opts)
   expect(sure.counts.drop).toBeGreaterThan(0)
-  expect((await select(fake(() => ({ choice: 'drop', confidence: 0.7 })), plain)).counts).toEqual(sure.counts)
-  expect((await select(fake(() => ({ choice: 'drop', confidence: 0.69 })), plain)).counts.drop).toBe(0)
+  expect((await select(fake(() => ({ choice: 'drop', confidence: 0.7 })), plain, opts)).counts).toEqual(sure.counts)
+  expect((await select(fake(() => ({ choice: 'drop', confidence: 0.69 })), plain, opts)).counts.drop).toBe(0)
+})
+
+test('the default drop bar is 0.5: drop at 0.5 is dropped, at 0.49 kept', async () => {
+  const sure = await select(fake(() => ({ choice: 'drop', confidence: 0.9 })), plain)
+  expect((await select(fake(() => ({ choice: 'drop', confidence: 0.5 })), plain)).counts).toEqual(sure.counts)
+  expect((await select(fake(() => ({ choice: 'drop', confidence: 0.49 })), plain)).counts.drop).toBe(0)
 })
 
 test('a caller may move the drop bar (a bench run does): 0.8 keeps a 0.75 drop, 0.6 drops it', async () => {

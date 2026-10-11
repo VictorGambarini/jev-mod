@@ -1,6 +1,6 @@
 # Skills: bench summary
 
-**Bench** (`bun src/bench/report.ts skills`; 0.11.0@14f7f68). Threshold swept: `match` (today 0.5). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar suggests less often; a wrong suggestion costs a detour and context, a missed one costs nothing the model would not have done anyway.
+**Bench** (`bun src/bench/report.ts skills`; 0.11.0@14f7f68). Threshold swept: `match` (today 0.75). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar suggests less often; a wrong suggestion costs a detour and context, a missed one costs nothing the model would not have done anyway.
 
 ![accuracy](accuracy.svg)
 ![effect](effect.svg)
@@ -12,5 +12,5 @@
 
 Recommended per backend:
 
-- openrouter · typesafe/jev-1.13-20260917: match 0.75 (accuracy 98.6%; today's 0.5: 90.3%)
+- openrouter · typesafe/jev-1.13-20260917: match 0.75 (accuracy 98.6%; today's 0.75: 98.6%)
 

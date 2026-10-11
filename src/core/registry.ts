@@ -96,7 +96,7 @@ export const FEATURES: readonly Feature[] = [
       + 'bypassPermissions, auto and dontAsk modes the mode settles the ask (it may allow or refuse it without you).',
     modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
-      minConfidence: { type: 'number', title: 'Confidence', default: 0.7, min: 0, max: 1,
+      minConfidence: { type: 'number', title: 'Confidence', default: 0.8, min: 0, max: 1,
         help: 'One bar used two ways. A hard-to-undo call runs unasked only if the decision model is at least this sure '
           + 'you asked for it, so higher asks more often there. A call is put to you for breaking a limit you stated only '
           + 'if the model is at least this sure it does, so higher asks less often there.' },
@@ -129,7 +129,7 @@ export const FEATURES: readonly Feature[] = [
     modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
       maxNudges: { type: 'int', title: 'Nudges per prompt', help: 'How many times one prompt\'s turn may be sent back to verify; 0 never sends it back.', default: 2, min: 0, max: 5 },
-      minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown, or that a turn stopped short of work you asked for, before the agent is sent back. A claim it leans against but is less sure of counts as could-not-tell.', default: 0.7, min: 0, max: 1 },
+      minConfidence: { type: 'number', title: 'Confidence to nudge', help: 'How sure the decision model must be that a claim is unshown, or that a turn stopped short of work you asked for, before the agent is sent back. A claim it leans against but is less sure of counts as could-not-tell.', default: 0.9, min: 0, max: 1 },
       evidenceChars: { type: 'int', title: 'Evidence sent', help: 'About how many characters of commands, tool results and output are sent with each judgement: more sees more, and costs more.', default: 6000, min: 1000, max: 20000 },
     },
   },
@@ -145,10 +145,10 @@ export const FEATURES: readonly Feature[] = [
       + 'should not apply. shadow: judged in the background and counted (would-block, passed, skipped); no edit waits for it '
       + 'or is refused. off: nothing is sent. Only edits inside the project are judged (outside it is the tool gate\'s). '
       + 'No answer within timeoutMs, no key, private mode, a secret in the change, the daily budget or a backend cool-off: '
-      + 'the edit goes on. The thresholds are not yet tested against real answers: run it in shadow first.',
+      + 'the edit goes on. Its threshold was measured on Jev\'s answers in the bench; on another model, run it in shadow first.',
     modes: ['off', 'shadow', 'on'], default: 'off', protective: true,
     knobs: {
-      minConfidence: { type: 'number', title: 'Confidence to refuse', default: 0.8, min: 0.5, max: 1,
+      minConfidence: { type: 'number', title: 'Confidence to refuse', default: 0.9, min: 0.5, max: 1,
         help: 'How sure the decision model must be that a change breaks a rule for the edit to be refused.' },
       maxRules: { type: 'int', title: 'Rules per edit', default: 25, min: 5, max: 60,
         help: 'The most rules judged per edit; past it, those whose words match the file\'s path and the change are kept, nearer files first.' },
@@ -226,7 +226,7 @@ export const FEATURES: readonly Feature[] = [
       + 'shadow: what would be dropped is judged in the background and counted; nothing changes and nothing waits for it.',
     modes: ['off', 'shadow', 'on'], default: 'off',
     knobs: {
-      minConfidence: { type: 'number', title: 'Confidence to drop', default: 0.8, min: 0.5, max: 1,
+      minConfidence: { type: 'number', title: 'Confidence to drop', default: 0.9, min: 0.5, max: 1,
         help: 'How sure the decision model must be that a result does not help, or a part is not needed, for it to be dropped.' },
       keepTop: { type: 'int', title: 'Results always kept', default: 3, min: 1, max: 10,
         help: 'The first this many distinct search results always stay, in their order.' },

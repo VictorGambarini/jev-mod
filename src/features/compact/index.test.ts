@@ -86,10 +86,17 @@ test('tool pairs are judged: a confident drop takes the pair whole, a keep and a
 })
 
 test('a low-confidence drop of a pair keeps it whole', async () => {
+  // a valid answer has confidence >= 0.5, so the bar is set to 0.7 by a bench overlay: a 0.6 drop is below it
   const messages = convo()
-  const fake = io(turn => (turn.includes('cat notes') ? { choice: 'drop', confidence: 0.69 }
+  const fake = io(turn => (turn.includes('cat notes') ? { choice: 'drop', confidence: 0.6 }
     : turn.includes('npm test') ? { choice: 'keep', confidence: 0.6 } : { choice: 'drop', confidence: 0.95 }))
-  expect(indexes(await compact(fake, messages), messages)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+  const files: Record<string, string> = { '/scratch/overlay.json': JSON.stringify({ compact: { dropConfidence: 0.7 } }) }
+  const env = fake.env
+  const benchFake = Object.assign(fake, {
+    env: async (name: string) => (name === 'JEV_MOD_BENCH_OVERLAY' ? '/scratch/overlay.json' : env(name)),
+    readFile: async (path: string) => { if (path in files) return files[path]!; throw new Error('ENOENT') },
+  })
+  expect(indexes(await compact(benchFake, messages), messages)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 })
 
 test('the request holds the redacted tool summary and never a secret from a tool result', async () => {

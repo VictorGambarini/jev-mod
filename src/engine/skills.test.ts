@@ -51,7 +51,7 @@ test('pick sends the requests and reaches the picks skillpick.pick did', async (
   const wrong: unknown[] = []
   for (const [n, run] of (runs as unknown as Run[]).entries()) {
     const sent: string[] = []
-    const got = await pick(replay(run, sent), run.turn, (catalogs as unknown as Record<string, Skill[]>)[run.catalog]!, { topK: run.top_k, backend: null })
+    const got = await pick(replay(run, sent), run.turn, (catalogs as unknown as Record<string, Skill[]>)[run.catalog]!, { topK: run.top_k, backend: null, matchThreshold: 0.5 })
     const { latency_ms: _l, calls: _c, errors: _e, ...result } = got
     const { latency_ms: _w, ...want } = run.result
     if (sorted(result) !== sorted(want)) wrong.push({ n, what: 'result', got: result, want })

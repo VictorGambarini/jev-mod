@@ -68,7 +68,7 @@ export const adapter: DecisionAdapter<Session> = {
   threshold: {
     name: 'drop', default: DROP_CONFIDENCE, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',
     saferMeans: 'a higher bar keeps more, and a dropped message cannot be had back',
-    where: { none: 'no setting yet: DROP_CONFIDENCE in src/engine/compact.ts (0.7) is every backend\'s; a bench run sets it with the overlay\'s compact.dropConfidence' },
+    where: { none: 'no setting yet: DROP_CONFIDENCE in src/engine/compact.ts (0.5) is every backend\'s; a bench run sets it with the overlay\'s compact.dropConfidence' },
   },
   cases: () => SESSIONS,
   caseId: s => s.id,

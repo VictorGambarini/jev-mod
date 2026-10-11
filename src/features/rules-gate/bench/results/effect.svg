@@ -30,8 +30,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">minConfidence threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">rules judged broken</text>
-<line class="guide" x1="477.33" x2="477.33" y1="60" y2="294"/>
-<text class="ax" x="481.33" y="70">today 0.8</text>
+<line class="guide" x1="615.11" x2="615.11" y1="60" y2="294"/>
+<text class="ax" x="619.11" y="70">today 0.9</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,60 132.89,93.43 201.78,93.43 270.67,93.43 339.56,93.43 408.44,93.43 477.33,93.43 546.22,126.86 615.11,126.86 684,160.29"/>
 <circle class="d1 dot" cx="64" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 30%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="93.43" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 26%</title></circle>

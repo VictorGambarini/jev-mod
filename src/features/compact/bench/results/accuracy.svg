@@ -35,8 +35,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">drop threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
-<line class="guide" x1="339.56" x2="339.56" y1="60" y2="294"/>
-<text class="ax" x="343.56" y="70">today 0.7</text>
+<line class="guide" x1="64" x2="64" y1="60" y2="294"/>
+<text class="ax" x="68" y="70">today 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,86.34 132.89,94.09 201.78,98.74 270.67,101.84 339.56,106.49 408.44,114.24 477.33,118.89 546.22,126.64 615.11,131.28 684,142.13"/>
 <circle class="d1 dot" cx="64" cy="86.34" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 89%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="94.09" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 85%</title></circle>

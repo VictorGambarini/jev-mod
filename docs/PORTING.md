@@ -103,7 +103,7 @@ Known differences that are not fixture answers, and why:
   The mod has no summariser, so every summarize turn (and every turn left unjudged, which
   defaulted to summarize, and every low-confidence drop) was deleted. `engine/compact.ts` asks
   keep or drop only (the keep criterion also covers background whose gist later work needs),
-  drops a turn only on a drop at confidence 0.7 or more, and keeps everything else, unjudged
+  drops a turn only on a drop at confidence 0.5 or more, and keeps everything else, unjudged
   turns included; `counts` is keep/drop. The request bodies therefore differ from Python's, so
   `compact.json` (recorded requests) is retired along with its replay test; `compact.test.ts`
   runs scripted fake backends instead. `compact_convos.json` stays as the test inputs.

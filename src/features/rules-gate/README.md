@@ -40,7 +40,7 @@ paths:
 
 | Setting | Default | Range | What it does |
 |---|---|---|---|
-| `minConfidence` | 0.8 | 0.5-1 | How sure the decision model must be that a change breaks a rule for the edit to be refused. |
+| `minConfidence` | 0.9 | 0.5-1 | How sure the decision model must be that a change breaks a rule for the edit to be refused. |
 | `maxRules` | 25 | 5-60 | The most rules judged per edit; past it, those whose words match the file's path and the change are kept, nearer files first. |
 | `timeoutMs` | 3000 | 1000-10000 | How long an edit waits for the decision before it goes on unjudged. |
 | `maxChangeChars` | 6000 | 1000-20000 | About how many characters of the change are sent (redacted); a Write to an existing file sends the lines that differ. |
@@ -59,7 +59,7 @@ No answer within `timeoutMs`, no key, private mode, a secret in the change, the 
 ## Benchmarks
 
 <!-- bench:start -->
-**Bench** (`bun src/bench/report.ts rules-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.8). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar refuses fewer edits, and the mod fails open: a doubtful edit goes on.
+**Bench** (`bun src/bench/report.ts rules-gate`; 0.11.0@14f7f68). Threshold swept: `minConfidence` (today 0.9). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar refuses fewer edits, and the mod fails open: a doubtful edit goes on.
 
 ![accuracy](bench/results/accuracy.svg)
 ![effect](bench/results/effect.svg)
@@ -71,5 +71,5 @@ No answer within `timeoutMs`, no key, private mode, a secret in the change, the 
 
 Recommended per backend:
 
-- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 91.3%; today's 0.8: 87.0%)
+- openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 91.3%; today's 0.9: 91.3%)
 <!-- bench:end -->

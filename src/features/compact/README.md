@@ -24,7 +24,7 @@ A `/compact` typed with that marker as its instructions is answered the same way
 
 - The decision model sees the tool, its main argument such as the command or file path, and the result's start and end, redacted and cut to under 700 characters, saying how much is not shown. Requests are packed by encoded size, up to 40 turns each.
 - Keep means: a decision, a constraint, a user preference, an unfinished task, an exact value, path, id, command or error that later work depends on, or background whose gist later work needs. Drop means chatter, acknowledgements, superseded attempts, repeated output, or detail nothing later depends on.
-- A message goes only when every part of it was judged drop with confidence of at least 0.7.
+- A message goes only when every part of it was judged drop with confidence of at least 0.5 (0.7 before 0.12.0; the bench below found accuracy peaks at 0.5 on Jev).
 - Everything else stays: low-confidence drops, anything it did not judge (it was down, timed out, answered only part, or the text, call or result held something sensitive that is never sent), the last six messages, and both halves of any kept tool call.
 - A note replaces what was removed, saying how many messages were kept and that nothing was summarised.
 - Nothing is summarised.
@@ -48,7 +48,7 @@ Nothing is removed when the decision model does not answer, when it marks no tur
 Two benches (src/bench/README.md). The decision level asks Jev about ten labelled sessions and sweeps the drop bar. The task level builds three long, real coding sessions in `bench/task-fixture/` (a bug fix, a feature, an investigation; about 105k tokens of conversation each), compacts a fork of each with `/compact`, with this compaction at each drop bar, and not at all, then asks what a continuation needs with every tool refused. In a bench run the compaction writes what it kept and dropped to the run's ledger; an arm whose question did not read a meaningfully smaller context, or that dropped nothing, is `not_compacted`, never a score. It is not run yet: one pass costs about $105 in Claude calls (`bun src/bench/run.ts compact --level task --backend <name> --sweep drop=0.6:0.9:0.1` prints the plan).
 
 <!-- bench:start -->
-**Bench** (`bun src/bench/report.ts compact`; 0.11.0@14f7f68). Threshold swept: `drop` (today 0.7). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar keeps more, and a dropped message cannot be had back.
+**Bench** (`bun src/bench/report.ts compact`; 0.11.0@14f7f68). Threshold swept: `drop` (today 0.5). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar keeps more, and a dropped message cannot be had back.
 
 ![accuracy](bench/results/accuracy.svg)
 ![effect](bench/results/effect.svg)
@@ -60,5 +60,5 @@ Two benches (src/bench/README.md). The decision level asks Jev about ten labelle
 
 Recommended per backend:
 
-- openrouter · typesafe/jev-1.13-20260917: drop 0.5 (accuracy 88.7%; today's 0.7: 80.1%)
+- openrouter · typesafe/jev-1.13-20260917: drop 0.5 (accuracy 88.7%; today's 0.5: 88.7%)
 <!-- bench:end -->

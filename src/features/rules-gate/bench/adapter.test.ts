@@ -16,7 +16,7 @@ test('on the fake backend each rule is one item, scored by its yes probability, 
   const rows = await runDecision({ adapter, backend: { name: 'fake', kind: 'fake', model: 'fake-jev' }, hostFor: fakeHostFor(adapter), meta, timeoutMs: 3000, settings: {} })
   expect(rows.every(r => r.outcome === 'ok')).toBe(true)
   rows.forEach((r, i) => {
-    expect(r.items.map(x => x.gold)).toEqual(CASES[i]!.rules.map(x => x.broken))
+    expect(r.items.map(x => x.gold)).toEqual(CASES[i]!.rules.map(x => x.broken && !x.waived))
     for (const item of r.items) expect(typeof item.score).toBe('number')
   })
   // a bar above every answer refuses nothing; a bar of 0 refuses every rule

@@ -1,18 +1,21 @@
 // The rules gate's decision-level bench (src/bench/README.md): each case in cases.ts is sent as
-// the gate sends it (the change described and redacted by rules.ts, one yes/no per rule), and
-// each rule's "broken" probability is recorded. Sweeping minConfidence (the gate's 0.8) is then
-// computed from those answers. One item per rule: positive = refused.
+// the gate sends it (the change described and redacted by rules.ts, one yes/no per rule, and with
+// the person's request a second per rule: did they give leave to break it?), and each rule's
+// "broken" probability is recorded, as 0 when leave was given at the gate's waiverConfidence.
+// Sweeping minConfidence is then computed from those answers. One item per rule: positive = refused.
 
 import { ask, JevError } from '../../../engine/client'
 import { itemMetrics } from '../../../bench/metrics'
 import type { DecisionAdapter } from '../../../bench/types'
 import { feature } from '../../../core/registry'
-import { changePieces, describeChange, questionId, questionsFor, stateOf, type Rule } from '../rules'
-import { CASES, type RuleCase } from './cases'
+import { personsRequest, usableRequest } from '../../tool-gate/rules'
+import { changePieces, describeChange, questionId, questionsFor, stateOf, waiverId, type Rule } from '../rules'
+import { CASES, refuses, type RuleCase } from './cases'
 
 const knob = feature('rules-gate')!.knobs
 const DEFAULT = (knob.minConfidence as { default: number }).default
 const CHANGE_CHARS = (knob.maxChangeChars as { default: number }).default
+const WAIVER = (knob.waiverConfidence as { default: number }).default
 
 const rulesOf = (c: RuleCase): Rule[] => c.rules.map(r => ({ text: r.text, source: r.source, heading: r.heading ?? '' }))
 
@@ -37,21 +40,32 @@ export const adapter: DecisionAdapter<RuleCase> = {
     const maxChars = typeof ctx.settings.maxChangeChars === 'number' ? ctx.settings.maxChangeChars : CHANGE_CHARS
     const change = describeChange(c.file, c.tool, changePieces(c.tool, c.input, c.existing ?? null), maxChars)
     if (!change) return { items: [], calls: [], errors: ['nothing to judge'] }
+    // as the gate takes it from prompt.submit: the person's own, redacted
+    const given = c.request === undefined ? null : personsRequest(c.request, { kind: 'composer' })
+    const request = usableRequest(given) ? given : null
     try {
-      const reply = await ask(ctx.host, stateOf(change, false), questionsFor(rulesOf(c)), { timeoutMs: ctx.timeoutMs, retries: 1, patient: true })
+      const reply = await ask(ctx.host, stateOf(change, false, request), questionsFor(rulesOf(c), request !== null), { timeoutMs: ctx.timeoutMs, retries: 1, patient: true })
       const items = c.rules.map((r, i) => {
         const a = reply.answers[questionId(i)]
-        return { id: questionId(i), gold: r.broken, score: a?.type === 'noul' ? a.noul : null }
+        const w = reply.answers[waiverId(i)]
+        const waived = w?.type === 'noul' && w.noul >= WAIVER
+        return { id: questionId(i), gold: refuses(r), score: a?.type === 'noul' ? (waived ? 0 : a.noul) : null }
       })
-      return { items, calls: [reply], errors: [] }
+      // the leave answers as they came, for tuning waiverConfidence
+      const leave = request === null ? undefined : Object.fromEntries(c.rules.map((_, i) => {
+        const w = reply.answers[waiverId(i)]
+        return [waiverId(i), w?.type === 'noul' ? w.noul : null]
+      }))
+      return { items, calls: [reply], errors: [], ...(leave ? { detail: { leave } } : {}) }
     } catch (error) {
       if (error instanceof JevError) return { items: [], calls: [], errors: [error.code] }
       throw error
     }
   },
   truth(c, _state, question) {
-    const i = Number(question.replace(/^rule_/, '')) - 1
-    return c.rules[i]?.broken
+    const waiver = question.startsWith('waived_')
+    const i = Number(question.replace(/^(?:rule|waived)_/, '')) - 1
+    return waiver ? c.rules[i]?.waived ?? false : c.rules[i]?.broken
   },
   evaluate: itemMetrics,
 }

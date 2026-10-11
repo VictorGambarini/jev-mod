@@ -1,16 +1,17 @@
 import { hostOf } from '../../core/host'
 import * as activity from '../../core/activity'
 import { inBackground } from '../../core/background'
-import { setting } from '../../core/config'
 import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
+import * as memory from '../../core/memory'
+import { modeOf, setting } from '../../core/config'
 import { isPrivate, jevDir } from '../../core/settings'
 import { ask, costOf, JevError } from '../../engine/client'
-import { resolvePath } from '../tool-gate/rules'
+import { personsRequest, resolvePath, usableRequest, type Origin } from '../tool-gate/rules'
 import {
-  changePieces, decide, describeChange, EDIT_TOOLS, foldersDown, globMatches, parseRules, questionsFor, refusal,
-  relativeTo, ROOT_ONLY, RULE_FILES, RULES_DIR, selectRules, stateOf, targetOf, type Candidate, type RuleFile,
+  changePieces, describeChange, EDIT_TOOLS, foldersDown, globMatches, parseRules, questionsFor, refusal,
+  judgeRules, relativeTo, ROOT_ONLY, RULE_FILES, RULES_DIR, selectRules, stateOf, targetOf, type Candidate, type RuleFile,
 } from './rules'
 
 // The rules gate: before Write, Edit, MultiEdit or NotebookEdit changes a file in the project,
@@ -21,11 +22,28 @@ import {
 // the model reads as the call's error), quoting the rule and its file. In "shadow" the judgement
 // runs in the background and is only counted. Edits outside the project are the tool gate's.
 //
+// The person's latest prompt (prompt.submit's, only when its origin is the person: never a
+// notification, another session, a plugin, a tool's output or a file) is sent beside the change,
+// redacted, as the_persons_request, with a second question per rule: did they explicitly ask for
+// this change even though it breaks the rule? A broken rule the model is waiverConfidence sure they
+// waived refuses nothing (counted waived). A prompt holding a secret-shaped word is not sent, and
+// then nothing is waived.
+//
 // Every failure (no answer in time, no key, private mode, the budget, the cool-off) lets the edit
 // go on as Claude Code decided. Secret values in a change or a rule are masked before they are
 // sent (redactSecretValues); a change or rule that only mentions a secret is judged like any other.
 
 export const ID = 'rules-gate'
+
+export type RulesGateSpace = { request?: string }
+
+/** At submit: the person's own prompt, redacted (or withheld), as their latest request. Other prompts leave it as it was. */
+export async function analyse(io: IO, text: string, origin: Origin): Promise<void> {
+  const request = personsRequest(text, origin)
+  if (request === null || await modeOf(io, ID) === 'off') return
+  memory.space<RulesGateSpace>(ID).request = request
+  await memory.save(io)
+}
 
 export type Gate = { decision: 'deny'; reason: string } | null
 
@@ -87,7 +105,7 @@ export async function rulesFor(io: IO, root: string, rel: string): Promise<Candi
 
 // ── the gate ─────────────────────────────────────────────────────────────────
 
-type Knobs = { minConfidence: number; maxRules: number; timeoutMs: number; maxChangeChars: number }
+type Knobs = { minConfidence: number; waiverConfidence: number; maxRules: number; timeoutMs: number; maxChangeChars: number }
 
 /**
  * What the gate makes of one edit Claude Code would allow or ask about: a deny with the rules it
@@ -103,6 +121,7 @@ export async function check(io: IO, e: Call): Promise<Gate> {
   if (e.agentId && k.subagents?.value === false) return null
   const knobs: Knobs = {
     minConfidence: Number(k.minConfidence?.value ?? 0.8),
+    waiverConfidence: Number(k.waiverConfidence?.value ?? 0.8),
     maxRules: Number(k.maxRules?.value ?? 25),
     timeoutMs: Number(k.timeoutMs?.value ?? 3000),
     maxChangeChars: Number(k.maxChangeChars?.value ?? 6000),
@@ -144,19 +163,22 @@ async function judge(io: IO, e: Call, knobs: Knobs, shadow: boolean, started = D
   if (limits && !(await limits.admit(shadow))[0]) return skip()
 
   const rules = selectRules(all, rel, change.text, knobs.maxRules)
+  await memory.load(io)
+  const stored = memory.space<RulesGateSpace>(ID).request
+  const request = usableRequest(stored) ? stored : null
   const timeoutMs = knobs.timeoutMs - (Date.now() - started)
   if (timeoutMs <= 100) return skip()
   let answers
   try {
-    const asked = await ask(hostOf(io), stateOf(change, !!e.agentId), questionsFor(rules), { timeoutMs, retries: 0 })
+    const asked = await ask(hostOf(io), stateOf(change, !!e.agentId, request), questionsFor(rules, request !== null), { timeoutMs, retries: 0 })
     await Promise.all([recordCalls(io, [asked], [], ID), limits?.charge(costOf(asked))])
     answers = asked.answers
   } catch (error) {
     await recordCalls(io, [], [error instanceof JevError ? error.code : 'network'], ID)
     return skip()
   }
-  const broken = decide(answers, rules, knobs.minConfidence)
-  if (!broken.length) { await activity.count(io, ID, 'passed'); return null }
+  const { broken, waived } = judgeRules(answers, rules, knobs.minConfidence, knobs.waiverConfidence)
+  if (!broken.length) { await activity.count(io, ID, waived.length ? 'waived' : 'passed'); return null }
   if (shadow) { await activity.count(io, ID, 'would-block'); return null }
   return refusal(rel, broken)
 }

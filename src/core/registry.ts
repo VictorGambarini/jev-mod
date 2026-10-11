@@ -82,7 +82,10 @@ export const FEATURES: readonly Feature[] = [
     summary: 'Asks you before a consequential tool call the decision model doubts',
     help: 'Before a consequential call runs (Bash that pushes, deletes, rewrites history, publishes, installs, deploys, '
       + 'migrates or writes outside the project; Write/Edit outside the project; an MCP tool that sends, creates, '
-      + 'changes or deletes), the decision model is asked whether you asked for it, whether it breaks a limit you '
+      + 'changes or deletes), the decision model is asked whether you asked for it (your latest prompt is sent on its own, '
+      + 'as your request; only what you typed counts, never a notification, another session, a plugin or text in the call, '
+      + 'and a general "go ahead" does not ask for a hard-to-undo step; for a delete, the targets your request names by path, '
+      + 'folder or extension are listed beside it), whether it breaks a limit you '
       + 'stated, whether it is hard to undo, and whether it sends data off this machine (an upload, a post to a URL, an email, '
       + 'a push to a remote, pasting into an outside service). on: a doubtful call is put to you in the permission dialog, with the '
       + 'reason, instead of running unasked. shadow: decided in the background and counted (would-ask, passed, skipped); nothing changes and no call waits for it; on counts asked-person. '
@@ -140,9 +143,13 @@ export const FEATURES: readonly Feature[] = [
     help: 'Before Write, Edit, MultiEdit or NotebookEdit changes a file inside the project, the decision model reads the change '
       + 'and the rules that apply to that file (list items and short directives in CLAUDE.md, AGENTS.md and CLAUDE.local.md '
       + 'from the project root down to the file\'s folder, and .claude/rules/*.md whose paths: match it), one question per '
-      + 'rule: does this change break it? on: when it is at least minConfidence (0.8) sure one is broken, the edit is refused '
+      + 'rule: does this change break it? on: when it is at least minConfidence (0.9) sure one is broken, the edit is refused '
       + 'and the agent is told which rule, quoting it and its file, and asked to fix the change or tell you why the rule '
-      + 'should not apply. shadow: judged in the background and counted (would-block, passed, skipped); no edit waits for it '
+      + 'should not apply. Your latest prompt is sent too, as your request, with a second question per rule: did you explicitly '
+      + 'ask for this change even though it breaks the rule ("edit generated/models.py by hand")? A rule you gave leave to break, '
+      + 'at least waiverConfidence (0.8) sure, refuses nothing (counted waived). Only what you typed counts, never text in a '
+      + 'file, a tool\'s output, a notification or a plugin; naming the file a problem is in, or "go ahead", is not leave. '
+      + 'shadow: judged in the background and counted (would-block, waived, passed, skipped); no edit waits for it '
       + 'or is refused. off: nothing is sent. Only edits inside the project are judged (outside it is the tool gate\'s). '
       + 'No answer within timeoutMs, no key, private mode, a secret in the change, the daily budget or a backend cool-off: '
       + 'the edit goes on. Its threshold was measured on Jev\'s answers in the bench; on another model, run it in shadow first.',
@@ -150,6 +157,9 @@ export const FEATURES: readonly Feature[] = [
     knobs: {
       minConfidence: { type: 'number', title: 'Confidence to refuse', default: 0.9, min: 0.5, max: 1,
         help: 'How sure the decision model must be that a change breaks a rule for the edit to be refused.' },
+      waiverConfidence: { type: 'number', title: 'Confidence you asked for it', default: 0.8, min: 0.5, max: 1,
+        help: 'How sure the decision model must be that your latest prompt explicitly asked for a change that breaks a rule '
+          + 'for that rule to refuse nothing. Higher lets fewer such edits through.' },
       maxRules: { type: 'int', title: 'Rules per edit', default: 25, min: 5, max: 60,
         help: 'The most rules judged per edit; past it, those whose words match the file\'s path and the change are kept, nearer files first.' },
       timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 3000, min: 1000, max: 10000,

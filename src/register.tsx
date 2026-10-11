@@ -237,8 +237,8 @@ export const register: Register = (on, given) => {
     if (!text.trim() || text.trimStart().startsWith('/')) return next(e)
     const io = ioOf($)
     await memory.load(io)
-    const [suggestion, triaged] = await Promise.all([skills.analyse(io, text), reviewTriage.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text),
-      offerFindFiles($), offerReviewTriage($), offerBrowse($)])
+    const [suggestion, triaged] = await Promise.all([skills.analyse(io, text), reviewTriage.analyse(io, text), routing.analyse(io, text),
+      toolGate.analyse(io, text, e.origin), rulesGate.analyse(io, text, e.origin), offerFindFiles($), offerReviewTriage($), offerBrowse($)])
     await refresh($)
     const added = [suggestion, triaged].filter((c): c is string => Boolean(c))
     return next(added.length ? { ...e, context: [...(e.context ?? []), ...added] } : e)

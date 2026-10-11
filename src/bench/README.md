@@ -33,6 +33,7 @@ bun src/bench/report.ts compact --suggest-tuning
 
 Several backends in one go: `--backend typesafe,openrouter,laya`. The other benches:
 `trim-output` (sweeps `notNeeded`), `rules-gate` (sweeps `minConfidence`), `screening` (sweeps `injection`) and `web-filter` (sweeps `minConfidence`). Every bench's
+`trim-output` (sweeps `notNeeded`), `rules-gate`, `tool-gate` and `stop-gate` (each sweeps `minConfidence`), and `access-gate` (no threshold: it reads calls locally). Every bench's
 plots and tables at once: `bun src/bench/report.ts all`.
 
 A task-level comparison, jev-mod against plain Claude Code. Without `--yes` it prints the plan
@@ -117,6 +118,9 @@ Per threshold the report computes, per feature:
 | `rules-gate` | `minConfidence` (0.8 today) | rule | accuracy, precision, recall, F1, share refused | peak accuracy | higher: refuses fewer edits, and the mod fails open |
 | `screening` | `injection` (0.5 today; `webscreen.injection_threshold`) | text unit of a tool result | accuracy, precision, recall, F1, share withheld | peak accuracy | lower: withholds more, and a withheld harmless passage costs less than an injection the model reads |
 | `web-filter` | `minConfidence` (0.8 today) | search result or fetched chunk | accuracy, precision, recall, F1, share dropped | peak accuracy | higher: drops fewer results and parts, and a dropped one is gone from what the model reads |
+| `tool-gate` | `minConfidence` (0.7 today; `offMachineConfidence` stays at its default) | tool call | accuracy, precision, recall, F1, share held, held in error, missed holds | peak accuracy | higher: holds more hard-to-undo calls nothing asked for (a held call costs the person a question), and fewer on a stated limit |
+| `access-gate` | none: the gate has no decision model | tool call | accuracy, precision, recall, F1, share refused, refused in error, missed | the one point | not applicable: every answer is 0 or 1 |
+| `stop-gate` | `minConfidence` (0.7 today) | claims verdict, and a step the message stopped on | accuracy, precision, recall, F1, share sent back, accused shown, could-not-tell found, verdicts right | peak accuracy | higher: sends the agent back less often; a doubtful claim is only noted as unverified |
 
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
@@ -206,6 +210,9 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   characters, as sections that the question needs or not), asked with `filter.ts`'s own triage,
   chunks and requests; the first `keepTop` results, repeated URLs, named hosts and the chunks kept
   without asking are not scored. It judges relevance, not injection: screening runs before it.
+- `tool-gate`: 83 tool calls (pushes, deploys, deletes, MCP sends, writes outside the project, calls that break a stated limit, calls that carry a secret, and safe look-alikes) with what the person asked before them; the gate's `riskOf`, `stateOf`, `questionsFor` and `decide` are used as shipped, and `minConfidence` is swept.
+- `access-gate`: 117 calls (ssh and its family, tunnels, remote databases, scans, key reads, session grants and loopback hosts, harmless look-alikes) through `concerns`, `hitsOf` and `judge`. It makes no request and has no threshold; it measures the pattern reading.
+- `stop-gate`: 62 final messages with the turn's commands, outputs and tool results, labelled shown, not shown, could not tell, no claim of its own (progress, failure, plans, attributed results) and stopped short or not; `readClaims`, `evidence`, `stateOf`, `questionsOf`, the stop-short builders, `decide` and `decideShort` are the gate's own, and `minConfidence` is swept.
 
 Not verified yet, as only a real run can show it: that `claude -p --resume <id> --fork-session`
 with `/compact` or `/jev-mod compact` compacts a headless session (the mod queues `/compact` from

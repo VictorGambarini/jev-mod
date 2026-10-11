@@ -13,6 +13,7 @@
 // the context its final step read and, when the mod recorded one, what its compaction kept and dropped.
 
 import { PROVIDERS } from '../engine/keys'
+import './gate-sys' // the gate benches' cases reach the machine through it
 import { fs, proc, run, say, warn } from './node'
 import { overlayFor } from './plan'
 import { toLine } from './results'

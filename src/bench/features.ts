@@ -2,6 +2,7 @@
 // bench is one line here (README.md, "Write a bench").
 
 import { adapter as accessGate } from '../features/access-gate/bench/adapter'
+import { task as accessGateTask } from '../features/access-gate/bench/task'
 import { adapter as browser } from '../features/browser/bench/adapter'
 import { task as browserTask } from '../features/browser/bench/task'
 import { adapter as compact } from '../features/compact/bench/adapter'
@@ -13,12 +14,15 @@ import { task as reviewTriageTask } from '../features/review-triage/bench/task-c
 import { adapter as routing } from '../features/routing/bench/adapter'
 import { task as routingTask } from '../features/routing/bench/task'
 import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
+import { task as rulesGateTask } from '../features/rules-gate/bench/task'
 import { adapter as screening } from '../features/screening/bench/adapter'
 import { task as screeningTask } from '../features/screening/bench/task-io'
 import { adapter as skills } from '../features/skills/bench/adapter'
 import { task as skillsTask } from '../features/skills/bench/task'
 import { adapter as stopGate } from '../features/stop-gate/bench/adapter'
+import { task as stopGateTask } from '../features/stop-gate/bench/task'
 import { adapter as toolGate } from '../features/tool-gate/bench/adapter'
+import { task as toolGateTask } from '../features/tool-gate/bench/task'
 import { adapter as trimOutput } from '../features/trim-output/bench/adapter'
 import { task as trimOutputTask } from '../features/trim-output/bench/task-check'
 import { adapter as webFilter } from '../features/web-filter/bench/adapter'
@@ -30,12 +34,12 @@ export type Bench = { decision?: DecisionAdapter<any>; task?: TaskAdapter<any> }
 export const BENCHES: Record<string, Bench> = {
   compact: { decision: compact, task: compactTask },
   'trim-output': { decision: trimOutput, task: trimOutputTask },
-  'rules-gate': { decision: rulesGate },
+  'rules-gate': { decision: rulesGate, task: rulesGateTask },
   screening: { decision: screening, task: screeningTask },
   'web-filter': { decision: webFilter, task: webFilterTask },
-  'tool-gate': { decision: toolGate },
-  'access-gate': { decision: accessGate },
-  'stop-gate': { decision: stopGate },
+  'tool-gate': { decision: toolGate, task: toolGateTask },
+  'access-gate': { decision: accessGate, task: accessGateTask },
+  'stop-gate': { decision: stopGate, task: stopGateTask },
   routing: { decision: routing, task: routingTask },
   skills: { decision: skills, task: skillsTask },
   'find-files': { decision: findFiles, task: findFilesTask },

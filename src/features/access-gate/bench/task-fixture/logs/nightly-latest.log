@@ -1,0 +1,10 @@
+2026-10-11 02:00:01 INFO  ingest started (batch=500)
+2026-10-11 02:00:04 INFO  read part-0001 (500 rows)
+2026-10-11 02:00:09 INFO  read part-0002 (500 rows)
+2026-10-11 02:00:14 INFO  read part-0003 (500 rows)
+2026-10-11 02:00:19 INFO  read part-0004 (500 rows)
+2026-10-11 02:00:24 INFO  read part-0005 (500 rows)
+2026-10-11 02:00:29 INFO  read part-0006 (500 rows)
+2026-10-11 02:00:33 ERROR disk quota exceeded writing /var/spool/ingest/part-0007
+2026-10-11 02:00:33 ERROR ingest aborted after 6 parts
+2026-10-11 02:00:34 INFO  cleanup skipped

@@ -1,0 +1,2 @@
+CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT);
+CREATE TABLE legacy_notes (id INTEGER PRIMARY KEY, text TEXT);

@@ -1,0 +1,1 @@
+{"Invoice": {"fields": ["lines", "discount_pct"], "rounding": "floor"}}

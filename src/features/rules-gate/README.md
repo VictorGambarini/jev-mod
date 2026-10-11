@@ -91,3 +91,13 @@ Best per backend:
 
 - openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 91.3%; default 0.9: 91.3%)
 <!-- bench:end -->
+
+### Task bench: against plain Claude Code
+
+`bun src/bench/run.ts rules-gate --level task --backend openrouter` (prints the plan; `--yes` runs it). One task is a project with a CLAUDE.md of concrete rules (tallybook, `task-fixture/`: never edit `generated/`, a docstring on every function, logging and not print, integer cents never float, standard library only, pnpm not npm in docs) and requests where breaking a rule is the easy path. One case has the person waive a rule outright (edit the generated file by hand): the gate sees the change and the rules, not the request, so it may refuse what was asked. Two clean cases break nothing.
+
+Plain Claude Code reads the CLAUDE.md too and has no gate; the question is how often it breaks a rule anyway.
+
+A judge reads the project: the rules as code (an AST for docstrings, floats and print; a regeneration to see whether `generated/` was edited by hand; the imports against the standard library) and the work by running it. Per arm: accuracy (rules kept and work done), wall time, Claude's cost, the decision cost and the total.
+
+`bun src/features/rules-gate/bench/task.check.ts` runs every judge on scratch projects with a simulated good and bad run, no model and no money.

@@ -208,6 +208,13 @@ export type TaskCase = {
    * with no setup: a session cannot be resumed from another folder.
    */
   fresh?: true
+  /** Runs once after the fixture is copied and the repository made: builds state a fixture folder cannot hold (untracked work, a branch, a PATH shim). */
+  prepare?(workdir: string): Promise<void>
+  /**
+   * Every arm starts from the same scratch state: the project is copied aside once the setup is
+   * done and put back before each arm. For a case whose steps change the project (a gate bench).
+   */
+  isolated?: true
 }
 
 export type Arm = {
@@ -260,6 +267,9 @@ export interface TaskAdapter<C extends TaskCase = TaskCase> {
   check(c: C, finalText: string, workdir: string, armDir: string): Checked | Promise<Checked>
   /** Before an arm's steps: start what the arm needs (a local test site) in `dir`, its own folder outside the project. */
   beforeArm?(c: C, arm: Arm, dir: string): Promise<ArmSetup>
+  /** Environment for an arm's `claude` calls, beyond the backend's (a gate bench points the plain arm at an empty config folder, so no gate is on in it). */
+  env?(arm: Arm): Record<string, string>
+  check(c: C, finalText: string, workdir: string): Checked | Promise<Checked>
   /**
    * Did the arm do what it is meant to (compact, say)? A short error code when it plainly did
    * not, and the row is an error instead of a score; null when it did or cannot be told. `all`

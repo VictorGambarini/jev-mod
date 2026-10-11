@@ -16,7 +16,7 @@ import { fs, proc, run, say, warn } from './node'
 import { overlayFor } from './plan'
 import { toLine } from './results'
 import { contextOf, parseClaude, readLedger, setupRow, verifyArms, type Result } from './task-rows'
-import type { Arm, ArmRun, BackendRef, Row, RunMeta, TaskAdapter, TaskCase } from './types'
+import type { Arm, ArmRun, ArmSetup, BackendRef, Row, RunMeta, TaskAdapter, TaskCase } from './types'
 
 export type TaskOptions = {
   adapter: TaskAdapter
@@ -45,10 +45,10 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
   say(`scratch folder: ${base}`)
   const rows: Row[] = []
   const claude = async (prompt: string, cwd: string, overlay: string, env: Record<string, string>, resume: string | null, fork: boolean,
-    tools: string[], refused: string[] = []): Promise<Result> => {
+    tools: string[], refused: string[] = [], more: string[] = []): Promise<Result> => {
     const args = ['-p', prompt, '--output-format', 'json', '--max-budget-usd', String(o.maxUsdPerCall), '--permission-prompts', 'none',
       ...(tools.length ? ['--allowedTools', tools.join(',')] : []), ...(refused.length ? ['--disallowedTools', refused.join(',')] : []),
-      ...(resume ? ['--resume', resume, ...(fork ? ['--fork-session'] : [])] : []), ...o.claudeArgs]
+      ...(resume ? ['--resume', resume, ...(fork ? ['--fork-session'] : [])] : []), ...o.claudeArgs, ...more]
     const ran = await run('claude', args, { cwd, timeoutMs: o.timeoutMs, env: { ...proc.env, ...env, JEV_MOD_BENCH_OVERLAY: overlay } })
     const parsed = parseClaude(ran.stdout)
     if (ran.code !== 0 && parsed.ok) return { ...parsed, ok: false, error: `claude exited ${ran.code}`, ms: ran.ms }
@@ -95,12 +95,22 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       let final = ''
       let context: number | null = null
       if (setupFailed) { row.outcome = 'error'; row.error = `setup: ${setupFailed}` }
+      // what the arm needs started beside it (a local site), in its own folder outside the project
+      const armDir = `${dir}/arm-${k}`
+      await f.mkdir(armDir, { recursive: true })
+      let extra: ArmSetup = {}
+      if (o.adapter.beforeArm && row.outcome === 'ok') {
+        try { extra = await o.adapter.beforeArm(c, arm, armDir) } catch (error) { row.outcome = 'error'; row.error = `beforeArm: ${(error as Error).message.slice(0, 120)}` }
+      }
+      const filled = (prompt: string) => prompt.replace(/\{\{(\w+)\}\}/g, (all, name: string) => extra.vars?.[name] ?? all)
       for (const [s, step] of o.adapter.steps(c, arm).entries()) {
         if (row.outcome === 'error') break
-        const r = await claude(step.prompt, work, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
+        const r = await claude(filled(step.prompt), work, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools,
+          extra.claudeArgs)
         row.wall_ms! += r.ms
         row.claude_cost_usd! += r.cost
         for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
+        if (r.turns !== undefined) row.claude_turns = (row.claude_turns ?? 0) + r.turns
         if (!r.ok) { row.outcome = 'error'; row.error = r.error ?? 'claude failed'; break }
         mine = r.session ?? mine
         if (step.final) { final = r.text; context = contextOf(r.tokens) }
@@ -118,11 +128,12 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       row.context_tokens = context
       if (book.compaction) row.compaction = book.compaction
       if (row.outcome === 'ok') {
-        const checked = await o.adapter.check(c, final, work)
+        const checked = await o.adapter.check(c, final, work, armDir)
         row.success = checked.success
         row.score = checked.score
         if (checked.detail) row.detail = checked.detail
       }
+      try { await extra.stop?.() } catch { /* stopped or gone */ }
       done.push({ arm, row, run: { ledgerEntries: book.decisions, contextTokens: context, compaction: book.compaction } })
     }
     verifyArms(o.adapter, c, done)

@@ -63,6 +63,7 @@ this checkout where jev-mod is not installed).
 | Decision level, `screening` / `web-filter` / `tool-gate` / `stop-gate` / `access-gate` | about 45 / 19 / 62 / 42 / 0 requests (stop-gate's carry up to about 6k characters of evidence each) | pennies at most at Jev's list price; not yet measured |
 | Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
 | Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
+| Task level, `browser`, one backend | 20 headless Claude calls (one per case per arm, no setup), about 120 decision calls | Claude: about $6.50 by the plan's prices ($0.35 a case with Playwright MCP, $0.30 with browse; the smoke run's two cases cost $0.22-0.25 and $0.14-0.21); decisions: about $0.06 at the plan's price, $0.001 or less a case measured on openrouter |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 69 headless Claude calls (36 shared setup, then 11 per case), about 48 decision calls | Claude: about $105 (setup about $12.80 a case: twelve prompts building ~105k tokens of conversation; per case, a question on the full context about $2.50, `/compact` about $2.90 then its question about $0.70, the mod's compaction about $2.50 then its question about $1.55; the plan prints how it priced them); decisions: about $0.02. One case (`--cases proration-fix`): about $35 |
 
 ## Backends and keys
@@ -96,7 +97,11 @@ A task-level arm needs a feature on or off and a threshold set, without writing 
 - It sits above the user's and the project's files and below what the person locked: a kill
   file and *jev-mod on* unticked in `/config` still win.
 - It never weakens a guard: a protective feature (screening, the gates) only gets stricter from
-  it, the browser only lower, and neither takes its knobs from it.
+  it, the browser only lower, and neither takes its knobs from it. One exception, for the
+  browser's task bench: an overlay may turn the browser on, and `browse` then reaches loopback
+  hosts only (127.0.0.1, localhost, [::1]) and never attaches to the person's Chrome
+  (`LOOPBACK_ON` in `core/bench-overlay.ts`), so a run drives the bench's own local sites and
+  nothing on the web.
 - It never carries a key: an overlay with any field named like a key, token, secret, password or
   header is refused whole (and `/jev-mod` lists it as passed over).
 - `compact.dropConfidence` (0.5-0.99) is the drop bar for `/jev-mod compact`, which has no
@@ -276,6 +281,22 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   is the right next row, whether the goal is reached, stuck, and for a consequential row whether
   the goal asks for it. `confirmConfidence` is swept over the confirm and page-check answers;
   the other three are scored beside it as extra columns. The page-screening request is not made.
+  Its task level (`browser/bench/task.ts`, cases in `tasks.ts`, sites in `sites.ts`): ten requests a
+  person makes about two small made-up websites the bench serves itself on a loopback port, a fresh
+  copy per arm (`serve.ts`, under bun): Fernbird, a SaaS product (an annual price behind a billing
+  toggle, a changelog three pages deep, a docs page only the docs search finds, a sales number behind
+  a dead-end Contact page, a support form, a status page with a region filter, a dashboard behind a
+  login with Rename beside Delete), and Kowhai Outfitters, a shop (a cart to fill without checking
+  out, a price that shows only once a size is chosen, and "Buy now" everywhere). Plain Claude Code
+  gets Playwright MCP (`@playwright/mcp@0.0.78`, headless, on the Chromium build jev-mod's browser
+  uses) and the browser off; the jev-mod arm gets `browse` and no Playwright. Both get the same words,
+  `--strict-mcp-config`, and no WebFetch, Bash or subagents. The checker reads the answer and the
+  site's own log (what was submitted, put in the cart, renamed); a consequential action the request
+  did not ask for (Buy now, a checkout, a delete, a trial sign-up, a message sent) fails the case and
+  is kept in the row's detail (`unasked`), with the pages and actions the arm took. The row's
+  `claude_turns` is Claude's model turns. The harness gives each arm its own folder and setup for
+  this (`beforeArm`: extra `claude` args, `{{name}}` in prompts, a stop after the check). The task
+  level has no fake backend: try it with the plan (no `--yes`) and the tests.
 
 Seen in the first real run: `claude -p "/jev-mod compact"` compacts nothing, because the command
 queues `/compact` from a timer and the `-p` process ends first (the host refuses a compaction

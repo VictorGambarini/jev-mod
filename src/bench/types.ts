@@ -61,6 +61,8 @@ export type Row = {
   wall_ms?: number
   claude_cost_usd?: number
   claude_tokens?: { input: number; output: number; cache_read: number; cache_write: number }
+  /** The model turns Claude took over the arm's steps (`num_turns`, summed), when it said. */
+  claude_turns?: number
   decision_calls?: number
   /** Set on a case's shared-setup row: what building the session cost, once per case, before any arm. */
   setup?: true
@@ -193,6 +195,16 @@ export type ArmRun = {
   compaction: Compaction | null
 }
 
+/** What an arm runs with beyond its case (TaskAdapter.beforeArm): more `claude` arguments, words for its prompts, what to stop after it. */
+export type ArmSetup = {
+  /** Added to each of the arm's `claude -p` calls, after the run's own (an `--mcp-config`, `--allowedTools`). */
+  claudeArgs?: string[]
+  /** `{{name}}` in a step's prompt becomes vars[name] (a local site's address). */
+  vars?: Record<string, string>
+  /** Run after the arm was checked, whatever happened (a local site stopped). */
+  stop?(): void | Promise<void>
+}
+
 /** A feature's task-level bench: cases run end to end with `claude -p`, per arm. */
 export interface TaskAdapter<C extends TaskCase = TaskCase> {
   feature: string
@@ -203,7 +215,10 @@ export interface TaskAdapter<C extends TaskCase = TaskCase> {
   steps(c: C, arm: Arm): Step[]
   /** The bench overlay's feature sections for this arm (core/bench-overlay.ts); the runner adds the rest. */
   overlay(arm: Arm): { features: Record<string, Record<string, unknown>>; compact?: { dropConfidence: number } }
-  check(c: C, finalText: string, workdir: string): Checked | Promise<Checked>
+  /** `armDir`: the arm's own folder outside the project, the one beforeArm was given. */
+  check(c: C, finalText: string, workdir: string, armDir: string): Checked | Promise<Checked>
+  /** Before an arm's steps: start what the arm needs (a local test site) in `dir`, its own folder outside the project. */
+  beforeArm?(c: C, arm: Arm, dir: string): Promise<ArmSetup>
   /**
    * Did the arm do what it is meant to (compact, say)? A short error code when it plainly did
    * not, and the row is an error instead of a score; null when it did or cannot be told. `all`

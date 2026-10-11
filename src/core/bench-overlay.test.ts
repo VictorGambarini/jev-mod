@@ -56,8 +56,12 @@ test('an overlay never loosens a protective feature, nor sets its knobs', async 
   expect(`${up.mode} ${up.source}`).toBe('shadow bench overlay')
 })
 
-test('an overlay may turn the browser off, never on', async () => {
-  expect((await at({ [OVERLAY]: conf({ browser: { mode: 'on' } }) }, 'browser')).mode).toBe('off')
+test('an overlay may turn the browser off, and on only for loopback hosts, never its knobs', async () => {
+  // on from the overlay: the browse tool then reaches loopback hosts only (browser/index.test.ts)
+  const on = await at({ [OVERLAY]: conf({ browser: { mode: 'on', allowAttach: true, maxSteps: 60 } }) }, 'browser')
+  expect(`${on.mode} ${on.source}`).toBe('on bench overlay')
+  expect(on.knobs.allowAttach!.value).toBe(false)
+  expect(on.knobs.maxSteps!.value).toBe(20)
   const files = { [USER]: conf({ browser: { mode: 'on' } }), [OVERLAY]: conf({ browser: { mode: 'off' } }) }
   expect((await at(files, 'browser')).source).toBe('bench overlay')
 })

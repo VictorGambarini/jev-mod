@@ -21,7 +21,7 @@ type Sent = { state: any; questions: Record<string, any> }
 
 type Fake = IO & { sent: Sent[]; store: Record<string, unknown>; disk: Record<string, string> }
 
-function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: boolean; options?: Record<string, unknown>; files?: Record<string, string>; limits?: boolean } = {}): Fake {
+function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: boolean; options?: Record<string, unknown>; files?: Record<string, string>; limits?: boolean; env?: Record<string, string> } = {}): Fake {
   const files: Record<string, string> = { [USER]: JSON.stringify({ features: { browser: { mode: 'on', ...(opts.settings ?? {}) } } }), ...(opts.files ?? {}) }
   const store: Record<string, unknown> = {}
   const sent: Sent[] = []
@@ -29,7 +29,7 @@ function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: bool
   const achieved = [...(brain.achieved ?? [])]
   const reached = [...(brain.reached ?? [])]
   const stuck = [...(brain.stuck ?? [])]
-  const env: Record<string, string> = { JEV_HOME: '/jev', JEV_LIMITS: opts.limits ? 'on' : 'off', ...(opts.key === false ? {} : { TYPESAFE_API_KEY: 'test-not-a-key' }) }
+  const env: Record<string, string> = { JEV_HOME: '/jev', JEV_LIMITS: opts.limits ? 'on' : 'off', ...(opts.key === false ? {} : { TYPESAFE_API_KEY: 'test-not-a-key' }), ...(opts.env ?? {}) }
   return {
     sent, store, disk: files,
     option: (name: string) => opts.options?.[name] as string | boolean | undefined,
@@ -225,6 +225,25 @@ test('done: a click toward the goal, then done, confirmed by a second check over
   expect(table).toContain('click-e3')
   expect(drawn).toBeGreaterThan(0)
   expect(memory.snapshot().browser).toMatchObject({ running: false, status: 'done' })
+})
+
+test('turned on by a bench overlay: loopback start pages only, never attach; the person\'s own "on" is untouched', async () => {
+  const overlay = { '/scratch/overlay.json': JSON.stringify({ features: { browser: { mode: 'on' } } }) }
+  const bench = { files: overlay, env: { JEV_MOD_BENCH_OVERLAY: '/scratch/overlay.json' } }
+  const { launched, launch } = site()
+  const web = await browse(io({}, bench), { goal: 'Find the team price', startUrl: 'https://shop.test/' }, { launch })
+  expect(statusOf(web)).toBe('status: failed')
+  expect(web).toContain('loopback')
+  const further = await browse(io({}, bench), { goal: 'Find the team price', startUrl: 'http://127.0.0.1:8080/', allowHosts: ['shop.test'] }, { launch })
+  expect(further).toContain('loopback')
+  const attach = await browse(io({}, { ...bench, settings: { allowAttach: true } }), { goal: 'Find the team price', startUrl: 'http://127.0.0.1:8080/', attach: true }, { launch })
+  expect(attach).toContain('loopback')
+  expect(launched.length).toBe(0)
+  await browse(io({}, bench), { goal: 'Find the team price', startUrl: 'http://127.0.0.1:8080/' }, { launch })
+  expect(launched.length).toBe(1)
+  // without an overlay, the person's own "on" reaches the web as before
+  await browse(io({}), { goal: 'Find the team price', startUrl: 'https://shop.test/' }, { launch })
+  expect(launched.length).toBe(2)
 })
 
 test('page text is redacted and screened before the decision model reads it, and in the answer', async () => {

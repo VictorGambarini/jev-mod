@@ -1,4 +1,5 @@
 import * as activity from '../../core/activity'
+import { LOOPBACK_HOSTS } from '../../core/bench-overlay'
 import { setting } from '../../core/config'
 import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
@@ -661,6 +662,10 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
       const extra = Array.isArray(input.allowHosts) ? input.allowHosts.filter((h): h is string => typeof h === 'string').slice(0, 20) : []
       const hosts = allowedHosts(startUrl, extra)
       if (!hosts.length) return fail('startUrl must be an http(s) URL')
+      // turned on by a bench overlay: this machine's own test sites only, never the web or the person's Chrome
+      if (mine.source === 'bench overlay' && (hosts.some(h => !LOOPBACK_HOSTS.includes(h)) || input.attach === true)) {
+        return fail(`a bench run's browser reaches loopback hosts only (${LOOPBACK_HOSTS.join(', ')}), without attach`)
+      }
       let cdp: string | null = null
       if (input.attach === true) {
         if (mine.knobs.allowAttach?.value !== true) {

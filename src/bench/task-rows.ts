@@ -4,6 +4,8 @@
 import type { Arm, ArmRun, Compaction, Row, RunMeta, TaskAdapter, TaskCase } from './types'
 
 export type Result = { ok: boolean; error?: string; text: string; session: string | null; cost: number; ms: number;
+  /** The model turns the call took (`num_turns`): one more than its tool rounds. */
+  turns?: number
   tokens: { input: number; output: number; cache_read: number; cache_write: number } }
 
 /** The last JSON object Claude printed: its result, session, cost and usage. */
@@ -20,6 +22,7 @@ export function parseClaude(stdout: string): Omit<Result, 'ms'> {
     text: typeof j.result === 'string' ? j.result : '',
     session: typeof j.session_id === 'string' ? j.session_id : null,
     cost: typeof j.total_cost_usd === 'number' ? j.total_cost_usd : 0,
+    ...(typeof j.num_turns === 'number' ? { turns: j.num_turns } : {}),
     tokens: { input: u.input_tokens ?? 0, output: u.output_tokens ?? 0, cache_read: u.cache_read_input_tokens ?? 0, cache_write: u.cache_creation_input_tokens ?? 0 },
   }
 }

@@ -1,4 +1,4 @@
-import { readOverlay } from './bench-overlay'
+import { LOOPBACK_ON, readOverlay } from './bench-overlay'
 import { hostOf } from './host'
 import type { IO } from './io'
 import { jevDir } from './settings'
@@ -17,7 +17,8 @@ import { checkKnob, checkMode, feature, FEATURES, strictness, type Feature, type
 //
 // A bench run (JEV_MOD_BENCH_OVERLAY, bench-overlay.ts) adds one layer between 2 and 3: it sets
 // a feature's mode and knobs above both files, except that a protective feature only gets
-// stricter there and a risky one only lower, and neither takes its knobs from it.
+// stricter there and a risky one only lower (the browser may be turned on, for loopback hosts
+// only), and neither takes its knobs from it.
 //
 // Both files look like {"features": {"skills": {"mode": "shadow", "<knob>": <value>}}}. A value
 // that does not check is passed over and reported, and so is a file that is not JSON: a typo
@@ -180,10 +181,11 @@ export function resolve(snap: Snapshot, f: Feature): Resolved {
   if (overlay && 'mode' in overlay) {
     const checked = checkMode(f, overlay.mode)
     if ('mode' in checked) {
-      // a bench run never loosens what guards the person, nor lets the browser do more
+      // a bench run never loosens what guards the person, nor lets the browser do more, except
+      // turn it on for loopback hosts only (bench-overlay.ts LOOPBACK_ON; the browser enforces it)
       const without = resolve({ ...snap, bench: undefined }, f).mode
       const may = f.protective ? strictness(checked.mode) >= strictness(without)
-        : f.risky ? strictness(checked.mode) <= strictness(without) : true
+        : f.risky ? strictness(checked.mode) <= strictness(without) || LOOPBACK_ON.includes(f.id) : true
       if (may) return at(checked.mode, 'bench overlay')
     }
   }

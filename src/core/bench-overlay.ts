@@ -11,13 +11,20 @@ import type { IO } from './io'
 // It sits above the user's and the project's files and below what the person locked: a kill file
 // and "jev-mod on" unticked in /config still win (config.ts). For a protective feature (screening,
 // the gates) it may only make the mode stricter, and for a risky one (the browser) only lower;
-// neither takes its knobs from here. `compact.dropConfidence` is how sure a drop must be for
+// neither takes its knobs from here. The one exception is LOOPBACK_ON: a bench overlay may turn
+// the browser on, and it then reaches this machine's loopback hosts only (browser/index.ts
+// refuses any other startUrl or allowHosts, and attaching), so a bench can drive its own local
+// test sites and nothing on the web. `compact.dropConfidence` is how sure a drop must be for
 // /jev-mod compact to act on it (the default is engine/compact.ts's DROP_CONFIDENCE). `ledger`
 // is a folder where each decision call's cost is written, one small file per call, for the
 // bench to add up, and where /jev-mod compact writes what each compaction kept and dropped. An overlay holding anything key-shaped (a field named like a key, token,
 // secret, password or header) is refused whole: a key never travels in it.
 
 export const OVERLAY_ENV = 'JEV_MOD_BENCH_OVERLAY'
+/** Risky features a bench overlay may turn on, which then reach loopback hosts only (see above). */
+export const LOOPBACK_ON: readonly string[] = ['browser']
+/** The hosts a feature turned on by a bench overlay may reach. */
+export const LOOPBACK_HOSTS: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
 export const DROP_CONFIDENCE_RANGE: [number, number] = [0.5, 0.99]
 
 export type Overlay = {

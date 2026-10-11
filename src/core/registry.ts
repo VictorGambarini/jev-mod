@@ -315,7 +315,7 @@ export const FEATURES: readonly Feature[] = [
     knobs: {
       maxSteps: { type: 'int', title: 'Steps per call', default: 20, min: 5, max: 60,
         help: 'The most steps one browse call takes; a call may ask for fewer, never more.' },
-      confirmConfidence: { type: 'number', title: 'Confidence to act', default: 0.85, min: 0.5, max: 1,
+      confirmConfidence: { type: 'number', title: 'Confidence to act', default: 0.5, min: 0.5, max: 1,
         help: 'How sure the decision model must be that the goal asks for a consequential step for it to be taken without you, '
           + 'and that the page shows the goal achieved for done.' },
       stepFloor: { type: 'number', title: 'Step floor', default: 0.4, min: 0.3, max: 0.95,

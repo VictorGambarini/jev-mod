@@ -659,7 +659,7 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
     try { tuning = (await activeBackend(host))?.tuning ?? {} } catch { /* misconfigured: the ask says so */ }
     const ctx: Ctx = {
       io, host, deps, limits: await limitsOf(io),
-      confirm: knob('confirmConfidence', 0.85), floor: tuning['choose.min_confidence'] ?? knob('stepFloor', 0.4),
+      confirm: knob('confirmConfidence', 0.5), floor: tuning['choose.min_confidence'] ?? knob('stepFloor', 0.4),
       deadRepeats: tuning['choose.dead_repeats'], textChars: knob('textChars', 6000),
       max, step: 0, screened: new Map(),
     }

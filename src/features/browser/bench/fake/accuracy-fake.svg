@@ -36,10 +36,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">confirmConfidence threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
-<line class="guide" x1="546.22" x2="546.22" y1="78" y2="294"/>
-<text class="ax" x="550.22" y="88">default 0.85</text>
-<line class="guide" x1="132.89" x2="132.89" y1="78" y2="294"/>
-<text class="ax" x="136.89" y="101">best 0.55</text>
+<line class="guide" x1="64" x2="64" y1="78" y2="294"/>
+<text class="ax" x="68" y="88">default 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,107.45 132.89,107.45 201.78,112.36 270.67,127.09 339.56,127.09 408.44,136.91 477.33,146.73 546.22,156.55 615.11,176.18 684,181.09"/>
 <circle class="d1 dot" cx="64" cy="107.45" r="4" stroke-width="2"><title>fake · fake-jev: 0.5 → 86%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="107.45" r="4" stroke-width="2"><title>fake · fake-jev: 0.55 → 86%</title></circle>

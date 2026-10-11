@@ -307,11 +307,11 @@ test('consequential and named by the goal: done when the decision model is sure 
   expect(sure.sent.filter(b => b.questions.asked).length).toBe(1)
   expect(sure.sent.find(b => b.questions.asked)!.state.action).toBe('click button "Buy now"')
 
-  const unsure = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'click-e1', p: 0.9 }], asked: 0.6 })
+  const unsure = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'click-e1', p: 0.9 }], asked: 0.4 })
   const b = site()
   const stopped = await browse(unsure, { goal: 'Buy the team plan', startUrl: 'https://shop.test/' }, { launch: b.launch })
   expect(statusOf(stopped)).toBe('status: needs_confirm')
-  expect(stopped).toContain('not sure the goal asks for it (0.60, under 0.85)')
+  expect(stopped).toContain('not sure the goal asks for it (0.40, under 0.5)')
   expect(b.launched[0]!.url).toBe('https://shop.test/pricing')
   closeAll()
   expect(b.launched[0]!.closed).toBe(true)
@@ -513,7 +513,7 @@ test('a project file may turn the browser off, never on, and sets none of its se
   const resolved = await setting(on, 'browser')
   expect(resolved.mode).toBe('off') // turning it off is allowed
   expect(resolved.knobs.allowAttach!.value).toBe(false)
-  expect((await setting(fake, 'browser')).knobs.confirmConfidence!.value).toBe(0.85)
+  expect((await setting(fake, 'browser')).knobs.confirmConfidence!.value).toBe(0.5)
   expect((problems(await snapshot(fake))).join('\n')).toContain('project config may not turn browser on')
 })
 

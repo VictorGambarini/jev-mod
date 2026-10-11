@@ -10,7 +10,7 @@
 //   shows the goal's thing: "none" scores 0).
 //
 // Scored items are the confirm and page-check questions: the loop proceeds (takes the consequential
-// step, accepts "done") when p reaches confirmConfidence (the feature's 0.85). Positive = proceed.
+// step, accepts "done") when p reaches confirmConfidence (the feature's 0.5). Positive = proceed.
 // The step choice, goal_reached and stuck are scored beside it as extra columns, at the
 // feature's own constants. The page's screening request is not made: it is no decision of this
 // feature's, and no snapshot holds anything to withhold.
@@ -75,7 +75,6 @@ export const adapter: DecisionAdapter<PageCase> = {
     name: 'confirmConfidence', default: DEFAULT, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',
     saferMeans: 'a higher bar stops before more consequential steps (the person is asked, and the run resumes) and accepts "done" less often',
     where: { knob: { feature: 'browser', name: 'confirmConfidence' } },
-    keptBecause: 'lowering it asks the person less often before buy, send and delete steps, so it stays at 0.85 until the real-browser comparison shows what that costs.',
   },
   cases: () => CASES,
   caseId: c => c.id,

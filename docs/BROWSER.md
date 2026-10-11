@@ -177,7 +177,7 @@ status closes it at once, and every browser closes when the session ends.
   deletes, removes, cancels, posts, publishes, shares, signs up, registers, subscribes, confirms,
   accepts, books or applies, or that submits a form that is not a search, is taken only when
   **both** hold: the goal's own words name that kind of action, and the decision model answers at
-  least `confirmConfidence` (0.85) that the goal asks for it ("Does the goal ask for this action to
+  least `confirmConfidence` (0.5) that the goal asks for it ("Does the goal ask for this action to
   be done, or does it clearly follow from what the goal asks?", the tool gate's question put to the
   goal). Otherwise it stops as `needs_confirm`. A cookie banner is not consequential. Enter is a
   search, not a submit, in a search box: a field in no form, a search box or `role="search"`, a
@@ -235,7 +235,7 @@ an `attach` call fails and says how to turn it on.
 | setting | default | |
 |---|---|---|
 | `maxSteps` | 20 (5-60) | the most steps one call takes; a call may ask for fewer |
-| `confirmConfidence` | 0.85 (0.5-1) | the bar for a consequential step and for *done* |
+| `confirmConfidence` | 0.5 (0.5-1) | the bar for a consequential step and for *done* |
 | `stepFloor` | 0.4 (0.3-0.95) | under it, the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (`confirmConfidence`, and the goal naming the action). A named backend that sets `choose.min_confidence` in its `tuning` uses that instead, and `choose.dead_repeats` for how often a step may change nothing on a page before it is no longer offered (2) |
 | `headed` | false | show the Chromium window |
 | `allowAttach` | false | let a call drive your own Chrome |

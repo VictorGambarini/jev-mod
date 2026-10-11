@@ -35,10 +35,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">confirmConfidence threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
-<line class="guide" x1="546.22" x2="546.22" y1="60" y2="294"/>
-<text class="ax" x="550.22" y="70">default 0.85</text>
 <line class="guide" x1="64" x2="64" y1="60" y2="294"/>
-<text class="ax" x="68" y="83">best 0.5</text>
+<text class="ax" x="68" y="70">default 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,65.32 132.89,70.64 201.78,75.95 270.67,75.95 339.56,75.95 408.44,81.27 477.33,86.59 546.22,91.91 615.11,102.55 684,134.45"/>
 <circle class="d1 dot" cx="64" cy="65.32" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 98%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="70.64" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 95%</title></circle>

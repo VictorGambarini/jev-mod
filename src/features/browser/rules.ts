@@ -7,9 +7,9 @@ import { localScreen } from '../../engine/screen'
 // loop, the driver (driver.mjs, a child process) runs the browser.
 //
 // The decision model never writes text, selectors or URLs. It picks one row of a table built
-// here from what the page showed: click-<id>, type-<input>-<id>, submit-<id> (Enter in a field
-// that holds text), fill-<id> (a field no input was given for: stops and asks), scroll-down,
-// back, done, abstain. Input values never reach it: rows name the input, every text it reads has
+// here from what the page showed: click-<id>, type-<input>-<id>, choose-<id>-<n> (option n of a
+// list, as the page labels it), submit-<id> (Enter in a field that holds text), fill-<id> (a field
+// no input was given for: stops and asks), scroll-down, back, done, abstain. Input values never reach it: rows name the input, every text it reads has
 // the values scrubbed out first (as [input:<name>]), and a field says which input it holds, by name.
 
 /** One interactive element the driver saw, tagged in the page as data-jev-id="<id>". */
@@ -30,6 +30,12 @@ export type Element = {
   holds?: string
   /** Inside a form: whether the form is a search, and whether this element submits it. */
   form?: { search: boolean; submits: boolean }
+  /** A select's options as the page labels them, in order ('' for a placeholder or a disabled one). */
+  options?: string[]
+  /** A select's chosen option, by its place in `options`. */
+  selected?: number
+  /** A select: the inputs whose value is one of its options (the driver compares; values never leave it). */
+  fits?: string[]
 }
 
 export type Observation = {
@@ -55,7 +61,7 @@ export type Observation = {
 /** A console error or a failed network request the page caused. */
 export type PageEvent = { kind: 'console' | 'network'; text: string }
 
-export type Kind = 'click' | 'type' | 'enter' | 'fill' | 'scroll' | 'back' | 'done' | 'abstain'
+export type Kind = 'click' | 'type' | 'choose' | 'enter' | 'fill' | 'scroll' | 'back' | 'done' | 'abstain'
 
 export type Action = {
   id: string
@@ -66,6 +72,9 @@ export type Action = {
   el?: Element
   /** For type: the input's name as the caller gave it. */
   input?: string
+  /** For choose: the option's place in the select's list, and its label as the page gave it. */
+  option?: number
+  optionLabel?: string
 }
 
 /** Why an action stops for the person: the kinds of consequential action it looks like. */
@@ -73,6 +82,8 @@ export type Risk = { kinds: string[]; why: string }
 
 export const MAX_ROWS = 80
 export const MAX_FIELDS = 15
+/** The most options of one select offered as choose rows. */
+export const MAX_OPTIONS = 20
 export const MAX_INPUTS = 10
 export const MAX_TABLE = 200
 export const LABEL_CHARS = 100
@@ -233,7 +244,7 @@ export function slug(name: string): string {
 /** What a row does, keyed so a repeat on the same page is recognised whatever id the element got. */
 export function actionKey(url: string, a: Action): string {
   const el = a.el
-  return [url, a.kind, a.input ?? '', el?.role ?? '', el?.label ?? '', el?.href ?? ''].join('|')
+  return [url, a.kind, a.input ?? '', el?.role ?? '', el?.label ?? '', el?.href ?? '', a.optionLabel ?? ''].join('|')
 }
 
 export type TableOptions = {
@@ -258,7 +269,9 @@ export type TableOptions = {
  * target was covered by another element on the page as it is now. Fields that take
  * text get a type row per input (not the input the field holds already), a fill row (none of the
  * inputs fits: stops to ask; not offered for a field that holds an input), and once they hold
- * text a submit row (Enter). scroll-down, back, done and abstain close the table.
+ * text a submit row (Enter). A select gets a choose row per option (not the one chosen now) unless
+ * an input's value is one of its options, and a type row only for such an input. scroll-down, back, done and
+ * abstain close the table.
  */
 export function buildTable(obs: Observation, o: TableOptions): Action[] {
   const values = o.values ?? []
@@ -284,8 +297,20 @@ export function buildTable(obs: Observation, o: TableOptions): Action[] {
       rows.push({ id: `submit-${el.id}`, kind: 'enter', ref: el.id, el,
         text: `press Enter in ${what}${searchField(el) ? ' (runs the search)' : el.form ? ' (submits its form)' : ''} — ${state}` })
     }
+    // A list gets choose rows unless a given input is one of its options: then the caller chose, and other rows only dilute the pick.
+    if (el.tag === 'select' && el.options && !el.fits?.some(name => names.includes(name))) {
+      const now = el.selected !== undefined && el.options[el.selected] ? safeLabel(el.options[el.selected]!, values) : ''
+      el.options.slice(0, MAX_OPTIONS).forEach((option, n) => {
+        const label = option ? safeLabel(option, values) : ''
+        if (!label || n === el.selected) return
+        rows.push({ id: `choose-${el.id}-${n}`, kind: 'choose', ref: el.id, el, option: n, optionLabel: option,
+          text: `choose "${label}" in ${what} — ${now ? `"${now}" chosen now` : 'nothing chosen now'}` })
+      })
+    }
     for (const name of names) {
       if (el.holds === name) continue
+      // A list takes only an input that is one of its options; another one would fail there.
+      if (el.tag === 'select' && el.fits && !el.fits.includes(name)) continue
       rows.push({ id: `type-${slugs.get(name)}-${el.id}`, kind: 'type', ref: el.id, el, input: name,
         text: `${el.tag === 'select' ? 'choose' : 'type'} the value of input "${safeLabel(name)}" in ${what} — ${state} now` })
     }
@@ -514,18 +539,29 @@ export function goalWords(goal: string): string[] {
   return [...out].slice(0, 20)
 }
 
-/** A text's sentences that share `words`, the best `n` (most distinct words shared, then earliest), each cut to `chars`. */
+/** A short line that is a value (a price, a count, a date): a sentence sharing the goal's words carries it when it comes next. */
+const VALUE_LINE = /^[^\p{L}]*\p{N}/u
+export const VALUE_CHARS = 40
+
+/**
+ * A text's sentences that share `words`, the best `n` (most distinct words shared, then earliest),
+ * each cut to `chars`. A short value line right after one ("$309" under "Alpine Down Jacket") is
+ * joined to it with " · ", so a price shown under its heading is kept with it.
+ */
 export function scored(text: string, words: readonly string[], chars: number): { text: string; score: number; at: number }[] {
   if (!words.length || !text) return []
   const tests = words.map(w => new RegExp(`(^|[^\\p{L}\\p{N}])${escape(w)}`, 'iu'))
   const out: { text: string; score: number; at: number }[] = []
   const seen = new Set<string>()
-  text.split(/(?<=[.!?])\s+|\n+/).forEach((raw, at) => {
-    const line = raw.replace(/\s+/g, ' ').trim()
+  const parts = text.split(/(?<=[.!?])\s+|\n+/).map(raw => raw.replace(/\s+/g, ' ').trim())
+  parts.forEach((first, at) => {
+    let line = first
     if (line.length < 3 || seen.has(line)) return
     seen.add(line)
     const score = tests.filter(t => t.test(line)).length
     if (!score) return
+    const next = parts[at + 1] ?? ''
+    if (next && next.length <= VALUE_CHARS && VALUE_LINE.test(next) && !tests.some(t => t.test(next))) line = `${line} · ${next}`
     const cs = [...line]
     out.push({ text: cs.length > chars ? cs.slice(0, chars - 1).join('') + '…' : line, score, at })
   })
@@ -675,6 +711,7 @@ export function said(a: Action, values: Values = []): string {
   switch (a.kind) {
     case 'click': return `clicked ${el}`
     case 'type': return `typed input "${safeLabel(a.input ?? '')}" in ${el}`
+    case 'choose': return `chose "${safeLabel(a.optionLabel ?? '', values) || '(no label)'}" in ${el}`
     case 'enter': return `pressed Enter in ${el}`
     case 'fill': return `needs text for ${el}`
     case 'scroll': return 'scrolled down'
@@ -686,7 +723,7 @@ export function said(a: Action, values: Values = []): string {
 
 /** The band's words for a running browse: `🌐 step 4/20 · clicked "Pricing"`. */
 export function bandText(step: number, max: number, last: string | undefined): string {
-  const what = last ? last.replace(/^(clicked|typed input "[^"]*" in|pressed Enter in) \w+ /, '$1 ') : 'opening'
+  const what = last ? last.replace(/^(clicked|typed input "[^"]*" in|chose "[^"]*" in|pressed Enter in) \w+ /, '$1 ') : 'opening'
   return `🌐 step ${step}/${max} · ${what.length > 48 ? what.slice(0, 47) + '…' : what}`
 }
 

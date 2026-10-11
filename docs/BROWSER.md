@@ -97,9 +97,12 @@ status closes it at once, and every browser closes when the session ends.
    Then the page's visible links, buttons, fields, checkboxes and the like (up to 80,
    those in view first): role, label, the nearest heading above, a link's target, and for a field
    what it holds, never its value: `holds input "query"` (the driver matched it against the
-   inputs, in its own process), `holds text (not from inputs)`, or `empty`. The page's main
+   inputs, in its own process), `holds text (not from inputs)`, or `empty`; for a select, its
+   options as the page labels them (up to 30; not a placeholder or a disabled one), the one chosen
+   now, and which inputs' values are one of them (matched in the driver's process). The page's main
    text: `<main>` (or the body without its header), with navigation, asides and footers left out,
-   up to `textChars` characters. The visible frames' addresses (for the bot check), and the
+   up to `textChars` characters; a table row is one line, its cells joined by ` | `, and a select
+   reads as the option chosen in it (`Size [chosen: XL]`), not its list. The visible frames' addresses (for the bot check), and the
    console errors and failed requests (an HTTP status of 400 or more, or no answer) since the last
    look: a request by its origin and path, never its query; at most 50 per look.
 2. **Bot check**, locally, before anything is sent: a title such as "Just a moment...", text
@@ -127,11 +130,14 @@ status closes it at once, and every browser closes when the session ends.
 4. **The table.** `click-<id>` per element; per field that takes text, once it holds text
    `submit-<id>` (press Enter: runs a search box's search), `type-<input>-<id>` per input name
    (not the input the field holds already), and `fill-<id>` (none of the inputs fits: stops as
-   `needs_input`; not offered for a field that holds an input); then `scroll-down`, `back`,
-   `done`, `abstain`. Links off the allowed hosts
+   `needs_input`; not offered for a field that holds an input). A select gets `choose-<id>-<n>`
+   per option (up to 20, not the one chosen now): the option is the page's own text, so no input
+   is needed. When an input's value is one of its options, it gets `type-<input>-<id>` for that
+   input instead, and no choose rows (more rows only spread the pick thinner). No `fill` row. Then `scroll-down`, `back`, `done`, `abstain`. Links off the allowed hosts
    (and `mailto:`, `tel:` and the like) are not offered. An action seen twice to change nothing on
-   a page is not offered there again, nor a click whose target was found covered on the page as
-   it is now.
+   a page is not offered there again, nor one that failed there once (a timeout, an option that
+   is not in the list: it would fail again, at the cost of a step and its wait), nor a click
+   whose target was found covered on the page as it is now.
 5. **Pick.** One request: the choice "Which single action should be taken next to move toward
    the goal?" over the goal, the page, the elements and the last ten steps, and in the same
    request two yes/no questions, "Is the goal already reached on this page?" and "Is the run
@@ -142,7 +148,8 @@ status closes it at once, and every browser closes when the session ends.
    the goal asks for ("the sales phone number", not a phone number) and whether that thing is
    visible on the page now (a link to it, a related thing, or a different one of the same kind,
    such as the support number, is not); and, when lines of the page share the goal's words (up to
-   six), which of them shows it, or none. It is done only at `confirmConfidence` or more *and*
+   six; a short line that starts with a number right after one, such as a price under its
+   product's name, is joined to it), which of them shows it, or none. It is done only at `confirmConfidence` or more *and*
    with a line picked; the step line quotes that line. With no such line (or no page text) the
    yes/no decides alone. That check is the safety: under `confirmConfidence` the run carries on (with
    the picked step, in the same step, for *goal reached*), and neither is taken on that same page
@@ -266,9 +273,12 @@ needs_input, the done check (a line must show the goal's thing), what was found 
 value reaches any request or the store (and a secret-named one the answer); a bot check that
 clears and one that does not (each provider's page is a fixture in `bots.fixture.ts`, with pages
 that only look like one), goal reached and stuck stopping early, an unknown submit not repeated
-across resume, console and network lines capped and redacted, and a covered button. The real driver
+across resume, console and network lines capped and redacted, a covered button, a list option
+chosen without an input, and a failed step not offered again. The real driver
 against local pages: `node src/features/browser/driver.check.mjs` (skips without Playwright),
 including a single-page search box submitted by Enter whose results say "Loading data..." for a
 second, a page whose text arrives late, which input a field holds, a button under a fixed banner,
-a console error and a 404, visible frames, a page that polls, and a click whose result comes from
-a request it starts. It prints the median time per kind of action.
+a console error and a 404, visible frames, a page that polls, a click whose result comes from
+a request it starts, a select's options chosen by place (a stale label refused, an input that is
+no option failing at once rather than after Playwright's 5-second wait, the chosen option in the
+text), and a table row read as one line. It prints the median time per kind of action.

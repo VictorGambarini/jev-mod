@@ -106,6 +106,11 @@ const SITE: Record<string, PageDef> = {
   'https://shop.test/sales': { title: 'Talk to sales', text: 'Our sales team is on +64 9 555 0142 and sales@shop.test, weekdays.', elements: [link('e1', 'Home', 'https://shop.test/')] },
   'https://shop.test/thanks': { title: 'Thanks', text: 'Your order is confirmed. Order number 1234.', elements: [link('e1', 'Home', 'https://shop.test/')] },
   'https://shop.test/search': { title: 'Search results', text: 'Results for the query you typed.', elements: [link('e1', 'Home', 'https://shop.test/')] },
+  'https://shop.test/socks': {
+    title: 'Socks', text: 'Merino Socks\nFrom $24',
+    elements: [{ id: 'e1', tag: 'select', role: 'combobox', label: 'Size Choose a size S M', fillable: true, filled: false, options: ['', 'S', 'M'], selected: 0, fits: [] },
+      button('e2', 'Add to cart'), link('e3', 'Home', 'https://shop.test/')],
+  },
   'https://shop.test/still': { title: 'Still', text: 'Nothing moves here.', elements: [button('e1', 'Refresh'), link('e2', 'Home', 'https://shop.test/')] },
   // bot checks: Cloudflare's clears after two waits (BOT_CLEARS), DataDome's never does
   'https://shop.test/cf': { ...BOT_PAGES.cloudflare!.obs },
@@ -131,6 +136,7 @@ class FakeDriver implements Driver {
   /** Console and network events the next observation carries. */
   emit: PageEvent[] = []
   typed: Record<string, string> = {}
+  chosen: Record<string, number> = {}
   values: Record<string, string>
   acts: Wire[] = []
   added: Record<string, string>[] = []
@@ -143,7 +149,8 @@ class FakeDriver implements Driver {
     const page = SITE[this.url.split('?')[0]!] ?? { title: 'Missing', text: '', elements: [] }
     // as the real driver does: whether a field holds text, and which input's value it is (by name)
     const holds = (id: string) => Object.entries(this.values).find(([, v]) => v === this.typed[id])?.[0]
-    const elements = page.elements.map(e => (e.fillable ? { ...e, filled: !!this.typed[e.id], ...(holds(e.id) ? { holds: holds(e.id) } : {}) } : e))
+    const elements = page.elements.map(e => (e.tag === 'select' ? { ...e, filled: !!this.chosen[e.id], selected: this.chosen[e.id] ?? 0 }
+      : e.fillable ? { ...e, filled: !!this.typed[e.id], ...(holds(e.id) ? { holds: holds(e.id) } : {}) } : e))
     const q = new URL(this.url).searchParams.get('q')
     const text = q ? `${page.text} You searched for ${q}.` : page.text
     const events = this.emit
@@ -178,6 +185,9 @@ class FakeDriver implements Driver {
     } else if (w.kind === 'type' && el) {
       if (!(w.input! in this.values)) return { ok: false, error: 'no value for that input', obs: this.view() }
       this.typed[el.id] = this.values[w.input!]!
+    } else if (w.kind === 'choose' && el) {
+      if (el.options?.[w.option!] !== w.optionLabel) return { ok: false, stale: true, obs: this.view() }
+      this.chosen[el.id] = w.option!
     } else if (w.kind === 'enter' && el?.form?.search) {
       this.url = `https://shop.test/search?q=${encodeURIComponent(this.typed[el.id] ?? '')}`
       this.typed = {}
@@ -715,6 +725,27 @@ test('a covered button is not clicked: the step says what covers it, and it is n
   expect(Object.keys(steps[2]!.questions.next_action.criteria)).not.toContain('click-e1')
   expect(Object.keys(steps[2]!.questions.next_action.criteria)).toContain('click-e2')
   expect(text).not.toContain('attempted, result unknown') // not clicked: nothing is unknown
+  closeAll()
+})
+
+test('a list option is chosen without an input; a step that failed is not offered on that page again', async () => {
+  const fake = io({ picks: [{ choice: 'choose-e1-2', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'abstain', p: 0.9 }] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Put size M socks in the cart', startUrl: 'https://shop.test/socks' }, { launch: async (i, o) => {
+    const r = await launch(i, o)
+    launched[0]!.failing['Add to cart'] = 'timeout'
+    return r
+  } })
+  const d = launched[0]!
+  expect(d.acts[0]).toEqual({ kind: 'choose', ref: 'e1', input: undefined, option: 2, optionLabel: 'M', expect: { tag: 'select', label: 'Size Choose a size S M' } })
+  expect(d.chosen).toEqual({ e1: 2 })
+  expect(text).toContain('1. chose "M" in combobox "Size Choose a size S M"')
+  expect(text).toContain('2. clicked button "Add to cart" (failed: locator.click: Timeout 5000ms exceeded.; not offered here again)')
+  const steps = fake.sent.filter(b => b.questions.next_action)
+  expect(Object.keys(steps[0]!.questions.next_action.criteria)).toEqual(['click-e2', 'click-e3', 'choose-e1-1', 'choose-e1-2', 'done', 'abstain'])
+  // M is chosen now: S is offered, M is not; the failed click is gone, and the third pick (it again) is not taken
+  expect(Object.keys(steps[2]!.questions.next_action.criteria)).toEqual(['click-e3', 'choose-e1-1', 'done', 'abstain'])
+  expect(d.acts.filter(a => a.kind === 'click')).toHaveLength(1)
   closeAll()
 })
 

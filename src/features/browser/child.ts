@@ -17,9 +17,12 @@ export const PLAYWRIGHT_VERSION = '1.62.1'
 
 /** One action as the driver performs it. `expect` is what the element said when observed, so a changed page is not acted on. */
 export type Wire = {
-  kind: 'click' | 'type' | 'enter' | 'scroll' | 'back'
+  kind: 'click' | 'type' | 'choose' | 'enter' | 'scroll' | 'back'
   ref?: string
   input?: string
+  /** For choose: the option's place in the list, and the label it had when observed. */
+  option?: number
+  optionLabel?: string
   expect?: { tag: string; label: string }
 }
 

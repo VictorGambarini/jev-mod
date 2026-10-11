@@ -225,6 +225,14 @@ function inPage(arg) {
       if (row.filled) {
         row._value = tag === 'select' ? [el.value, el.selectedOptions?.[0]?.label ?? ''] : [el.isContentEditable ? el.innerText : el.value]
       }
+      if (tag === 'select') {
+        // Its options, by label, so one can be chosen without an input ('' for a placeholder or a disabled one), and the one chosen now.
+        const opts = [...el.options].slice(0, arg.maxOptions)
+        row.options = opts.map(o => (o.disabled || o.value === '' ? '' : cap(clean(o.label || o.text), 60)))
+        row.selected = el.selectedIndex
+        // Each option's label and value, for the driver to tell which inputs fit; removed before the observation leaves it.
+        row._options = opts.map(o => [o.value, o.label || o.text])
+      }
     }
     const ownWords = `${el.getAttribute('placeholder') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('name') || ''} ${el.id || ''}`
     const searchy = role === 'searchbox' || !!el.closest('[role=search]') || (fillable && /search|filter|find|query/i.test(ownWords))
@@ -252,19 +260,29 @@ function inPage(arg) {
   const root = document.querySelector('main,[role=main]') || document.body
   const SKIP = 'nav,footer,aside,script,style,noscript,template,svg,[role=navigation],[role=contentinfo],[aria-hidden=true],[hidden]'
     + (root === document.body ? ',header,[role=banner]' : '')
-  const BLOCK = 'p,li,h1,h2,h3,h4,h5,h6,div,section,article,tr,td,th,dd,dt,pre,blockquote,figcaption,label,form'
+  const BLOCK = 'p,li,h1,h2,h3,h4,h5,h6,div,section,article,tr,dd,dt,pre,blockquote,figcaption,label,form'
   let text = ''
   let lastBlock = null
+  let lastCell = null
   if (root) {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
     for (let node = walker.nextNode(); node && text.length < arg.textChars; node = walker.nextNode()) {
-      const value = clean(node.nodeValue)
-      const parent = node.parentElement
-      if (!value || !parent || parent.closest(SKIP)) continue
+      // A select reads as the option chosen in it ("Size [chosen: XL]"), the page's own label, as the elements report it; its options' text does not.
+      const select = node.nodeType === 1 && node.tagName === 'SELECT'
+      if (node.nodeType === 1 && !select) continue
+      const option = select && node.selectedIndex >= 0 ? node.options[node.selectedIndex] : null
+      const value = select ? (option && option.value !== '' ? `[chosen: ${cap(clean(option.label || option.text), 60)}]` : '') : clean(node.nodeValue)
+      const parent = select ? node : node.parentElement
+      if (!value || !parent || parent.closest(SKIP) || (!select && parent.closest('select'))) continue
       if (parent.checkVisibility && !parent.checkVisibility()) continue
-      const block = parent.closest(BLOCK)
-      text += text ? (block === lastBlock ? ' ' : '\n') + value : value
+      // A table row is one line, its cells joined by " | ", so a row reads as a record ("Socks | M | 2").
+      const cell = parent.closest('td,th')
+      const row = cell?.parentElement?.closest('tr') ?? null
+      const own = parent.closest(BLOCK)
+      const block = row && (!own || own.contains(row) || cell.contains(own)) ? row : own
+      text += text ? (block !== lastBlock ? '\n' : cell !== lastCell ? ' | ' : ' ') + value : value
       lastBlock = block
+      lastCell = cell
     }
   }
   const scroller = document.scrollingElement || document.documentElement
@@ -420,13 +438,22 @@ async function ready(quietMs = 300, capMs = 1500) {
   }
 }
 
+/** The most options of one select an observation lists. */
+const MAX_OPTIONS = 30
+
 const squash = v => String(v ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
 
 async function observe() {
   if (!page) throw new Error('the page was closed')
-  const obs = await page.evaluate(inPage, { op: 'observe', maxRows: cfg.maxRows, textChars: cfg.textChars })
+  const obs = await page.evaluate(inPage, { op: 'observe', maxRows: cfg.maxRows, maxOptions: MAX_OPTIONS, textChars: cfg.textChars })
   // A field's value never leaves this process: it becomes the name of the input it matches, if any.
   for (const row of obs.elements) {
+    if ('_options' in row) {
+      // The inputs whose value is one of the select's options (by value or label): only those may be typed into it.
+      const opts = row._options.flat().map(squash).filter(Boolean)
+      delete row._options
+      row.fits = Object.keys(values).filter(k => squash(values[k]) && opts.includes(squash(values[k])))
+    }
     if (!('_value' in row)) continue
     const seen = (Array.isArray(row._value) ? row._value : [row._value]).map(squash).filter(Boolean)
     delete row._value
@@ -485,10 +512,23 @@ async function act(a) {
       const combo = await el.evaluate(e => e.tagName === 'SELECT' || e.getAttribute('role') === 'combobox' || e.getAttribute('aria-autocomplete') !== null)
       if (combo) kind = 'combo'
       if ((await el.evaluate(e => e.tagName)) === 'SELECT') {
-        await el.selectOption({ label: value }, { timeout: 5000 }).catch(() => el.selectOption(value, { timeout: 5000 }))
+        // The option whose value or label is the input's, found in the page: none fails at once, not after Playwright's wait.
+        const index = await el.evaluate((e, v) => [...e.options].findIndex(o => [o.value, o.label || o.text]
+          .some(t => String(t ?? '').replace(/\s+/g, ' ').trim().toLowerCase() === v)), squash(value))
+        if (index < 0) return { ok: false, error: 'no option of the list is that input', obs: await observe() }
+        await el.selectOption({ index }, { timeout: 2000 })
       } else {
         await el.fill(value, { timeout: 5000 })
       }
+    } else if (a.kind === 'choose') {
+      // An option of a select, by its place in the list; the label it had when observed must still be there.
+      kind = 'combo'
+      const el = target()
+      const index = Number(a.option)
+      const label = await el.evaluate((e, i) => (e.tagName === 'SELECT' && e.options[i] ? e.options[i].label || e.options[i].text : null), index)
+      const expected = squash(a.optionLabel).replace(/…$/, '')
+      if (label === null || !expected || !squash(label).startsWith(expected)) return { stale: true, obs: await observe() }
+      await el.selectOption({ index }, { timeout: 2000 })
     } else if (a.kind === 'enter') {
       await target().press('Enter', { timeout: 5000 })
     } else if (a.kind === 'scroll') {

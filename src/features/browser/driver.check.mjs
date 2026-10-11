@@ -26,7 +26,7 @@ if (!DIR) {
 
 const PAGES = {
   '/': '<!doctype html><title>Home</title><nav><a href="/about">About</a></nav><main><h1>Welcome</h1><p>The shop.</p>'
-    + '<h2>Plans</h2><a href="/pricing">Pricing</a> <a href="https://example.com/">Elsewhere</a> <a href="/spa">Single page</a> <a href="/covered">Covered</a> <a href="/framed">Framed</a> <a href="/poll">Poll</a>'
+    + '<h2>Plans</h2><a href="/pricing">Pricing</a> <a href="https://example.com/">Elsewhere</a> <a href="/spa">Single page</a> <a href="/covered">Covered</a> <a href="/framed">Framed</a> <a href="/poll">Poll</a> <a href="/product">Product</a>'
     + '<form role="search" action="/search"><input type="search" name="q" placeholder="Search"><button>Go</button></form></main>'
     + '<footer>Footer words</footer>',
   '/pricing': '<!doctype html><title>Pricing</title><main><h1>Pricing</h1><p>Team plan: $10 per seat.</p><button>Buy now</button></main>',
@@ -50,6 +50,12 @@ const PAGES = {
   '/poll': '<!doctype html><title>Poll</title><main><h1>Poll</h1><input aria-label="Name"><button id="b">Fetch</button><div id="r"></div></main>'
     + '<script>setInterval(() => fetch("/api?poll=1"), 300); document.getElementById("b").onclick = () => '
     + 'fetch("/api").then(r => r.text()).then(t => { document.getElementById("r").textContent = t })</script>',
+  // a list whose choice changes the price, and a table of what is in a cart
+  '/product': '<!doctype html><title>Product</title><main><h1>Jacket</h1><p id="price">From $289</p>'
+    + '<label>Size <select id="size"><option value="">Choose a size</option><option value="S">S</option><option value="XL">XL</option>'
+    + '<option value="XXL" disabled>XXL</option></select></label>'
+    + '<table><tr><th>Item</th><th>Qty</th></tr><tr><td>Merino Socks</td><td><p>2</p></td></tr></table></main>'
+    + '<script>document.getElementById("size").onchange = e => { document.getElementById("price").textContent = e.target.value === "XL" ? "$309" : "$289" }</script>',
   '/slow': '<!doctype html><title>Slow</title><main><h1>Slow</h1><div id="x" aria-busy="true">Loading</div></main><script>'
     + 'setTimeout(() => { const x = document.getElementById("x"); x.removeAttribute("aria-busy"); x.textContent = "Late text arrived." }, 1200)</script>',
 }
@@ -72,7 +78,7 @@ const child = spawn('node', [`${HERE}driver.mjs`, DIR], { stdio: ['pipe', 'pipe'
 let code = 0
 try {
   child.stdin.end(JSON.stringify({ startUrl: base, hosts: ['127.0.0.1'], headed: false, cdp: null,
-    values: { query: 'zebra-query-77' }, textChars: 4000, maxRows: 80, runDir }))
+    values: { query: 'zebra-query-77', size: 'xl' }, textChars: 4000, maxRows: 80, runDir }))
   const ready = await new Promise((resolve, reject) => {
     let buf = ''
     child.stdout.on('data', d => {
@@ -170,6 +176,30 @@ try {
     r = await send({ op: 'act', action: { kind: 'back' } })
     assert.equal(r.obs.title, 'Home')
 
+    // A select lists its options (no placeholder, no disabled one) and which inputs fit; an option is chosen by its
+    // place, a stale label is refused, an input that is no option fails at once; a table row reads as one line.
+    const product = find('Product')
+    r = await send({ op: 'act', action: { kind: 'click', ref: product.id, expect: { tag: 'a', label: 'Product' } } })
+    let size = r.obs.elements.find(e => e.tag === 'select')
+    assert.deepEqual([size.options, size.selected, size.fits], [['', 'S', 'XL', ''], 0, ['size']])
+    assert.match(r.obs.text, /^Size$/m, 'nothing chosen: the label alone, no option text')
+    assert.match(r.obs.text, /^Item \| Qty$/m, `a table's header row is one line (${r.obs.text})`)
+    assert.match(r.obs.text, /^Merino Socks \| 2$/m, 'a table row is one line, its cells joined')
+    const expect = { tag: size.tag, label: size.label }
+    t0 = Date.now()
+    r = await send({ op: 'act', action: { kind: 'type', ref: size.id, input: 'query', expect } })
+    assert.deepEqual([r.ok, r.error], [false, 'no option of the list is that input'])
+    assert.ok(Date.now() - t0 < 3000, `an input that is no option fails at once (${Date.now() - t0}ms)`)
+    assert.equal((await send({ op: 'act', action: { kind: 'choose', ref: size.id, option: 2, optionLabel: 'S', expect } })).stale, true)
+    r = await send({ op: 'act', action: { kind: 'choose', ref: size.id, option: 2, optionLabel: 'XL', expect } })
+    assert.equal(r.ok, true)
+    assert.match(r.obs.text, /\$309/, 'the choice took effect')
+    assert.match(r.obs.text, /^Size \[chosen: XL\]$/m, `a select reads as the option chosen in it (${r.obs.text})`)
+    size = r.obs.elements.find(e => e.tag === 'select')
+    assert.deepEqual([size.selected, size.holds], [2, 'size'], 'the chosen option, and the input it matches')
+    r = await send({ op: 'act', action: { kind: 'back' } })
+    assert.equal(r.obs.title, 'Home')
+
     // Visible frames are reported (origin, path and the frame= marker; no query), a 1px one is not.
     const framed = find('Framed')
     r = await send({ op: 'act', action: { kind: 'click', ref: framed.id, expect: { tag: 'a', label: 'Framed' } } })
@@ -190,7 +220,7 @@ try {
     console.log('ok: the driver observed, typed, submitted, went back, refused a stale target, clicked, stopped at the allowlist, '
       + 'reported the input a field holds, submitted a single-page search by Enter and waited out its loading, waited for a late page, '
       + 'refused a covered button, reported console errors, failed requests and visible frames, did not wait out a poll, '
-      + 'waited for a request a click started, '
+      + 'waited for a request a click started, chose an option of a list and failed fast on an input that is none, read a table row as a line, '
       + 'refused a bad token and closed')
   }
 } catch (error) {

@@ -303,7 +303,7 @@ export const FEATURES: readonly Feature[] = [
     help: 'on: the model is offered a browse tool (mcp__jev-mod__browse) for pages that need clicking or typing. A headless '
       + 'Chromium on a throwaway profile opens startUrl; each step the page\'s links, buttons and fields become a table of '
       + 'actions and the decision model picks one (it never writes text: what to type comes from the call\'s inputs, sent '
-      + 'to it by name only). The page text it reads is redacted and screened first. It stays on the start site; a '
+      + 'to it by name only; a list is chosen from its own options without one). The page text it reads is redacted and screened first. It stays on the start site; a '
       + 'consequential step (buy, pay, send, delete, post, sign up, submit a form) is taken only when the goal names it and '
       + 'the decision model is at least confirmConfidence sure the goal asks for it, else it stops for you; "done" needs a '
       + 'second check over the page\'s own text (also when the decision model says the goal is reached). It stops early when the '

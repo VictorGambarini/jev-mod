@@ -13,7 +13,7 @@ import { isSensitive, redact } from '../../engine/privacy'
 import { screenResult, withholdText } from '../../engine/screen'
 import { launchChild, type Driver, type Launch, type Wire } from './child'
 import {
-  actionKey, allowed, allowedHosts, bandText, botCheck, BOT_POLL_MS, BOT_WAIT_MS, buildTable, confirmRequest, describe, doneRequest,
+  actionKey, allowed, allowedHosts, bandText, botCheck, BOT_POLL_MS, BOT_WAIT_MS, buildTable, confirmRequest, DEAD_REPEATS, describe, doneRequest,
   doneVerdict, eventText, fieldName, fingerprint, goalNames, MAX_EVENTS, MAX_ROWS, noteFound, ranked, render, reveal, riskOf, safeLabel,
   said, scrub, shortHref, stepRequest, yes,
   type Action, type Found, type Values, type Observation, type Outcome, type Page, type PageEvent, type Signals, type Status, type Step,
@@ -66,7 +66,8 @@ export const SPEC = {
   description: 'Drive a real web browser toward a goal, for a page that needs clicking, typing or several steps '
     + '(a page a plain fetch can read: use WebFetch). A small decision model picks each step from the page\'s own links, '
     + 'buttons and fields; it never writes text: anything to type comes from `inputs`, which it sees by name only (values '
-    + 'are never sent to it). Write `goal` as the END STATE plus what counts as progress ("Reach the team pricing page; '
+    + 'are never sent to it), so give every value the goal needs typed (a quantity, a search, a name) in the first call; '
+    + 'it chooses from a list\'s own options without one. Write `goal` as the END STATE plus what counts as progress ("Reach the team pricing page; '
     + 'the Pricing or Plans links count as progress"), not hop by hop, and name the kind of action when the goal needs '
     + 'one (buy, send, submit, sign up, delete). It stays on startUrl\'s site and its subdomains (plus allowHosts). '
     + 'startUrl, allowHosts and attach apply to a new call only; a call with resumeId ignores them. It '
@@ -364,6 +365,7 @@ async function perform(ctx: Ctx, s: Session, action: Action, confidence?: number
   const values = s.values
   const before = s.obs
   const wire: Wire = { kind: action.kind as Wire['kind'], ref: action.ref, input: action.input,
+    ...(action.kind === 'choose' ? { option: action.option, optionLabel: action.optionLabel } : {}),
     expect: action.el ? { tag: action.el.tag, label: action.el.label } : undefined }
   const done = said(action, values)
   const risky = !!riskOf(action)
@@ -414,8 +416,11 @@ async function perform(ctx: Ctx, s: Session, action: Action, confidence?: number
   if (!res.obs) throw new Stop('failed', `the browser stopped answering (${redact(String(res.error ?? 'no page'), 200)})`)
   s.obs = res.obs
   let line = done
-  if (!res.ok) line += ` (failed: ${why})`
-  else if (before && fingerprint(before) === fingerprint(res.obs)) {
+  if (!res.ok) {
+    // A step that failed here is not offered on this page again: retrying it costs a step and its timeout, and it fails again.
+    line += ` (failed: ${why}; not offered here again)`
+    if (before) s.dead.set(actionKey(before.url, action), Math.max(ctx.deadRepeats ?? DEAD_REPEATS, 1))
+  } else if (before && fingerprint(before) === fingerprint(res.obs)) {
     line += ' (no visible change)'
     const key = actionKey(before.url, action)
     s.dead.set(key, (s.dead.get(key) ?? 0) + 1)

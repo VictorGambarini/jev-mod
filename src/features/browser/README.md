@@ -15,12 +15,13 @@ When the model calls `browse` (`mcp__jev-mod__browse`), which is offered while t
 ## How it decides
 
 - A headless Chromium on a throwaway profile (Playwright) opens the start page. Each step its links, buttons and fields become a table of actions and the decision model picks one.
-- It never writes text: what to type comes from the call's `inputs`, sent to the decision model by name only.
+- It never writes text: what to type comes from the call's `inputs`, sent to the decision model by name only. A list (a select) is chosen from its own options, as the page labels them, without an input; an input is typed into a list only when its value is one of the options, and then the options are not offered beside it.
+- A step that failed on a page (a timeout, an option not in the list) is not offered there again in the run.
 - Page text is redacted and screened first. The answer to the model gets it screened but not redacted (a phone number is often the point), as a fetched page comes back; when screening withheld any of it, the screened, redacted copy.
 - It stays on the start site.
 - A consequential step (buy, pay, send, delete, post, sign up, submit a form) waits for you unless the goal names it and the decision model is at least `confirmConfidence` sure the goal asks for it.
 - *Done* (or the decision model saying the goal is reached) needs a second check over the page's own text: the exact thing the goal asks for must be visible there, and when lines of the page share the goal's words, the decision model must pick the line that shows it (not "none").
-- The answer carries, besides the last page's text, each page the run read with its sentences that share the goal's words (at most 10 pages, 3 sentences of 200 characters each, 2000 characters in all), screened like the page text.
+- The answer carries, besides the last page's text, each page the run read with its sentences that share the goal's words (at most 10 pages, 3 sentences of 200 characters each, 2000 characters in all), screened like the page text. A short line starting with a number right after such a sentence (a price under its product's name) is kept with it, a table row reads as one line, its cells joined by ` | `, and a select as the option chosen in it (`Size [chosen: XL]`).
 - A step the decision model is less sure of than `stepFloor` is not taken: the call stops as blocked with the top three. A named backend can set `choose.min_confidence` (0.5-0.99), which can raise the floor, not lower it, and `choose.dead_repeats` (default 2): how often a step may change nothing before it is dropped.
 - It stops early when the decision model says the run is stuck, and at a bot check (Cloudflare, hCaptcha, reCAPTCHA, DataDome, PerimeterX) that does not clear in 8 seconds, naming it. A buy or submit whose result is unknown is never repeated without you. A covered button is not clicked.
 - The answer lists the page's console errors and failed requests by step.

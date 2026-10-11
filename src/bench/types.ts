@@ -94,7 +94,7 @@ export type Metrics = Confusion & {
 export type Threshold = {
   /** The name used in `--sweep name=from:to:step`. */
   name: string
-  /** What the feature uses today. */
+  /** The value jev-mod ships. */
   default: number
   /** The sweep the report draws when the run asked for none. */
   from: number
@@ -108,6 +108,22 @@ export type Threshold = {
   where: { knob: { feature: string; name: string } } | { tuning: string } | { none: string }
   /** How the setting relates to the swept number, when they differ (trim-output's keepThreshold does not; see its adapter). */
   note?: string
+  /** Why the shipped default is not the best value the bench found, when it is not (the report prints it; empty: not yet changed). */
+  keptBecause?: string
+}
+
+/** A feature's bench in plain words, for the top of its README section. */
+export type Explain = {
+  /** What one case is, as a person would picture it ("a web page the browser agent is looking at"). */
+  oneCase: string
+  /** What is scored on it, and what a mistake costs. */
+  measured: string
+  /** What the swept setting does, in one sentence. */
+  setting: string
+  /** The result as a sentence, with {pct} (the accuracy) and {n} (the cases scored): "Jev picks the right step on {pct} of the {n} pages". */
+  result: string
+  /** What an extra column means (by the name the metrics give it), when the name alone does not say. */
+  columns?: Record<string, string>
 }
 
 export type AskContext = {
@@ -129,6 +145,8 @@ export interface DecisionAdapter<C = unknown> {
   feature: string
   title: string
   threshold: Threshold
+  /** The bench in plain words: the report opens its section with it. */
+  explain?: Explain
   /** The effect's name for the plots and the table ("messages dropped", "lines cut"). */
   effect: string
   /**

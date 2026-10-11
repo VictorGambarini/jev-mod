@@ -64,6 +64,13 @@ export function metricsOf(details: readonly Detail[], threshold: number): Metric
 export const adapter: DecisionAdapter<Session> = {
   feature: 'compact',
   title: '/jev-mod compact',
+  explain: {
+    oneCase: "a made-up coding session, each message labelled keep or drop by a careful person (keep: a decision, a constraint, an exact path or error; drop: chatter, superseded attempts).",
+    measured: "for each message outside the last six (always kept), whether Jev's keep or drop call matches the label. Dropping a message labelled keep is the costly mistake: it cannot be had back.",
+    setting: "how sure Jev must be that a message can go before /jev-mod compact drops it. Higher keeps more.",
+    result: "Jev makes the same keep or drop call as the label on {pct} of the messages in {n} sessions",
+    columns: {"keep lost": "messages labelled keep that were dropped: the costly mistake."},
+  },
   effect: 'messages dropped',
   threshold: {
     name: 'drop', default: DROP_CONFIDENCE, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',

@@ -130,3 +130,75 @@ test('a case settled without a request counts with its backend, not as a backend
   expect(s.backends.map(b => b.key)).toEqual(['openrouter · jev-1.13'])
   expect(s.backends[0]!.rows).toBe(2)
 })
+
+const explained: DecisionAdapter = {
+  ...gate,
+  explain: { oneCase: 'an edit and its rules', measured: 'whether each rule is judged right', setting: 'how sure Jev must be',
+    result: 'Jev judges {pct} of the {n} rules right' },
+}
+
+test('the plots mark one default line, and a best line only where the best value differs; none says today', () => {
+  const s = summarise(gate, rows, false)
+  // both backends peak at 0.8 and the default is 0.8: one guide
+  const same = plots(gate, s).accuracy!
+  expect(same).toContain('default 0.8')
+  expect(same).not.toContain('best 0.8')
+  expect(same).not.toContain('today')
+  const moved = plots({ ...gate, threshold: { ...gate.threshold, default: 0.5 } }, summarise({ ...gate, threshold: { ...gate.threshold, default: 0.5 } }, rows, false)).accuracy!
+  expect(moved).toContain('default 0.5')
+  expect(moved).toContain('best 0.8')
+})
+
+test('the section opens in plain words and says what the numbers mean', () => {
+  const md = markdown(explained, summarise(explained, rows, false), {})
+  expect(md).toContain('- **One case:** an edit and its rules')
+  expect(md).toContain('- **Measured:** whether each rule is judged right')
+  expect(md).toContain('(`minConfidence`, default 0.8)')
+  expect(md).toContain('**What this means.**')
+  expect(md).toContain('At the default 0.8, Jev judges 100.0% of the 1 rules right')
+  expect(md).toContain('No value in the sweep does better')
+  expect(md).not.toContain('today')
+})
+
+test('a default that differs from the best says so, with the reason when the adapter has one', () => {
+  const at = (keptBecause?: string): DecisionAdapter => ({ ...explained, threshold: { ...explained.threshold, default: 0.5, keptBecause } })
+  const text = (a: DecisionAdapter) => markdown(a, summarise(a, rows, false), {})
+  const plain = text(at())
+  expect(plain).toContain('The shipped default (0.5) is not the best value found (0.8). Not yet changed.')
+  expect(plain).toContain('the same score is 100.0%')
+  expect(text(at('asks the person less'))).toContain('It is kept on purpose: asks the person less')
+})
+
+test('without task rows the comparison with plain Claude Code says not yet', () => {
+  const md = markdown(explained, summarise(explained, rows, false), {})
+  expect(md).toContain('**Compared with plain Claude Code: not yet.**')
+  expect(md.indexOf('Compared with plain Claude Code')).toBeLessThan(md.indexOf('| backend · model |'))
+})
+
+test('task rows give a comparison table with accuracy, speed and cost, plain Claude Code first, for any feature', () => {
+  const task = (arm: string, over: Partial<Row>): Row => ({
+    ...row('typesafe', 'jev-1.13', []), level: 'task', arm, outcome: 'ok', success: true, score: 1, ...over,
+  })
+  const plainBackend = { backend: { name: 'claude code', kind: 'baseline' as const, model: null } }
+  const rs = [
+    task('claude', { ...plainBackend, wall_ms: 40_000, claude_cost_usd: 0.6, cost_usd: 0 }),
+    task('claude', { ...plainBackend, wall_ms: 80_000, claude_cost_usd: 0.8, cost_usd: 0, success: false, score: 0.5 }),
+    task('claude', { ...plainBackend, wall_ms: 60_000, claude_cost_usd: 0.7, cost_usd: 0 }),
+    task('jev-mod typesafe minConfidence=0.8', { wall_ms: 20_000, claude_cost_usd: 0.3, cost_usd: 0.01 }),
+  ]
+  const s = summarise(explained, [...rows, ...rs], false)
+  const [plain, jev] = s.arms
+  expect([plain!.kind, jev!.kind]).toEqual(['plain', 'jev-mod'])
+  expect([plain!.wallMedian, plain!.wallTotal, jev!.totalCost]).toEqual([60_000, 180_000, 0.31])
+  const md = markdown(explained, s, { task: 'task.svg' })
+  expect(md).toContain('![task](task.svg)')
+  expect(md).toContain('| arm | runs | success | mean score | median time | total time | Claude cost | decision cost | total cost |')
+  expect(md.indexOf('| plain Claude Code | 3 |')).toBeLessThan(md.indexOf('| jev-mod typesafe minConfidence=0.8 | 1 |'))
+  expect(md).toContain('| plain Claude Code | 3 | 66.7% | 83.3% | 60.0 s | 180.0 s | $0.700 | $0 | $0.700 |')
+  expect(md).toContain('- jev-mod typesafe minConfidence=0.8: right on 100.0% (plain Claude Code 66.7%) of runs, median 20.0 s (plain Claude Code 60.0 s)')
+  // the comparison comes before the decision-level table
+  expect(md.indexOf('| plain Claude Code |')).toBeLessThan(md.indexOf('| backend · model |'))
+  const svg = plots(explained, s).task!
+  for (const word of ['success', 'score', 'wall time (median)', 'Claude cost', 'decision cost', 'total cost']) expect(svg).toContain(word)
+  expect(svg).not.toContain('question context')
+})

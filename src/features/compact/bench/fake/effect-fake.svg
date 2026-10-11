@@ -31,8 +31,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">drop threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">messages dropped</text>
-<line class="guide" x1="339.56" x2="339.56" y1="78" y2="294"/>
-<text class="ax" x="343.56" y="88">today 0.7</text>
+<line class="guide" x1="64" x2="64" y1="78" y2="294"/>
+<text class="ax" x="68" y="88">default 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,78 132.89,115.57 201.78,162.52 270.67,171.91 339.56,195.39 408.44,228.26 477.33,232.96 546.22,261.13 615.11,294 684,294"/>
 <circle class="d1 dot" cx="64" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 0.5 → 30%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="115.57" r="4" stroke-width="2"><title>fake · fake-jev: 0.55 → 25%</title></circle>

@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">find-files: accuracy against limit</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak F2 (recall counts double); ties go lower)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak F2 (recall counts double); ties go lower)</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
 <line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
@@ -36,7 +36,9 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">limit threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="357.68" x2="357.68" y1="60" y2="294"/>
-<text class="ax" x="361.68" y="70">today 10</text>
+<text class="ax" x="361.68" y="70">default 10</text>
+<line class="guide" x1="64" x2="64" y1="60" y2="294"/>
+<text class="ax" x="68" y="83">best 1</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,61.89 96.63,83.9 129.26,97.11 161.89,106.55 194.53,112.21 227.16,116.61 259.79,118.5 292.42,120.39 325.05,121.65 357.68,122.27 390.32,122.27 422.95,122.27 455.58,122.27 488.21,122.27 520.84,122.27 553.47,122.27 586.11,122.27 618.74,122.27 651.37,122.27 684,122.27"/>
 <circle class="d1 dot" cx="64" cy="61.89" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 1 → 99%</title></circle>
 <circle class="d1 dot" cx="96.63" cy="83.9" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 2 → 90%</title></circle>

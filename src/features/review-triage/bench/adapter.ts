@@ -53,6 +53,13 @@ export function metricsOf(rows: readonly Row[], threshold: number): Metrics {
 export const adapter: DecisionAdapter<TriageCase> = {
   feature: 'review-triage',
   title: 'Review triage',
+  explain: {
+    oneCase: "a change (a git diff) with its intent and the project's written rules, and whether it needs a full review or one quick pass is enough.",
+    measured: "whether Jev calls a change quick only when it is. Calling a change quick that needs a full review skips the review: that is the costly mistake. Calling a quick one full only costs time.",
+    setting: "how sure Jev must be, on every one of seven questions, that nothing is wrong before the change is called quick. Higher means fewer quick calls.",
+    result: "Jev makes the right quick or full call on {pct} of the {n} changes",
+    columns: {"full skipped": "changes that needed a full review but were called quick."},
+  },
   effect: 'changes called quick',
   threshold: {
     name: 'minConfidence', default: DEFAULT, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',

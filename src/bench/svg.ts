@@ -36,7 +36,7 @@ export type LineChart = {
   yLabel: string
   series: LineSeries[]
   /** Dashed vertical guides, such as the feature's default threshold. */
-  guides?: { x: number; label: string }[]
+  guides?: { x: number; label: string; /** 0 is the top line of labels; a second guide goes on line 1 so two close ones do not overlap. */ line?: number }[]
   yMin?: number
   yMax?: number
   /** Show y values as percentages. */
@@ -93,7 +93,8 @@ export function lineChart(c: LineChart): string {
   for (const g of c.guides ?? []) {
     if (g.x < x0 || g.x > x1) continue
     out.push(`<line class="guide" x1="${r2(px(g.x))}" x2="${r2(px(g.x))}" y1="${T}" y2="${H - B}"/>`)
-    out.push(`<text class="ax" x="${r2(px(g.x) + 4)}" y="${T + 10}">${esc(g.label)}</text>`)
+    const late = px(g.x) > W - R - 90
+    out.push(`<text class="ax" x="${r2(px(g.x) + (late ? -4 : 4))}" y="${T + 10 + 13 * (g.line ?? 0)}"${late ? ' text-anchor="end"' : ''}>${esc(g.label)}</text>`)
   }
   c.series.forEach((s, i) => {
     const k = (i % LIGHT.length) + 1
@@ -119,7 +120,8 @@ export function lineChart(c: LineChart): string {
   return out.join('\n')
 }
 
-export type BarPanel = { title: string; rows: { label: string; value: number | null }[]; format: (n: number) => string }
+/** `tone: 'plain'` draws a bar in the second colour (plain Claude Code beside the jev-mod arms); `max` fixes the full-width value (1 for a share). */
+export type BarPanel = { title: string; rows: { label: string; value: number | null; tone?: 'plain' }[]; format: (n: number) => string; max?: number }
 
 /** Small multiples of horizontal bars: one measure per panel, rows in the same order in each. */
 export function barPanels(c: { title: string; subtitle?: string; panels: BarPanel[]; fake?: boolean }): string {
@@ -134,7 +136,7 @@ export function barPanels(c: { title: string; subtitle?: string; panels: BarPane
   const H = T + rowH * labels.length + 24
   const out: string[] = []
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(c.title)}">`)
-  out.push(`<title>${esc(c.title)}</title>`, style(1), `<rect width="${W}" height="${H}" rx="8" class="bg"/>`)
+  out.push(`<title>${esc(c.title)}</title>`, style(2), `<rect width="${W}" height="${H}" rx="8" class="bg"/>`)
   out.push(`<text class="t" x="16" y="26">${esc(c.title)}</text>`)
   if (c.subtitle) out.push(`<text class="st" x="16" y="44">${esc(c.subtitle)}</text>`)
   if (c.fake) out.push(`<text class="fake" x="16" y="${c.subtitle ? 62 : 44}">FAKE BACKEND: example numbers, not a measurement</text>`)
@@ -144,14 +146,14 @@ export function barPanels(c: { title: string; subtitle?: string; panels: BarPane
   })
   c.panels.forEach((p, k) => {
     const x = labelW + k * panelW
-    const max = Math.max(1e-12, ...p.rows.map(r => r.value ?? 0))
+    const max = Math.max(1e-12, p.max ?? 0, ...p.rows.map(r => r.value ?? 0))
     out.push(`<text class="ax" x="${x + 4}" y="${T - 10}">${esc(p.title)}</text>`)
     out.push(`<line class="a" x1="${x}" x2="${x}" y1="${T - 4}" y2="${T + rowH * labels.length}"/>`)
     p.rows.forEach((r, i) => {
       const y = T + i * rowH + 5
       if (r.value === null) { out.push(`<text class="ax" x="${x + 6}" y="${y + 12}">n/a</text>`); return }
       const w = Math.max(2, (r.value / max) * (panelW - 70))
-      out.push(`<rect x="${x}" y="${y}" width="${r2(w)}" height="16" rx="3" class="d1"><title>${esc(r.label)}: ${esc(p.format(r.value))}</title></rect>`)
+      out.push(`<rect x="${x}" y="${y}" width="${r2(w)}" height="16" rx="3" class="${r.tone === 'plain' ? 'd2' : 'd1'}"><title>${esc(r.label)}: ${esc(p.format(r.value))}</title></rect>`)
       out.push(`<text class="lab" x="${r2(x + w + 4)}" y="${y + 12}">${esc(p.format(r.value))}</text>`)
     })
   })

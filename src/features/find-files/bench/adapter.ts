@@ -69,6 +69,12 @@ const share = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 1000 :
 export const adapter: DecisionAdapter<FileQuery> = {
   feature: 'find-files',
   title: 'find-files',
+  explain: {
+    oneCase: "a plain-words question about a made-up shop project (about 75 files), such as \"where do we apply discounts\", with the files that implement it.",
+    measured: "the order Jev lists the files in: of the first k files returned, how many are the implementing ones, and how many implementing files are missed. Some queries have no right file, which measures the noise returned.",
+    setting: "how many files the tool returns (it has no relevance bar). Fewer files is less for the model to open; more files misses fewer.",
+    result: "the files returned are the right ones (accuracy over every candidate file) on {pct}, over {n} queries",
+  },
   effect: 'candidates returned',
   threshold: {
     name: 'limit', default: LIMIT, from: 1, to: 20, step: 1, safer: 'lower',

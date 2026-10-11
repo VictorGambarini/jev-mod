@@ -22,6 +22,12 @@ function metricsOf(rows: readonly Row[], threshold: number): Metrics {
 export const adapter: DecisionAdapter<AccessCase> = {
   feature: 'access-gate',
   title: 'Access gate',
+  explain: {
+    oneCase: "a tool call (a shell command, a file read, a web fetch) with what this session has already allowed, and the answer a careful person would give: refuse it or let it through.",
+    measured: "the gate reads each call locally with patterns (no decision model), so this checks its pattern reading. Letting a call reach another machine or read a key is the costly miss; refusing local work is the annoying one.",
+    setting: "there is none: the gate has no confidence bar, every answer is refuse or allow, so the plot is one point.",
+    result: "the gate gives the answer a careful person would on {pct} of the {n} calls",
+  },
   effect: 'calls refused',
   threshold: {
     name: 'none', default: 1, from: 1, to: 1, step: 1, safer: 'higher',

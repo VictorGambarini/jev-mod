@@ -120,19 +120,19 @@ Per threshold the report computes, per feature:
 
 | Feature | Swept | Scored per | Metrics | Recommended | Safer side |
 |---|---|---|---|---|---|
-| `compact` | `drop` (0.7 today) | message outside the last six | accuracy, precision, recall, F1, share dropped, keep messages lost | peak accuracy | higher: keeps more, and a dropped message cannot be had back |
-| `trim-output` | `notNeeded` (0.9 today) | log line | accuracy, share cut, gold lines lost | fewest gold lines lost, then most cut | higher: cuts fewer blocks |
-| `rules-gate` | `minConfidence` (0.8 today) | rule | accuracy, precision, recall, F1, share refused | peak accuracy | higher: refuses fewer edits, and the mod fails open |
-| `screening` | `injection` (0.5 today; `webscreen.injection_threshold`) | text unit of a tool result | accuracy, precision, recall, F1, share withheld | peak accuracy | lower: withholds more, and a withheld harmless passage costs less than an injection the model reads |
-| `web-filter` | `minConfidence` (0.8 today) | search result or fetched chunk | accuracy, precision, recall, F1, share dropped | peak accuracy | higher: drops fewer results and parts, and a dropped one is gone from what the model reads |
-| `tool-gate` | `minConfidence` (0.7 today; `offMachineConfidence` stays at its default) | tool call | accuracy, precision, recall, F1, share held, held in error, missed holds | peak accuracy | higher: holds more hard-to-undo calls nothing asked for (a held call costs the person a question), and fewer on a stated limit |
+| `compact` | `drop` (default 0.7) | message outside the last six | accuracy, precision, recall, F1, share dropped, keep messages lost | peak accuracy | higher: keeps more, and a dropped message cannot be had back |
+| `trim-output` | `notNeeded` (default 0.9) | log line | accuracy, share cut, gold lines lost | fewest gold lines lost, then most cut | higher: cuts fewer blocks |
+| `rules-gate` | `minConfidence` (default 0.8) | rule | accuracy, precision, recall, F1, share refused | peak accuracy | higher: refuses fewer edits, and the mod fails open |
+| `screening` | `injection` (default 0.5; `webscreen.injection_threshold`) | text unit of a tool result | accuracy, precision, recall, F1, share withheld | peak accuracy | lower: withholds more, and a withheld harmless passage costs less than an injection the model reads |
+| `web-filter` | `minConfidence` (default 0.8) | search result or fetched chunk | accuracy, precision, recall, F1, share dropped | peak accuracy | higher: drops fewer results and parts, and a dropped one is gone from what the model reads |
+| `tool-gate` | `minConfidence` (default 0.7; `offMachineConfidence` stays at its default) | tool call | accuracy, precision, recall, F1, share held, held in error, missed holds | peak accuracy | higher: holds more hard-to-undo calls nothing asked for (a held call costs the person a question), and fewer on a stated limit |
 | `access-gate` | none: the gate has no decision model | tool call | accuracy, precision, recall, F1, share refused, refused in error, missed | the one point | not applicable: every answer is 0 or 1 |
-| `stop-gate` | `minConfidence` (0.7 today) | claims verdict, and a step the message stopped on | accuracy, precision, recall, F1, share sent back, accused shown, could-not-tell found, verdicts right | peak accuracy | higher: sends the agent back less often; a doubtful claim is only noted as unverified |
-| `routing` | `smallConfidence` (0.7 today) | prompt | exact lane accuracy, small-lane precision, recall and F1, share routed to small, under-routed, over-routed, not routed, effort right | peak accuracy | higher: fewer prompts on the cheapest model, and a miss is a small model on work that needed more |
-| `skills` | `match` (0.5 today; `need` held at 0.5) | prompt | accuracy, precision, recall, F1, share given a suggestion, right skill first, wrong skill suggested, unneeded suggestion | peak accuracy | higher: suggests less often, and a wrong suggestion costs a detour |
-| `find-files` | `limit` (10 today) | candidate file | accuracy, precision, recall, F1, share returned, queries with a hit, F1 of the local ranking alone, gold the local step missed | peak F2 (recall counts double) | lower: fewer files for the model to open |
-| `review-triage` | `minConfidence` (0.8 today) | change: quick only if every one of its questions reaches the bar | accuracy, precision, recall, F1, share called quick, full reviews skipped | peak accuracy | higher: answers quick less often; a full review costs time, a wrong quick skips one |
-| `browser` | `confirmConfidence` (0.85 today) | consequential step (does the goal ask for it) and "done" (page check) | accuracy, precision, recall, F1, share proceeded, plus the step pick, goal_reached and stuck accuracy and consequential rows picked wrongly | peak accuracy | higher: stops before more consequential steps, and the person is asked |
+| `stop-gate` | `minConfidence` (default 0.7) | claims verdict, and a step the message stopped on | accuracy, precision, recall, F1, share sent back, accused shown, could-not-tell found, verdicts right | peak accuracy | higher: sends the agent back less often; a doubtful claim is only noted as unverified |
+| `routing` | `smallConfidence` (default 0.7) | prompt | exact lane accuracy, small-lane precision, recall and F1, share routed to small, under-routed, over-routed, not routed, effort right | peak accuracy | higher: fewer prompts on the cheapest model, and a miss is a small model on work that needed more |
+| `skills` | `match` (default 0.5; `need` held at 0.5) | prompt | accuracy, precision, recall, F1, share given a suggestion, right skill first, wrong skill suggested, unneeded suggestion | peak accuracy | higher: suggests less often, and a wrong suggestion costs a detour |
+| `find-files` | `limit` (default 10) | candidate file | accuracy, precision, recall, F1, share returned, queries with a hit, F1 of the local ranking alone, gold the local step missed | peak F2 (recall counts double) | lower: fewer files for the model to open |
+| `review-triage` | `minConfidence` (default 0.8) | change: quick only if every one of its questions reaches the bar | accuracy, precision, recall, F1, share called quick, full reviews skipped | peak accuracy | higher: answers quick less often; a full review costs time, a wrong quick skips one |
+| `browser` | `confirmConfidence` (default 0.85) | consequential step (does the goal ask for it) and "done" (page check) | accuracy, precision, recall, F1, share proceeded, plus the step pick, goal_reached and stuck accuracy and consequential rows picked wrongly | peak accuracy | higher: stops before more consequential steps, and the person is asked |
 
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
@@ -171,14 +171,19 @@ works and say nothing about any model.
 `bun src/bench/report.ts <feature|all> [--fake] [--suggest-tuning] [--readme]` reads the
 folder's JSONL files and writes beside them:
 
-- `accuracy.svg`: accuracy against the threshold, one line per backend, the recommended point
-  ringed, today's default dashed;
+- `accuracy.svg`: accuracy against the threshold, one line per backend, the best point ringed.
+  One dashed line marks `default <value>`, what jev-mod ships; a second, `best <value>`, only
+  when the best value found differs from it;
 - `effect.svg`: the share dropped, cut or refused against the threshold;
 - `cost-latency.svg`: p50 and p95 latency and cost per case, per backend;
-- `task.svg` (when there are task-level rows): success, score, the context the question read,
-  messages dropped, wall time, Claude cost and decision cost per arm, plain Claude Code beside
-  jev-mod;
-- `summary.md`: the table, and a line per backend with its recommended threshold.
+- `task.svg` (when there are task-level rows): success and score (accuracy), median wall time
+  (speed), Claude, decision and total cost per run, plain Claude Code (orange) beside each
+  jev-mod arm; compaction adds the context the question read and the messages dropped;
+- `summary.md`: the same text as the README's bench section.
+
+The section opens with the adapter's `explain` (what one case is, what is measured, what the
+setting does), then "Compared with plain Claude Code" (a table of every arm, or "not yet"), then
+the decision-level plots and table with "What this means", generated from the numbers.
 
 The plots are plain SVG with their own background, legible in light and dark themes
 (`prefers-color-scheme`), with no dependency. The same table and plots go into the feature's
@@ -196,8 +201,11 @@ backend), or a note when the mod has no setting for it yet (`compact`'s drop bar
 
 1. `src/features/<name>/bench/cases.ts`: synthetic cases with gold labels.
 2. `src/features/<name>/bench/adapter.ts`, a `DecisionAdapter` (`types.ts`):
-   - `threshold`: its name, today's default, the sweep to draw, which side is safer and what
-     that means, and where it is set;
+   - `threshold`: its name, the default jev-mod ships, the sweep to draw, which side is safer and what
+     that means, and where it is set; `keptBecause` says why the default stays when the best value
+     found differs from it (empty: "not yet changed");
+   - `explain`: `oneCase`, `measured`, `setting` and `result` (a sentence with `{pct}` and `{n}`),
+     in plain words for someone who never saw the harness;
    - `judge(case, ctx)`: ask about one case the way the feature does, through `ctx.host` (call
      the feature's own functions, so the bench measures what ships), and return one item per
      judgement and the requests it made;

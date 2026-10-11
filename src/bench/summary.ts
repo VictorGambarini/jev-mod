@@ -44,8 +44,16 @@ export type ArmSummary = {
   success: number | null
   score: number | null
   wallMs: number | null
+  /** The middle run's wall time, over the runs that were scored. */
+  wallMedian: number | null
+  /** Wall time summed over every run of the arm, failed ones too. */
+  wallTotal: number | null
   claudeCost: number | null
   decisionCost: number | null
+  /** Claude's and the decision model's cost per scored run, added. */
+  totalCost: number | null
+  /** `plain`: Claude Code with the feature off (arm `claude`); `jev-mod`: the feature on; `other`: any further arm (compaction's "no compaction"). */
+  kind: 'plain' | 'jev-mod' | 'other'
   tokens: number | null
   /** The final step's context in tokens (what a compacted question read), over every run that reported it, failed ones too. */
   context: number | null
@@ -144,10 +152,17 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
       const compacted = mine.filter(r => r.compaction)
       const errors: Record<string, number> = {}
       for (const r of mine) if (r.outcome === 'error') errors[r.error ?? 'error'] = (errors[r.error ?? 'error'] ?? 0) + 1
+      const claudeCost = num(r => r.claude_cost_usd)
+      const decisionCost = num(r => r.cost_usd)
+      const walls = mine.map(r => r.wall_ms).filter((n): n is number => typeof n === 'number')
       return {
+        kind: key === 'claude' ? 'plain' as const : key.startsWith('jev-mod') ? 'jev-mod' as const : 'other' as const,
+        wallMedian: percentile(ok.map(r => r.wall_ms).filter((n): n is number => typeof n === 'number'), 50),
+        wallTotal: walls.length ? walls.reduce((a, b) => a + b, 0) : null,
+        totalCost: claudeCost === null && decisionCost === null ? null : (claudeCost ?? 0) + (decisionCost ?? 0),
         key, arm: mine[0]!.arm ?? '?', backend: mine[0]!.backend.kind === 'baseline' ? null : mine[0]!.backend.name, runs: mine.length, errors,
         success: num(r => (r.success === undefined ? undefined : r.success ? 1 : 0)), score: num(r => r.score),
-        wallMs: num(r => r.wall_ms), claudeCost: num(r => r.claude_cost_usd), decisionCost: num(r => r.cost_usd),
+        wallMs: num(r => r.wall_ms), claudeCost, decisionCost,
         tokens: num(r => (r.claude_tokens ? r.claude_tokens.input + r.claude_tokens.output + r.claude_tokens.cache_read + r.claude_tokens.cache_write : undefined)),
         // a compaction that did too little is an error, and what it read and kept is the reason: these count every run
         context: all(r => r.context_tokens),
@@ -168,22 +183,37 @@ const usd = (n: number | null | undefined) => (n === null || n === undefined ? '
 const tok = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${Math.round(n)}`)
 const ms = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n >= 10_000 ? `${(n / 1000).toFixed(1)} s` : `${Math.round(n)} ms`)
 
+const scoreOf = (adapter: DecisionAdapter, m: Metrics) => (adapter.objective?.score ?? ((x: Metrics) => x.accuracy))(m)
+
+/** Does the best value found score higher than the shipped default (beyond a tie)? Then the two are told apart. */
+export function bestDiffers(adapter: DecisionAdapter, b: BackendSummary): boolean {
+  if (!b.recommended || !b.atDefault) return false
+  if (Math.abs(b.recommended.threshold - adapter.threshold.default) < 1e-9) return false
+  const at = b.points.find(p => p.threshold === b.recommended!.threshold)?.metrics
+  return !!at && scoreOf(adapter, at) > scoreOf(adapter, b.atDefault) + 1e-3
+}
+
+const armLabel = (a: ArmSummary) => (a.kind === 'plain' ? 'plain Claude Code' : a.key)
+
 /** The SVG plots, by file stem (`accuracy`, `effect`, `cost-latency`, `task`), only those with data. */
 export function plots(adapter: DecisionAdapter, s: Summary): Record<string, string> {
   const out: Record<string, string> = {}
   const fake = s.fake
   const tag = fake ? ' (FAKE)' : ''
-  const guides = [{ x: adapter.threshold.default, label: `today ${adapter.threshold.default}` }]
+  const t = adapter.threshold
+  // one line: the value jev-mod ships; and, only where it differs, the best value found
+  const guides: { x: number; label: string; line?: number }[] = [{ x: t.default, label: `default ${t.default}` }]
+  for (const v of [...new Set(s.backends.filter(b => bestDiffers(adapter, b)).map(b => b.recommended!.threshold))]) guides.push({ x: v, label: `best ${v}`, line: 1 })
   if (s.backends.length) {
     out.accuracy = lineChart({
-      title: `${adapter.title}: accuracy against ${adapter.threshold.name}${tag}`,
-      subtitle: `ringed: recommended per backend (${adapter.objective ? adapter.objective.label : 'peak accuracy'}; ties go ${adapter.threshold.safer})`,
-      xLabel: `${adapter.threshold.name} threshold`, yLabel: 'accuracy', percent: true, yMin: 0, yMax: 1, fake, guides,
+      title: `${adapter.title}: accuracy against ${t.name}${tag}`,
+      subtitle: `ringed: the best value per backend (${adapter.objective ? adapter.objective.label : 'peak accuracy'}; ties go ${t.safer})`,
+      xLabel: `${t.name} threshold`, yLabel: 'accuracy', percent: true, yMin: 0, yMax: 1, fake, guides,
       series: s.backends.map(b => ({ name: b.key, mark: b.recommended?.threshold, points: b.points.map(p => ({ x: p.threshold, y: p.metrics.cases ? p.metrics.accuracy : null })) })),
     })
     out.effect = lineChart({
-      title: `${adapter.title}: ${adapter.effect} against ${adapter.threshold.name}${tag}`,
-      xLabel: `${adapter.threshold.name} threshold`, yLabel: adapter.effect, percent: true, yMin: 0, fake, guides,
+      title: `${adapter.title}: ${adapter.effect} against ${t.name}${tag}`,
+      xLabel: `${t.name} threshold`, yLabel: adapter.effect, percent: true, yMin: 0, fake, guides,
       series: s.backends.map(b => ({ name: b.key, points: b.points.map(p => ({ x: p.threshold, y: p.metrics.cases ? p.metrics.effect : null })) })),
     })
     out['cost-latency'] = barPanels({
@@ -197,45 +227,125 @@ export function plots(adapter: DecisionAdapter, s: Summary): Record<string, stri
     })
   }
   if (s.arms.length) {
+    const rows = (f: (a: ArmSummary) => number | null) => s.arms.map(a => ({ label: armLabel(a), value: f(a), tone: a.kind === 'plain' ? 'plain' as const : undefined }))
+    const extra = (title: string, format: (n: number) => string, f: (a: ArmSummary) => number | null) =>
+      s.arms.some(a => f(a) !== null) ? [{ title, format, rows: rows(f) }] : []
     out.task = barPanels({
-      title: `${adapter.title}: jev-mod against plain Claude Code, end to end${tag}`, fake,
-      subtitle: 'per run: checker success and score, the context the last step read, messages dropped, wall time, Claude and decision cost',
+      title: `${adapter.title}: plain Claude Code (orange) against jev-mod, end to end${tag}`, fake,
+      subtitle: 'accuracy: success and score · speed: median wall time per run · cost per run: Claude, decisions, both',
       panels: [
-        { title: 'success', format: n => pct(n), rows: s.arms.map(a => ({ label: a.key, value: a.success })) },
-        { title: 'score', format: n => pct(n), rows: s.arms.map(a => ({ label: a.key, value: a.score })) },
-        { title: 'question context', format: tok, rows: s.arms.map(a => ({ label: a.key, value: a.context })) },
-        { title: 'messages dropped', format: n => `${Math.round(n)}`, rows: s.arms.map(a => ({ label: a.key, value: a.compaction?.dropped ?? null })) },
-        { title: 'wall time', format: ms, rows: s.arms.map(a => ({ label: a.key, value: a.wallMs })) },
-        { title: 'Claude cost', format: usd, rows: s.arms.map(a => ({ label: a.key, value: a.claudeCost })) },
-        { title: 'decision cost', format: usd, rows: s.arms.map(a => ({ label: a.key, value: a.decisionCost })) },
+        { title: 'success', format: n => pct(n), max: 1, rows: rows(a => a.success) },
+        { title: 'score', format: n => pct(n), max: 1, rows: rows(a => a.score) },
+        { title: 'wall time (median)', format: ms, rows: rows(a => a.wallMedian) },
+        { title: 'Claude cost', format: usd, rows: rows(a => a.claudeCost) },
+        { title: 'decision cost', format: usd, rows: rows(a => a.decisionCost) },
+        { title: 'total cost', format: usd, rows: rows(a => a.totalCost) },
+        ...extra('question context', tok, a => a.context),
+        ...extra('messages dropped', n => `${Math.round(n)}`, a => a.compaction?.dropped ?? null),
       ],
     })
   }
   return out
 }
 
-/** One line per backend: the recommended threshold, and what it scores against today's default. */
+/** One line per backend: the best threshold, and what it scores against the shipped default. */
 export function recommendations(adapter: DecisionAdapter, s: Summary): string[] {
   const t = adapter.threshold
   return s.backends.filter(b => b.recommended).map(b => {
     const r = b.recommended!
-    const today = b.atDefault ? `; today's ${t.default}: ${pct(b.atDefault.accuracy)}` : ''
-    return `${b.key}: ${t.name} ${r.threshold} (accuracy ${pct(r.accuracy)}${today})`
+    const base = b.atDefault ? `; default ${t.default}: ${pct(b.atDefault.accuracy)}` : ''
+    return `${b.key}: ${t.name} ${r.threshold} (accuracy ${pct(r.accuracy)}${base})`
   })
 }
+
+const fill = (template: string, m: Metrics) => template.replace('{pct}', pct(m.accuracy)).replace('{n}', `${m.cases}`)
+
+/** "What this means", from the numbers: the score at the default and at the best value, and what to make of a difference. */
+export function meaning(adapter: DecisionAdapter, s: Summary): string[] {
+  const t = adapter.threshold
+  const e = adapter.explain
+  const out: string[] = []
+  for (const b of s.backends) {
+    if (!b.atDefault || !b.recommended || !b.atDefault.cases) continue
+    const who = s.backends.length > 1 ? `${b.key}: ` : ''
+    const said = e?.result ? fill(e.result, b.atDefault) : `Jev scores ${pct(b.atDefault.accuracy)} on ${b.atDefault.cases} cases`
+    const best = b.points.find(p => p.threshold === b.recommended!.threshold)!.metrics
+    if (t.name === 'none') { out.push(`${who}${said}.`); continue }
+    if (!bestDiffers(adapter, b)) {
+      out.push(`${who}At the default ${t.default}, ${said}. No value in the sweep does better, so the default stays.`)
+      continue
+    }
+    out.push(`${who}At the default ${t.default}, ${said}; at the best value found, ${b.recommended.threshold}, the same score is ${pct(best.accuracy)}.`)
+    out.push(`${who}The shipped default (${t.default}) is not the best value found (${b.recommended.threshold}). ` +
+      (t.keptBecause ? `It is kept on purpose: ${t.keptBecause.replace(/\.?$/, '.')}` : 'Not yet changed.'))
+  }
+  return out
+}
+
+const COLUMNS: [string, string][] = [
+  ['best', 'the value of the setting where the score peaks (the plot marks it only when it differs from the default).'],
+  ['accuracy', 'the share of items where acting or not acting matched the label.'],
+  ['precision', 'when the feature acts, how often acting was right.'],
+  ['recall', 'of what it should have acted on, how much it did.'],
+  ['F1', 'precision and recall in one number.'],
+]
 
 /** The Markdown block for the README (between the bench markers), or for the fake summary file. */
 export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<string, string>): string {
   const t = adapter.threshold
+  const e = adapter.explain
   const lines: string[] = []
+  const show = (name: string) => { if (images[name]) lines.push(`![${name}](${images[name]})`) }
   if (s.fake) lines.push('> **FAKE BACKEND.** These numbers come from the bench\'s fake decision model and show only that the pipeline works. They say nothing about any model.', '')
-  lines.push(`**Bench** (\`bun src/bench/report.ts ${adapter.feature}\`; ${s.versions.join(', ') || 'no results yet'}). ` +
-    `Threshold swept: \`${t.name}\` (today ${t.default}). Recommended = ${adapter.objective ? adapter.objective.label : 'where accuracy peaks'}; a tie goes to the ${t.safer} value: ${t.saferMeans}.`, '')
-  for (const name of ['accuracy', 'effect', 'cost-latency', 'task']) if (images[name]) lines.push(`![${name}](${images[name]})`)
-  if (Object.keys(images).length) lines.push('')
+  lines.push(`**Bench** (\`bun src/bench/report.ts ${adapter.feature}\`; ${s.versions.join(', ') || 'no results yet'}).`, '')
+  if (e) {
+    lines.push(`- **One case:** ${e.oneCase}`, `- **Measured:** ${e.measured}`,
+      `- **The setting:** ${e.setting}${t.name === 'none' ? '' : ` (\`${t.name}\`, default ${t.default})`}`, '')
+  }
+  // against plain Claude Code
+  lines.push('**Compared with plain Claude Code:' + (s.arms.length ? '**' : ' not yet.** No task-level run of this feature (a real Claude Code session with it off, then on, on the same task) has been made.'), '')
+  if (s.arms.length) {
+    show('task')
+    if (images.task) lines.push('')
+    lines.push('| arm | runs | success | mean score | median time | total time | Claude cost | decision cost | total cost |', '|---|---|---|---|---|---|---|---|---|')
+    const failed = (a: ArmSummary) => Object.entries(a.errors).map(([code, n]) => `${n} ${code}`).join(', ')
+    for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${ms(a.wallMedian)} | ${ms(a.wallTotal)} | ${usd(a.claudeCost)} | ${usd(a.decisionCost)} | ${usd(a.totalCost)} |`)
+    lines.push('',
+      '- success: the share of scored runs the checker marked right; mean score: its partial credit (the share of questions answered right, say).',
+      '- median time: over scored runs; total time: every run of the arm, failed ones too.',
+      '- costs are per scored run; total cost is Claude plus the decision model. A failed run is never scored.', '')
+    const plain = s.arms.find(a => a.kind === 'plain')
+    if (!plain) lines.push('Plain Claude Code was not run here, so there is nothing to compare the jev-mod arms with yet.', '')
+    for (const a of s.arms.filter(x => x.kind === 'jev-mod')) {
+      if (a.success === null) { lines.push(`- ${a.key}: no scored run${failed(a) ? ` (${failed(a)})` : ''}.`); continue }
+      if (!plain) continue
+      const vs = (x: string, y: string) => `${x} (plain Claude Code ${y})`
+      lines.push(`- ${a.key}: right on ${vs(pct(a.success), pct(plain.success))} of runs, median ${vs(ms(a.wallMedian), ms(plain.wallMedian))}, ` +
+        `${vs(usd(a.totalCost), usd(plain.totalCost))} per run (Claude ${usd(a.claudeCost)}, decisions ${usd(a.decisionCost)}).`)
+    }
+    if (s.arms.some(x => x.kind === 'jev-mod')) lines.push('')
+    if (s.arms.some(a => a.context !== null || a.compaction)) {
+      const kd = (a: ArmSummary) => (a.compaction ? `${Math.round(a.compaction.kept)} / ${Math.round(a.compaction.dropped)} of ${Math.round(a.compaction.messages)}` : '–')
+      lines.push('| arm | question context | kept / dropped | Claude tokens |', '|---|---|---|---|')
+      for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${tok(a.context)} | ${kd(a)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
+      lines.push('', '- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it.', '')
+    }
+    if (s.spend) {
+      const setup = s.setup ? `, of which the shared setup ${usd(s.setup.claudeCost)} (${s.setup.cases} case(s), ${ms(s.setup.wallMs)})` : ''
+      lines.push(`Spend in all: ${usd(s.spend.claude)} Claude${setup}; ${usd(s.spend.decisions)} decisions. ` +
+        'A failed run is never scored, but its spend counts here.', '')
+    }
+  }
+  // the decision level
   if (s.backends.length) {
+    lines.push(`**Decision level.** Jev answers each case by itself, and the bench replays its answers at every value of \`${t.name}\`. ` +
+      `Best = ${adapter.objective ? adapter.objective.label : 'where accuracy peaks'}; a tie goes to the ${t.safer} value: ${t.saferMeans}.`, '')
+    const said = meaning(adapter, s)
+    if (said.length) lines.push('**What this means.** ' + said.join(' '), '')
+    for (const name of ['accuracy', 'effect', 'cost-latency']) show(name)
+    if (['accuracy', 'effect', 'cost-latency'].some(n => images[n])) lines.push('')
     const extraKeys = [...new Set(s.backends.flatMap(b => Object.keys(b.recommended ? b.points.find(p => p.threshold === b.recommended!.threshold)?.metrics.extra ?? {} : {})))]
-    lines.push(`| backend · model | cases | recommended | accuracy | precision | recall | F1 | ${adapter.effect} | ${extraKeys.join(' | ')}${extraKeys.length ? ' | ' : ''}p50 | p95 | cost/case |`)
+    lines.push(`| backend · model | cases | best | accuracy | precision | recall | F1 | ${adapter.effect} | ${extraKeys.join(' | ')}${extraKeys.length ? ' | ' : ''}p50 | p95 | cost/case |`)
     lines.push(`|---|---|---|---|---|---|---|---|${extraKeys.map(() => '---|').join('')}---|---|---|`)
     for (const b of s.backends) {
       const at = b.recommended ? b.points.find(p => p.threshold === b.recommended!.threshold)?.metrics : undefined
@@ -245,20 +355,11 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
     for (const base of s.baselines) {
       lines.push(`| ${base.name} (no backend) | ${base.metrics.cases} | – | ${pct(base.metrics.accuracy)} | ${pct(base.metrics.precision)} | ${pct(base.metrics.recall)} | ${pct(base.metrics.f1)} | ${pct(base.metrics.effect)} | ${extraKeys.map(k => base.metrics.extra[k] ?? '–').join(' | ')}${extraKeys.length ? ' | ' : ''}– | – | $0 |`)
     }
-    lines.push('', 'Recommended per backend:', '', ...recommendations(adapter, s).map(l => `- ${l}`), '')
-  }
-  if (s.arms.length) {
-    lines.push('| arm | runs | success | score | question context | kept / dropped | wall time | Claude cost | decision cost | Claude tokens |',
-      '|---|---|---|---|---|---|---|---|---|---|')
-    const failed = (a: ArmSummary) => Object.entries(a.errors).map(([code, n]) => `${n} ${code}`).join(', ')
-    const kd = (a: ArmSummary) => (a.compaction ? `${Math.round(a.compaction.kept)} / ${Math.round(a.compaction.dropped)} of ${Math.round(a.compaction.messages)}` : '–')
-    for (const a of s.arms) lines.push(`| ${a.key} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${tok(a.context)} | ${kd(a)} | ${ms(a.wallMs)} | ${usd(a.claudeCost)} | ${usd(a.decisionCost)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
-    lines.push('')
-  }
-  if (s.spend) {
-    const setup = s.setup ? `, of which the shared setup ${usd(s.setup.claudeCost)} (${s.setup.cases} case(s), ${ms(s.setup.wallMs)})` : ''
-    lines.push(`Spend in all: ${usd(s.spend.claude)} Claude${setup}; ${usd(s.spend.decisions)} decisions. ` +
-      'A failed run is never scored, but its spend counts here.', '')
+    lines.push('', ...COLUMNS.map(([k, v]) => `- ${k}: ${v}`),
+      `- ${adapter.effect}: the share of items the feature acts on, at the best value.`,
+      ...extraKeys.map(k => `- ${k}: ${e?.columns?.[k] ?? 'an extra measure, at the best value.'}`),
+      '- p50, p95: how long a decision call took (the middle one, and the slow end); cost/case: what the decision calls cost per case.', '',
+      'Best per backend:', '', ...recommendations(adapter, s).map(l => `- ${l}`), '')
   }
   return lines.join('\n')
 }

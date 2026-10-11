@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Access gate: accuracy against none</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go higher)</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
 <line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
@@ -27,7 +27,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">none threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="64" x2="64" y1="60" y2="294"/>
-<text class="ax" x="68" y="70">today 1</text>
+<text class="ax" x="68" y="70">default 1</text>
 <circle class="d1 dot" cx="64" cy="66" r="4" stroke-width="2"><title>openrouter · ~typesafe/jev-latest: 1 → 97%</title></circle>
 <circle class="l1" cx="64" cy="66" r="8" fill="none" stroke-width="2"><title>openrouter · ~typesafe/jev-latest: recommended 1</title></circle>
 <line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>

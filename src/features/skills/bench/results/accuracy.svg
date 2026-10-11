@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Skills: accuracy against match</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go higher)</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
 <line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
@@ -33,7 +33,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">match threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="529" x2="529" y1="60" y2="294"/>
-<text class="ax" x="533" y="70">today 0.75</text>
+<text class="ax" x="533" y="70">default 0.75</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,86 115.67,86 167.33,82.75 219,82.75 270.67,82.75 322.33,82.75 374,79.5 425.67,66.5 477.33,63.25 529,63.25 580.67,69.75 632.33,76.25 684,79.5"/>
 <circle class="d1 dot" cx="64" cy="86" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.3 → 89%</title></circle>
 <circle class="d1 dot" cx="115.67" cy="86" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.35 → 89%</title></circle>

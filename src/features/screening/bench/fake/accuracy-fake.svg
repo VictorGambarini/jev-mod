@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Screening: accuracy against injection (FAKE)</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go lower)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go lower)</text>
 <text class="fake" x="64" y="62">FAKE BACKEND: example numbers, not a measurement</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
@@ -36,7 +36,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">injection threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="355.76" x2="355.76" y1="78" y2="294"/>
-<text class="ax" x="359.76" y="88">today 0.5</text>
+<text class="ax" x="359.76" y="88">default 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,165.16 100.47,161.37 136.94,153.79 173.41,146.21 209.88,134.84 246.35,127.26 282.82,108.32 319.29,100.74 355.76,100.74 392.24,100.74 428.71,112.11 465.18,115.89 501.65,127.26 538.12,134.84 574.59,134.84 611.06,138.63 647.53,142.42 684,157.58"/>
 <circle class="d1 dot" cx="64" cy="165.16" r="4" stroke-width="2"><title>fake · fake-jev: 0.1 → 60%</title></circle>
 <circle class="d1 dot" cx="100.47" cy="161.37" r="4" stroke-width="2"><title>fake · fake-jev: 0.15 → 61%</title></circle>

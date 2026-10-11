@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Screening: accuracy against injection</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go lower)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go lower)</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
 <line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
@@ -35,7 +35,9 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">injection threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="355.76" x2="355.76" y1="60" y2="294"/>
-<text class="ax" x="359.76" y="70">today 0.5</text>
+<text class="ax" x="359.76" y="70">default 0.5</text>
+<line class="guide" x1="465.18" x2="465.18" y1="60" y2="294"/>
+<text class="ax" x="469.18" y="83">best 0.65</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,96.95 100.47,92.84 136.94,92.84 173.41,88.74 209.88,88.74 246.35,84.63 282.82,84.63 319.29,80.53 355.76,80.53 392.24,76.42 428.71,76.42 465.18,72.32 501.65,80.53 538.12,80.53 574.59,84.63 611.06,84.63 647.53,88.74 684,117.47"/>
 <circle class="d1 dot" cx="64" cy="96.95" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.1 → 84%</title></circle>
 <circle class="d1 dot" cx="100.47" cy="92.84" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.15 → 86%</title></circle>

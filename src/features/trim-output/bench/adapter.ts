@@ -48,6 +48,13 @@ const byName = (name: string) => CASES.find(c => c.name === name)
 export const adapter: DecisionAdapter<Case> = {
   feature: 'trim-output',
   title: 'Output trimming (test logs)',
+  explain: {
+    oneCase: "a test run's log, with the goal it is read for (\"why does this fail\"), and the lines that must survive the trim.",
+    measured: "line by line, whether the trimmed output keeps the lines the goal needs and cuts the rest. Losing a needed line is the costly mistake, so the best value is the one that loses fewest, then cuts most.",
+    setting: "how sure Jev must be that a block of lines is not needed before it is cut. Higher cuts fewer blocks.",
+    result: "Jev keeps or cuts the right lines on {pct} of the log lines over {n} logs",
+    columns: {"gold lines lost": "lines the goal needs that the trim removed."},
+  },
   effect: 'lines cut',
   objective: { label: 'fewest gold lines lost, then most lines cut', score: m => (m.extra['gold lines lost'] ?? 0) * -1000 + m.effect },
   threshold: {

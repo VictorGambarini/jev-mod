@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Completion gate: accuracy against minConfidence</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go higher)</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
 <line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
@@ -36,7 +36,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">minConfidence threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="615.11" x2="615.11" y1="60" y2="294"/>
-<text class="ax" x="619.11" y="70">today 0.9</text>
+<text class="ax" x="611.11" y="70" text-anchor="end">default 0.9</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,99.55 132.89,96.25 201.78,96.25 270.67,92.96 339.56,92.96 408.44,92.96 477.33,92.96 546.22,89.66 615.11,89.66 684,96.25"/>
 <circle class="d1 dot" cx="64" cy="99.55" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 83%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="96.25" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 85%</title></circle>

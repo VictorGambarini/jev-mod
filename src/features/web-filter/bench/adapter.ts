@@ -50,6 +50,12 @@ export function neededChunk(c: FetchCase, chunk: Chunk): boolean {
 export const adapter: DecisionAdapter<WebCase> = {
   feature: 'web-filter',
   title: 'Web filter',
+  explain: {
+    oneCase: "a web search (its results) or a long fetched page (cut into parts), with what the person asked, and for each result or part whether it helps.",
+    measured: "whether Jev drops what does not help and keeps what does. A dropped result is gone from what Claude reads, so dropping a useful one is the costly mistake.",
+    setting: "how sure Jev must be that a result or part is not needed before it is dropped. Higher drops fewer.",
+    result: "Jev keeps or drops the right results and parts on {pct} of the questions over {n} cases",
+  },
   effect: 'results and parts dropped',
   threshold: {
     name: 'minConfidence', default: DEFAULT, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',

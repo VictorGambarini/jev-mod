@@ -32,8 +32,10 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">match threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">prompts given a suggestion</text>
-<line class="guide" x1="270.67" x2="270.67" y1="78" y2="294"/>
-<text class="ax" x="274.67" y="88">today 0.5</text>
+<line class="guide" x1="529" x2="529" y1="78" y2="294"/>
+<text class="ax" x="533" y="88">default 0.75</text>
+<line class="guide" x1="115.67" x2="115.67" y1="78" y2="294"/>
+<text class="ax" x="119.67" y="101">best 0.35</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,78 115.67,78 167.33,96 219,96 270.67,96 322.33,96 374,114 425.67,120 477.33,138 529,168 580.67,174 632.33,204 684,228"/>
 <circle class="d1 dot" cx="64" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 0.3 → 50%</title></circle>
 <circle class="d1 dot" cx="115.67" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 0.35 → 50%</title></circle>

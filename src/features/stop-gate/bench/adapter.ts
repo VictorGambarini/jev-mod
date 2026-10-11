@@ -85,6 +85,13 @@ export function metricsOf(rows: readonly Row[], threshold: number): Metrics {
 export const adapter: DecisionAdapter<StopCase> = {
   feature: 'stop-gate',
   title: 'Completion gate',
+  explain: {
+    oneCase: "what a Claude turn did (edits, commands and their output) and its final message, for example \"all tests pass\", with whether the evidence backs that claim and whether it stopped on an unfinished step.",
+    measured: "whether Jev sends the agent back when the claim is not shown or a step was left, and not when it is. Letting a false \"done\" stop the turn is the costly miss.",
+    setting: "how sure Jev must be that a claim is not backed before the agent is sent back. Higher sends it back less often, and a doubtful claim is only noted.",
+    result: "Jev makes the right send-back call on {pct} of the questions over {n} turns",
+    columns: {"accused shown": "claims the evidence did back that were called not shown.", "could-not-tell found": "claims the evidence could not settle that Jev said it could not tell.", "verdicts right": "claim verdicts that match the label.", "claim items": "claim verdicts judged."},
+  },
   effect: 'turns sent back',
   threshold: {
     name: 'minConfidence', default: DEFAULT, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',

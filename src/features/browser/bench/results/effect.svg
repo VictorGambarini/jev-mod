@@ -29,7 +29,9 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">confirmConfidence threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">consequential steps and &quot;done&quot; accepted</text>
 <line class="guide" x1="546.22" x2="546.22" y1="60" y2="294"/>
-<text class="ax" x="550.22" y="70">today 0.85</text>
+<text class="ax" x="550.22" y="70">default 0.85</text>
+<line class="guide" x1="64" x2="64" y1="60" y2="294"/>
+<text class="ax" x="68" y="83">best 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,60 132.89,69.36 201.78,78.72 270.67,78.72 339.56,78.72 408.44,88.08 477.33,97.44 546.22,106.8 615.11,125.52 684,181.68"/>
 <circle class="d1 dot" cx="64" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 57%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="69.36" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 55%</title></circle>

@@ -32,7 +32,9 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">injection threshold</text>
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">texts withheld</text>
 <line class="guide" x1="355.76" x2="355.76" y1="60" y2="294"/>
-<text class="ax" x="359.76" y="70">today 0.5</text>
+<text class="ax" x="359.76" y="70">default 0.5</text>
+<line class="guide" x1="465.18" x2="465.18" y1="60" y2="294"/>
+<text class="ax" x="469.18" y="83">best 0.65</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,60 100.47,69 136.94,69 173.41,78 209.88,78 246.35,87 282.82,87 319.29,96 355.76,96 392.24,105 428.71,105 465.18,114 501.65,132 538.12,132 574.59,141 611.06,141 647.53,150 684,213"/>
 <circle class="d1 dot" cx="64" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.1 → 46%</title></circle>
 <circle class="d1 dot" cx="100.47" cy="69" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.15 → 44%</title></circle>

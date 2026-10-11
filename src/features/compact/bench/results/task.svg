@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1139 258" width="1139" height="258" role="img" aria-label="/jev-mod compact: jev-mod against plain Claude Code, end to end">
-<title>/jev-mod compact: jev-mod against plain Claude Code, end to end</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1269 258" width="1269" height="258" role="img" aria-label="/jev-mod compact: plain Claude Code (orange) against jev-mod, end to end">
+<title>/jev-mod compact: plain Claude Code (orange) against jev-mod, end to end</title>
 <style>
 text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
 .g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
-.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
-@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.l2{stroke:#eb6834}.d2{fill:#eb6834}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.l2{stroke:#d95926}.d2{fill:#d95926}.fake{fill:#e66767}}
 </style>
-<rect width="1139" height="258" rx="8" class="bg"/>
-<text class="t" x="16" y="26">/jev-mod compact: jev-mod against plain Claude Code, end to end</text>
-<text class="st" x="16" y="44">per run: checker success and score, the context the last step read, messages dropped, wall time, Claude and decision cost</text>
-<text class="lab" x="197" y="95" text-anchor="end">claude</text>
+<rect width="1269" height="258" rx="8" class="bg"/>
+<text class="t" x="16" y="26">/jev-mod compact: plain Claude Code (orange) against jev-mod, end to end</text>
+<text class="st" x="16" y="44">accuracy: success and score · speed: median wall time per run · cost per run: Claude, decisions, both</text>
+<text class="lab" x="197" y="95" text-anchor="end">plain Claude Code</text>
 <text class="lab" x="197" y="121" text-anchor="end">no compaction</text>
 <text class="lab" x="197" y="147" text-anchor="end">jev-mod openrouter drop=0.6</text>
 <text class="lab" x="197" y="173" text-anchor="end">jev-mod openrouter drop=0.7</text>
@@ -18,7 +18,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="lab" x="197" y="225" text-anchor="end">jev-mod openrouter drop=0.9</text>
 <text class="ax" x="209" y="68">success</text>
 <line class="a" x1="205" x2="205" y1="74" y2="234"/>
-<rect x="205" y="83" width="60" height="16" rx="3" class="d1"><title>claude: 100.0%</title></rect>
+<rect x="205" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 100.0%</title></rect>
 <text class="lab" x="269" y="95">100.0%</text>
 <rect x="205" y="109" width="60" height="16" rx="3" class="d1"><title>no compaction: 100.0%</title></rect>
 <text class="lab" x="269" y="121">100.0%</text>
@@ -28,7 +28,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="211" y="225">n/a</text>
 <text class="ax" x="339" y="68">score</text>
 <line class="a" x1="335" x2="335" y1="74" y2="234"/>
-<rect x="335" y="83" width="60" height="16" rx="3" class="d1"><title>claude: 100.0%</title></rect>
+<rect x="335" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 100.0%</title></rect>
 <text class="lab" x="399" y="95">100.0%</text>
 <rect x="335" y="109" width="60" height="16" rx="3" class="d1"><title>no compaction: 100.0%</title></rect>
 <text class="lab" x="399" y="121">100.0%</text>
@@ -36,45 +36,39 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="341" y="173">n/a</text>
 <text class="ax" x="341" y="199">n/a</text>
 <text class="ax" x="341" y="225">n/a</text>
-<text class="ax" x="469" y="68">question context</text>
+<text class="ax" x="469" y="68">wall time (median)</text>
 <line class="a" x1="465" x2="465" y1="74" y2="234"/>
-<rect x="465" y="83" width="13.16" height="16" rx="3" class="d1"><title>claude: 41.0k</title></rect>
-<text class="lab" x="482.16" y="95">41.0k</text>
-<rect x="465" y="109" width="56.63" height="16" rx="3" class="d1"><title>no compaction: 176.5k</title></rect>
-<text class="lab" x="525.63" y="121">176.5k</text>
-<rect x="465" y="135" width="59.99" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.6: 187.0k</title></rect>
-<text class="lab" x="528.99" y="147">187.0k</text>
-<rect x="465" y="161" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.7: 187.0k</title></rect>
-<text class="lab" x="529" y="173">187.0k</text>
-<rect x="465" y="187" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.8: 187.0k</title></rect>
-<text class="lab" x="529" y="199">187.0k</text>
-<rect x="465" y="213" width="56.68" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.9: 176.7k</title></rect>
-<text class="lab" x="525.68" y="225">176.7k</text>
-<text class="ax" x="599" y="68">messages dropped</text>
+<rect x="465" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 97.0 s</title></rect>
+<text class="lab" x="529" y="95">97.0 s</text>
+<rect x="465" y="109" width="6.72" height="16" rx="3" class="d1"><title>no compaction: 10.9 s</title></rect>
+<text class="lab" x="475.72" y="121">10.9 s</text>
+<text class="ax" x="471" y="147">n/a</text>
+<text class="ax" x="471" y="173">n/a</text>
+<text class="ax" x="471" y="199">n/a</text>
+<text class="ax" x="471" y="225">n/a</text>
+<text class="ax" x="599" y="68">Claude cost</text>
 <line class="a" x1="595" x2="595" y1="74" y2="234"/>
-<text class="ax" x="601" y="95">n/a</text>
-<text class="ax" x="601" y="121">n/a</text>
-<rect x="595" y="135" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.6: 6</title></rect>
-<text class="lab" x="659" y="147">6</text>
-<rect x="595" y="161" width="50" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.7: 5</title></rect>
-<text class="lab" x="649" y="173">5</text>
-<rect x="595" y="187" width="10" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.8: 1</title></rect>
-<text class="lab" x="609" y="199">1</text>
-<rect x="595" y="213" width="2" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.9: 0</title></rect>
-<text class="lab" x="601" y="225">0</text>
-<text class="ax" x="729" y="68">wall time</text>
+<rect x="595" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: $6.783</title></rect>
+<text class="lab" x="659" y="95">$6.783</text>
+<rect x="595" y="109" width="37.96" height="16" rx="3" class="d1"><title>no compaction: $4.291</title></rect>
+<text class="lab" x="636.96" y="121">$4.291</text>
+<text class="ax" x="601" y="147">n/a</text>
+<text class="ax" x="601" y="173">n/a</text>
+<text class="ax" x="601" y="199">n/a</text>
+<text class="ax" x="601" y="225">n/a</text>
+<text class="ax" x="729" y="68">decision cost</text>
 <line class="a" x1="725" x2="725" y1="74" y2="234"/>
-<rect x="725" y="83" width="60" height="16" rx="3" class="d1"><title>claude: 97.0 s</title></rect>
-<text class="lab" x="789" y="95">97.0 s</text>
-<rect x="725" y="109" width="6.72" height="16" rx="3" class="d1"><title>no compaction: 10.9 s</title></rect>
-<text class="lab" x="735.72" y="121">10.9 s</text>
+<rect x="725" y="83" width="2" height="16" rx="3" class="d2"><title>plain Claude Code: $0</title></rect>
+<text class="lab" x="731" y="95">$0</text>
+<rect x="725" y="109" width="2" height="16" rx="3" class="d1"><title>no compaction: $0</title></rect>
+<text class="lab" x="731" y="121">$0</text>
 <text class="ax" x="731" y="147">n/a</text>
 <text class="ax" x="731" y="173">n/a</text>
 <text class="ax" x="731" y="199">n/a</text>
 <text class="ax" x="731" y="225">n/a</text>
-<text class="ax" x="859" y="68">Claude cost</text>
+<text class="ax" x="859" y="68">total cost</text>
 <line class="a" x1="855" x2="855" y1="74" y2="234"/>
-<rect x="855" y="83" width="60" height="16" rx="3" class="d1"><title>claude: $6.783</title></rect>
+<rect x="855" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: $6.783</title></rect>
 <text class="lab" x="919" y="95">$6.783</text>
 <rect x="855" y="109" width="37.96" height="16" rx="3" class="d1"><title>no compaction: $4.291</title></rect>
 <text class="lab" x="896.96" y="121">$4.291</text>
@@ -82,14 +76,30 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="861" y="173">n/a</text>
 <text class="ax" x="861" y="199">n/a</text>
 <text class="ax" x="861" y="225">n/a</text>
-<text class="ax" x="989" y="68">decision cost</text>
+<text class="ax" x="989" y="68">question context</text>
 <line class="a" x1="985" x2="985" y1="74" y2="234"/>
-<rect x="985" y="83" width="2" height="16" rx="3" class="d1"><title>claude: $0</title></rect>
-<text class="lab" x="991" y="95">$0</text>
-<rect x="985" y="109" width="2" height="16" rx="3" class="d1"><title>no compaction: $0</title></rect>
-<text class="lab" x="991" y="121">$0</text>
-<text class="ax" x="991" y="147">n/a</text>
-<text class="ax" x="991" y="173">n/a</text>
-<text class="ax" x="991" y="199">n/a</text>
-<text class="ax" x="991" y="225">n/a</text>
+<rect x="985" y="83" width="13.16" height="16" rx="3" class="d2"><title>plain Claude Code: 41.0k</title></rect>
+<text class="lab" x="1002.16" y="95">41.0k</text>
+<rect x="985" y="109" width="56.63" height="16" rx="3" class="d1"><title>no compaction: 176.5k</title></rect>
+<text class="lab" x="1045.63" y="121">176.5k</text>
+<rect x="985" y="135" width="59.99" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.6: 187.0k</title></rect>
+<text class="lab" x="1048.99" y="147">187.0k</text>
+<rect x="985" y="161" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.7: 187.0k</title></rect>
+<text class="lab" x="1049" y="173">187.0k</text>
+<rect x="985" y="187" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.8: 187.0k</title></rect>
+<text class="lab" x="1049" y="199">187.0k</text>
+<rect x="985" y="213" width="56.68" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.9: 176.7k</title></rect>
+<text class="lab" x="1045.68" y="225">176.7k</text>
+<text class="ax" x="1119" y="68">messages dropped</text>
+<line class="a" x1="1115" x2="1115" y1="74" y2="234"/>
+<text class="ax" x="1121" y="95">n/a</text>
+<text class="ax" x="1121" y="121">n/a</text>
+<rect x="1115" y="135" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.6: 6</title></rect>
+<text class="lab" x="1179" y="147">6</text>
+<rect x="1115" y="161" width="50" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.7: 5</title></rect>
+<text class="lab" x="1169" y="173">5</text>
+<rect x="1115" y="187" width="10" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.8: 1</title></rect>
+<text class="lab" x="1129" y="199">1</text>
+<rect x="1115" y="213" width="2" height="16" rx="3" class="d1"><title>jev-mod openrouter drop=0.9: 0</title></rect>
+<text class="lab" x="1121" y="225">0</text>
 </svg>

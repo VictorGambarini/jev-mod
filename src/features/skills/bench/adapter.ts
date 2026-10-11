@@ -24,6 +24,12 @@ const share = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 1000 :
 export const adapter: DecisionAdapter<SkillCase> = {
   feature: 'skills',
   title: 'Skills',
+  explain: {
+    oneCase: "a prompt a person might type, against a catalog of installed skills, and the skill that is the right procedure for it (or none).",
+    measured: "whether Jev suggests a skill only when its top pick is a right one. A wrong suggestion costs a detour and context; a missed one costs nothing the model would not have done anyway.",
+    setting: "how well the top skill must match the prompt before it is suggested. Higher suggests less often.",
+    result: "Jev suggests the right skill, or none, on {pct} of the {n} prompts",
+  },
   effect: 'prompts given a suggestion',
   threshold: {
     name: 'match', default: MATCH, from: 0.3, to: 0.9, step: 0.05, safer: 'higher',

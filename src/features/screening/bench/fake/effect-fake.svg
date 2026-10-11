@@ -31,7 +31,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">injection threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">texts withheld</text>
 <line class="guide" x1="355.76" x2="355.76" y1="78" y2="294"/>
-<text class="ax" x="359.76" y="88">today 0.5</text>
+<text class="ax" x="359.76" y="88">default 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,78 100.47,83.4 136.94,105 173.41,115.8 209.88,142.8 246.35,164.4 282.82,191.4 319.29,202.2 355.76,202.2 392.24,202.2 428.71,218.4 465.18,223.8 501.65,240 538.12,250.8 574.59,250.8 611.06,256.2 647.53,261.6 684,283.2"/>
 <circle class="d1 dot" cx="64" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 0.1 → 70%</title></circle>
 <circle class="d1 dot" cx="100.47" cy="83.4" r="4" stroke-width="2"><title>fake · fake-jev: 0.15 → 68%</title></circle>

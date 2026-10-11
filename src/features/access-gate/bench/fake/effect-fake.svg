@@ -23,7 +23,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">none threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">calls refused</text>
 <line class="guide" x1="64" x2="64" y1="78" y2="294"/>
-<text class="ax" x="68" y="88">today 1</text>
+<text class="ax" x="68" y="88">default 1</text>
 <circle class="d1 dot" cx="64" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 1 → 62%</title></circle>
 <line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
 <text class="lab" x="88" y="350">fake · fake-jev</text>

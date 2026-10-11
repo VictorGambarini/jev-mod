@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Routing: accuracy against smallConfidence (FAKE)</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go higher)</text>
 <text class="fake" x="64" y="62">FAKE BACKEND: example numbers, not a measurement</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
@@ -37,7 +37,9 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">smallConfidence threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="339.56" x2="339.56" y1="78" y2="294"/>
-<text class="ax" x="343.56" y="88">today 0.7</text>
+<text class="ax" x="343.56" y="88">default 0.7</text>
+<line class="guide" x1="64" x2="64" y1="78" y2="294"/>
+<text class="ax" x="68" y="101">best 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,163.33 132.89,166 201.78,166 270.67,168.67 339.56,168.67 408.44,168.67 477.33,168.67 546.22,174 615.11,176.67 684,176.67"/>
 <circle class="d1 dot" cx="64" cy="163.33" r="4" stroke-width="2"><title>fake · fake-jev: 0.5 → 60%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="166" r="4" stroke-width="2"><title>fake · fake-jev: 0.55 → 59%</title></circle>

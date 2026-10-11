@@ -55,6 +55,12 @@ type Recorded = { gold: Gold; action: string; readings: Record<string, Reading> 
 export const adapter: DecisionAdapter<LaneCase> = {
   feature: 'routing',
   title: 'Routing',
+  explain: {
+    oneCase: "a prompt a person might type to Claude Code, and the lane (small, medium, high, escalate) the lane policy says suits it.",
+    measured: "whether Jev routes the prompt to exactly that lane. Too low a lane gives the work a cheaper model than it needs; too high wastes money.",
+    setting: "how sure Jev must be that a prompt is simple before it goes to the cheapest model. Higher sends fewer prompts there.",
+    result: "Jev picks the exact lane on {pct} of the {n} prompts",
+  },
   effect: 'prompts routed to small',
   threshold: {
     name: 'smallConfidence', default: BAR.value, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',

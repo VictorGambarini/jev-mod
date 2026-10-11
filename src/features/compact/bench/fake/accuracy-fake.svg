@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">/jev-mod compact: accuracy against drop (FAKE)</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go higher)</text>
 <text class="fake" x="64" y="62">FAKE BACKEND: example numbers, not a measurement</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
@@ -36,8 +36,8 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">drop threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
-<line class="guide" x1="339.56" x2="339.56" y1="78" y2="294"/>
-<text class="ax" x="343.56" y="88">today 0.7</text>
+<line class="guide" x1="64" x2="64" y1="78" y2="294"/>
+<text class="ax" x="68" y="88">default 0.5</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,113.76 132.89,125.21 201.78,139.51 270.67,142.37 339.56,149.52 408.44,159.54 477.33,160.97 546.22,169.55 615.11,179.56 684,179.56"/>
 <circle class="d1 dot" cx="64" cy="113.76" r="4" stroke-width="2"><title>fake · fake-jev: 0.5 → 83%</title></circle>
 <circle class="d1 dot" cx="132.89" cy="125.21" r="4" stroke-width="2"><title>fake · fake-jev: 0.55 → 78%</title></circle>

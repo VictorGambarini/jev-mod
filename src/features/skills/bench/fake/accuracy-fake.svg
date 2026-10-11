@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Skills: accuracy against match (FAKE)</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go higher)</text>
 <text class="fake" x="64" y="62">FAKE BACKEND: example numbers, not a measurement</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
@@ -33,8 +33,10 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <line class="a" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="374" y="330" text-anchor="middle">match threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
-<line class="guide" x1="270.67" x2="270.67" y1="78" y2="294"/>
-<text class="ax" x="274.67" y="88">today 0.5</text>
+<line class="guide" x1="529" x2="529" y1="78" y2="294"/>
+<text class="ax" x="533" y="88">default 0.75</text>
+<line class="guide" x1="115.67" x2="115.67" y1="78" y2="294"/>
+<text class="ax" x="119.67" y="101">best 0.35</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,117 115.67,117 167.33,126 219,126 270.67,126 322.33,126 374,135 425.67,138 477.33,147 529,162 580.67,165 632.33,180 684,186"/>
 <circle class="d1 dot" cx="64" cy="117" r="4" stroke-width="2"><title>fake · fake-jev: 0.3 → 82%</title></circle>
 <circle class="d1 dot" cx="115.67" cy="117" r="4" stroke-width="2"><title>fake · fake-jev: 0.35 → 82%</title></circle>

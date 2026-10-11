@@ -19,6 +19,12 @@ const rulesOf = (c: RuleCase): Rule[] => c.rules.map(r => ({ text: r.text, sourc
 export const adapter: DecisionAdapter<RuleCase> = {
   feature: 'rules-gate',
   title: 'Rules gate',
+  explain: {
+    oneCase: "an edit to a file in a project, with the written rules that apply to that file, and for each rule whether the edit breaks it.",
+    measured: "for each rule, whether Jev says broken when it is. Refusing an edit that breaks no rule is a wasted turn; letting a breaking one through is the miss.",
+    setting: "how sure Jev must be that a rule is broken before the edit is refused. Higher refuses fewer edits, and a doubtful one goes on.",
+    result: "Jev judges the rules right on {pct} of the rule checks over {n} edits",
+  },
   effect: 'rules judged broken',
   threshold: {
     name: 'minConfidence', default: DEFAULT, from: 0.5, to: 0.95, step: 0.05, safer: 'higher',

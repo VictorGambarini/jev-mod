@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">find-files: accuracy against limit (FAKE)</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak F2 (recall counts double); ties go lower)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak F2 (recall counts double); ties go lower)</text>
 <text class="fake" x="64" y="62">FAKE BACKEND: example numbers, not a measurement</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
@@ -37,7 +37,9 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">limit threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="357.68" x2="357.68" y1="78" y2="294"/>
-<text class="ax" x="361.68" y="88">today 10</text>
+<text class="ax" x="361.68" y="88">default 10</text>
+<line class="guide" x1="64" x2="64" y1="78" y2="294"/>
+<text class="ax" x="68" y="101">best 1</text>
 <polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,87.29 96.63,110.52 129.26,123.87 161.89,132.58 194.53,139.55 227.16,145.94 259.79,151.74 292.42,155.81 325.05,156.97 357.68,156.97 390.32,157.55 422.95,158.13 455.58,158.71 488.21,158.71 520.84,158.71 553.47,158.71 586.11,158.71 618.74,158.71 651.37,158.71 684,158.71"/>
 <circle class="d1 dot" cx="64" cy="87.29" r="4" stroke-width="2"><title>fake · fake-jev: 1 → 96%</title></circle>
 <circle class="d1 dot" cx="96.63" cy="110.52" r="4" stroke-width="2"><title>fake · fake-jev: 2 → 85%</title></circle>

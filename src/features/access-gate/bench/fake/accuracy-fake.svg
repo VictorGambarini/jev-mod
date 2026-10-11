@@ -9,7 +9,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">Access gate: accuracy against none (FAKE)</text>
-<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<text class="st" x="64" y="44">ringed: the best value per backend (peak accuracy; ties go higher)</text>
 <text class="fake" x="64" y="62">FAKE BACKEND: example numbers, not a measurement</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
@@ -28,7 +28,7 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" x="374" y="330" text-anchor="middle">none threshold</text>
 <text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="64" x2="64" y1="78" y2="294"/>
-<text class="ax" x="68" y="88">today 1</text>
+<text class="ax" x="68" y="88">default 1</text>
 <circle class="d1 dot" cx="64" cy="83.54" r="4" stroke-width="2"><title>fake · fake-jev: 1 → 97%</title></circle>
 <circle class="l1" cx="64" cy="83.54" r="8" fill="none" stroke-width="2"><title>fake · fake-jev: recommended 1</title></circle>
 <line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>

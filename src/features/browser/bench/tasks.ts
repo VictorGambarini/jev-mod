@@ -176,7 +176,7 @@ export function checkRun(t: BrowserTask, finalText: string, log: readonly Hit[])
       requests: log.length,
       logins_failed: log.filter(h => h.action === 'login-failed').length,
       trail: trailOf(log),
-      final_text: redactSecretValues(cut(finalText, FINAL_CHARS), Number.POSITIVE_INFINITY),
+      final_text: redactSecretValues(cut(finalText, FINAL_CHARS), Number.POSITIVE_INFINITY, { contacts: true }),
     },
   }
 }
@@ -238,7 +238,7 @@ export function toolCalls(transcript: string): ToolCall[] {
 
 // a row is never written with a secret-shaped value in it (results.ts), so the masks go on first: a phone number reads [phone]
 // (cut first: a mask cut in half would read as something else)
-const hide = (text: string, n: number) => redactSecretValues(cut(text.split(DEMO_LOGIN.password).join('[password]'), n), Number.POSITIVE_INFINITY)
+const hide = (text: string, n: number) => redactSecretValues(cut(text.split(DEMO_LOGIN.password).join('[password]'), n), Number.POSITIVE_INFINITY, { contacts: true })
 
 /** The headless Chromium jev-mod's browser installs, for Playwright MCP to use too. */
 export function chromiumPath(home: string): string {

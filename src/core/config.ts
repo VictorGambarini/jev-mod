@@ -270,7 +270,8 @@ export function problems(snap: Snapshot, features: readonly Feature[] = FEATURES
 export async function setting(io: IO, id: string): Promise<Resolved> {
   const f = feature(id)
   if (!f) throw new Error(`no feature ${id}`)
-  return resolve(await snapshot(io), f)
+  // only this feature's kill files and switches: a full snapshot reads ~20 files per question
+  return resolve(await snapshot(io, [f]), f)
 }
 
 /** One feature's mode now; what every feature asks before it acts. */

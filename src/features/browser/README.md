@@ -45,6 +45,8 @@ See *Known gaps* in [docs/BROWSER.md](../../../docs/BROWSER.md). A project canno
 
 ## Benchmarks
 
+The decision level asks the step, confirm and page-check questions on 59 synthetic page snapshots (below). The task level (`bun src/bench/run.ts browser --level task --backend <name>`; `bench/task.ts`) compares plain Claude Code driving a browser through Playwright MCP with Claude Code using `browse`, on ten requests a person makes about two small made-up websites the bench serves on a loopback port, a fresh copy per arm: a SaaS product (a price behind a billing toggle, a changelog three pages deep, a docs page only the search finds, a sales number behind a dead-end Contact page, a support form, a status page with a region filter, a dashboard behind a login with Delete beside Rename) and a shop (a cart to fill without checking out, a price that shows once a size is chosen, "Buy now" on every product). Both arms get the same words and only their own browser tool. Per case: success (the answer, and what the site's own log says was done), wall time, Claude's cost and turns, the decision model's cost and calls, the pages and actions taken, and any consequential step taken that the request did not ask for (which fails the case). A bench overlay may turn the browser on for this, and it then reaches loopback hosts only.
+
 <!-- bench:start -->
 **Bench** (`bun src/bench/report.ts browser`; 0.11.0@14f7f68).
 

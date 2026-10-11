@@ -3,6 +3,7 @@
 
 import { adapter as accessGate } from '../features/access-gate/bench/adapter'
 import { adapter as browser } from '../features/browser/bench/adapter'
+import { task as browserTask } from '../features/browser/bench/task'
 import { adapter as compact } from '../features/compact/bench/adapter'
 import { task as compactTask } from '../features/compact/bench/task'
 import { adapter as findFiles } from '../features/find-files/bench/adapter'
@@ -34,7 +35,7 @@ export const BENCHES: Record<string, Bench> = {
   routing: { decision: routing, task: routingTask },
   skills: { decision: skills, task: skillsTask },
   'find-files': { decision: findFiles, task: findFilesTask },
-  browser: { decision: browser },
+  browser: { decision: browser, task: browserTask },
   'review-triage': { decision: reviewTriage },
 }
 

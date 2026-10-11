@@ -27,6 +27,8 @@ test('a step\'s context is its input tokens, cached or not; none reported is unk
   expect(contextOf({ input: 5, output: 900, cache_read: 40_000, cache_write: 1000 })).toBe(41_005)
   expect(contextOf({ input: 0, output: 0, cache_read: 0, cache_write: 0 })).toBe(null)
   expect(contextOf(parseClaude('{"result":"1. x","usage":{"input_tokens":3,"cache_read_input_tokens":9000}}').tokens)).toBe(9003)
+  expect(parseClaude('{"result":"x","num_turns":7}').turns).toBe(7)
+  expect(parseClaude('{"result":"x"}').turns).toBeUndefined()
 })
 
 const run = (ledgerEntries: number, contextTokens: number | null, dropped?: number): ArmRun =>

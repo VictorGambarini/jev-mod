@@ -149,9 +149,9 @@ test('the log round-trips through its file form, a broken line passed over', () 
 
 test('each arm gets its own browser tool and nothing else from MCP; both refuse the other ways to a page', () => {
   const plain = armArgs({ id: 'claude', kind: 'claude', backend: null, settings: {} }, '/x/mcp.json')
-  expect(plain).toEqual(['--strict-mcp-config', '--mcp-config', '/x/mcp.json', '--allowedTools', 'mcp__playwright'])
+  expect(plain).toEqual(['--mcp-config', '/x/mcp.json', '--allowedTools', 'mcp__playwright'])
   expect(armArgs({ id: 'jev-mod openrouter', kind: 'jev-mod', backend: 'openrouter', settings: {} }, '/x/mcp.json'))
-    .toEqual(['--strict-mcp-config', '--allowedTools', 'mcp__jev-mod__browse'])
+    .toEqual(['--allowedTools', 'mcp__jev-mod__browse'])
   const config = JSON.parse(playwrightConfig('/c/chrome'))
   expect(config.mcpServers.playwright.args).toEqual(['-y', '@playwright/mcp@0.0.78', '--headless', '--isolated', '--executable-path', '/c/chrome'])
   expect(REFUSED).toEqual(expect.arrayContaining(['WebFetch', 'Bash']))

@@ -1,7 +1,7 @@
 // The task level's pure parts: what one `claude -p` printed, the setup's own row, and the
 // adapter's verdict on arms that did not do their job. task.ts runs Claude; tests use these.
 
-import type { Arm, ArmRun, Compaction, Row, RunMeta, TaskAdapter, TaskCase } from './types'
+import type { Arm, ArmRun, Compaction, FeatureSpend, Row, RunMeta, TaskAdapter, TaskCase } from './types'
 
 export type Result = { ok: boolean; error?: string; text: string; session: string | null; cost: number; ms: number;
   /** The model turns the call took (`num_turns`): one more than its tool rounds. */
@@ -43,8 +43,8 @@ export function contextOf(t: Tokens): number | null {
   return n > 0 ? n : null
 }
 
-/** `features`: decision requests per feature, for an adapter that must know its own feature asked (protective features ask in every arm). */
-export type Ledger = { decisions: number; calls: number; cost: number; model: string | null; compaction: Compaction | null; features: Record<string, number> }
+/** `byFeature`: the same per feature that asked (an entry without one is under `other`), so a report can tell the feature's own cost from the rest. */
+export type Ledger = { decisions: number; calls: number; cost: number; model: string | null; compaction: Compaction | null; byFeature: Record<string, FeatureSpend> }
 
 /**
  * An arm's ledger folder, its files' text by name: the decision calls (their count, calls, cost
@@ -52,7 +52,7 @@ export type Ledger = { decisions: number; calls: number; cost: number; model: st
  * file is passed over.
  */
 export function readLedger(files: readonly { name: string; text: string }[]): Ledger {
-  const out: Ledger = { decisions: 0, calls: 0, cost: 0, model: null, compaction: null, features: {} }
+  const out: Ledger = { decisions: 0, calls: 0, cost: 0, model: null, compaction: null, byFeature: {} }
   let last = -Infinity
   for (const { text } of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
     let e: Record<string, any>
@@ -66,10 +66,15 @@ export function readLedger(files: readonly { name: string; text: string }[]): Le
       }
       continue
     }
+    const calls = typeof e.calls === 'number' ? e.calls : 0
+    const cost = typeof e.cost === 'number' ? e.cost : 0
+    const mine = (out.byFeature[typeof e.feature === 'string' && e.feature ? e.feature : 'other'] ??= { requests: 0, calls: 0, cost_usd: 0 })
+    mine.requests++
+    mine.calls += calls
+    mine.cost_usd += cost
     out.decisions++
-    if (typeof e.feature === 'string') out.features[e.feature] = (out.features[e.feature] ?? 0) + 1
-    out.calls += typeof e.calls === 'number' ? e.calls : 0
-    out.cost += typeof e.cost === 'number' ? e.cost : 0
+    out.calls += calls
+    out.cost += cost
     if (typeof e.model === 'string' && e.model) out.model = e.model
   }
   return out

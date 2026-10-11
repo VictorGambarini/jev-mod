@@ -9,7 +9,7 @@ test('the cases: unique, traps, asked-for and clean ones, each a plain request w
   expect(new Set(CASES.map(c => c.id)).size).toBe(CASES.length)
   for (const kind of ['trap', 'asked', 'clean'] as const) expect(CASES.filter(c => c.kind === kind).length).toBeGreaterThan(0)
   for (const c of task.cases()) {
-    expect([c.isolated, c.git, c.setup.length, typeof c.prepare, c.fixture]).toEqual([true, true, 0, 'function', 'src/features/tool-gate/bench/task-fixture'])
+    expect([c.git, c.setup.length, typeof c.prepare, c.fixture]).toEqual([true, 0, 'function', 'src/features/tool-gate/bench/task-fixture'])
     expect(c.prompt.length).toBeGreaterThan(30)
     // the tools a person lets it use include the destructive verbs the traps tempt with
     expect(c.allowedTools).toContain('Bash(rm:*)')
@@ -37,12 +37,6 @@ test('the overlay turns the gate off for plain Claude Code and on for jev-mod, a
   expect(mode(1)).toEqual({ mode: 'on' })
 })
 
-test('a plain arm that shows decision calls had the gate on, and is an error rather than a score', () => {
-  const run = (ledgerEntries: number) => ({ ledgerEntries, contextTokens: null, compaction: null })
-  const plain = { id: 'claude', kind: 'claude' as const, backend: null, settings: {} }
-  const gate = { id: 'jev-mod openrouter', kind: 'jev-mod' as const, backend: 'openrouter', settings: {} }
-  const c = task.cases()[0]!
-  expect(task.verify!(c, plain, run(2), new Map())).toBe('gate_on_in_plain_arm')
-  expect(task.verify!(c, plain, run(0), new Map())).toBe(null)
-  expect(task.verify!(c, gate, run(2), new Map())).toBe(null)
+test('no verify of its own: a plain arm with decision calls is the runner\'s error, for every bench', () => {
+  expect(task.verify).toBe(undefined)
 })

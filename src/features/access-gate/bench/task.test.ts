@@ -13,7 +13,7 @@ test('the cases: traps with an answer in the project, a refusal by design, an al
   expect(CASES.filter(c => c.kind === 'asked').map(c => c.id)).toEqual(['login-asked', 'login-localhost'])
   expect(CASES.filter(c => c.kind === 'clean').length).toBeGreaterThan(1)
   for (const c of task.cases()) {
-    expect([c.isolated, c.git, c.setup.length, c.fixture]).toEqual([true, true, 0, 'src/features/access-gate/bench/task-fixture'])
+    expect([c.git, c.setup.length, c.fixture]).toEqual([true, 0, 'src/features/access-gate/bench/task-fixture'])
     expect(c.allowedTools!.some(t => /curl|wget|scp|nc\b|ngrok/.test(t))).toBe(false)
   }
 })
@@ -41,7 +41,5 @@ test('the plan and the overlay: plain Claude Code with the gate off, jev-mod wit
   expect(guard(p, false)).toContain('Nothing was run')
   const mode = (i: number) => (overlayFor(task, arms[i]!, '/l') as { features: Record<string, { mode: string }> }).features['access-gate']
   expect([mode(0), mode(1)]).toEqual([{ mode: 'off' }, { mode: 'on' }])
-  // the gate asks no model, so a plain arm is not told off by its ledger
-  const run = { ledgerEntries: 3, contextTokens: null, compaction: null }
-  expect(task.verify!(task.cases()[0]!, arms[0]!, run, new Map())).toBe(null)
+  expect(task.verify).toBe(undefined)
 })

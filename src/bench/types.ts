@@ -64,6 +64,8 @@ export type Row = {
   /** The model turns Claude took over the arm's steps (`num_turns`, summed), when it said. */
   claude_turns?: number
   decision_calls?: number
+  /** Decision spend per feature that asked, from the arm's ledger: the feature under test, and any other jev-mod feature that ran in the arm. */
+  by_feature?: Record<string, FeatureSpend>
   /** Set on a case's shared-setup row: what building the session cost, once per case, before any arm. */
   setup?: true
   /** The final step's context: its input tokens, cached or not (for compaction, what the question read). */
@@ -73,6 +75,9 @@ export type Row = {
   /** The models that answered the arm's Claude calls, each with what it cost (claude -p's modelUsage). */
   claude_models?: Record<string, number>
 }
+
+/** What one feature's decisions cost in one arm run: requests to the decision model, the calls they made, and their cost. */
+export type FeatureSpend = { requests: number; calls: number; cost_usd: number }
 
 /** One compaction as the mod records it in the bench ledger: messages before, kept and dropped, and why nothing went. */
 export type Compaction = { messages: number; kept: number; dropped: number; skip: string | null }
@@ -179,13 +184,17 @@ export type Step = {
   disallowedTools?: string[]
   /** About what this call costs, in dollars, for the estimate (else the adapter's usdPerCall). */
   usd?: number
-  /** Environment variables for this call, beyond the backend's (a scratch config folder, a CA file). Never a key. */
-  env?: Record<string, string>
 }
 
+/**
+ * One task. Every arm works in a fresh copy of the project of its own, built the same way (fixture,
+ * git, patch, prepare), so one arm's edits are never another's starting point and the checker reads
+ * that arm's files. With setup prompts, the project as the setup left it is put back before each arm
+ * in the same folder, since a session is resumed (forked) from the folder it was made in.
+ */
 export type TaskCase = {
   id: string
-  /** A folder of files copied into a scratch project for the run (relative to the repo), if any. */
+  /** A folder of files copied into the scratch project (relative to the repo), if any. */
   fixture?: string
   /** Prompts that build the session, run once per case and shared by every arm (forked from). */
   setup: string[]
@@ -195,26 +204,10 @@ export type TaskCase = {
   git?: boolean
   /** A unified diff (relative to the repo) applied to the project after that commit, left uncommitted: the change to review. */
   patch?: string
-  /**
-   * Every arm works in a copy of the project of its own, so one arm's edits are not the next arm's
-   * starting point. Not with `setup` prompts: their session belongs to the shared folder.
-   */
-  isolate?: true
+  /** Runs after the fixture is copied, the repository made and the patch applied: builds state a fixture folder cannot hold (untracked work, a branch, a PATH shim). */
+  prepare?(workdir: string): Promise<void>
   /** About what the shared setup costs, in dollars, for the estimate (else its prompts at the adapter's setup price). */
   setupUsd?: number
-  /**
-   * Each arm starts from its own fresh copy of the fixture (and its own git repository), so one
-   * arm's edits are never another's starting point and the checker reads that arm's files. Used
-   * with no setup: a session cannot be resumed from another folder.
-   */
-  fresh?: true
-  /** Runs once after the fixture is copied and the repository made: builds state a fixture folder cannot hold (untracked work, a branch, a PATH shim). */
-  prepare?(workdir: string): Promise<void>
-  /**
-   * Every arm starts from the same scratch state: the project is copied aside once the setup is
-   * done and put back before each arm. For a case whose steps change the project (a gate bench).
-   */
-  isolated?: true
 }
 
 export type Arm = {
@@ -231,18 +224,18 @@ export type Checked = { success: boolean; score: number; detail?: Record<string,
 export type ArmRun = {
   /** Decision entries the mod wrote to the arm's ledger: one per decision request it made. */
   ledgerEntries: number
-  /** The same, per feature (protective features, the stop gate say, ask in every arm). */
-  ledgerFeatures?: Record<string, number>
+  /** The same, per feature that asked, with its calls and cost (protective features, the stop gate say, may ask in every jev-mod arm). */
+  byFeature: Record<string, FeatureSpend>
   /** The final step's input tokens, cached or not: the context its model call read. null: no usage reported. */
   contextTokens: number | null
   /** The last compaction the mod recorded in the arm's ledger, or null when it recorded none. */
   compaction: Compaction | null
-  /** Decision entries by the feature that made them (the screen and the web filter both ask on a fetched page). */
-  byFeature?: Record<string, number>
 }
 
-/** What an arm runs with beyond its case (TaskAdapter.beforeArm): more `claude` arguments, words for its prompts, what to stop after it. */
+/** What an arm runs with beyond its case (TaskAdapter.beforeArm): its environment, more `claude` arguments, words for its prompts, what to stop after it. */
 export type ArmSetup = {
+  /** Added to the environment of each of the arm's `claude -p` calls (a CA file, a local site's address). Never a key. */
+  env?: Record<string, string>
   /** Added to each of the arm's `claude -p` calls, after the run's own (an `--mcp-config`, `--allowedTools`). */
   claudeArgs?: string[]
   /** `{{name}}` in a step's prompt becomes vars[name] (a local site's address). */
@@ -255,21 +248,19 @@ export type ArmSetup = {
 export interface TaskAdapter<C extends TaskCase = TaskCase> {
   feature: string
   cases(): readonly C[]
-  /** Called once before the first case; what it returns is called after the last (a local site the cases fetch from). */
-  start?(): Promise<() => Promise<void> | void>
   /** Arms beyond plain Claude Code and the feature on (compaction adds one with no compaction at all). */
   extraArms?(): Arm[]
   /** The prompts one arm sends after the shared setup (for compaction: the compaction, then the questions). */
   steps(c: C, arm: Arm): Step[]
   /** The bench overlay's feature sections for this arm (core/bench-overlay.ts); the runner adds the rest. */
   overlay(arm: Arm): { features: Record<string, Record<string, unknown>>; compact?: { dropConfidence: number } }
-  /** `armDir`: the arm's own folder outside the project, the one beforeArm was given. */
-  check(c: C, finalText: string, workdir: string, armDir: string): Checked | Promise<Checked>
-  /** Before an arm's steps: start what the arm needs (a local test site) in `dir`, its own folder outside the project. */
-  beforeArm?(c: C, arm: Arm, dir: string): Promise<ArmSetup>
-  /** Environment for an arm's `claude` calls, beyond the backend's (a gate bench points the plain arm at an empty config folder, so no gate is on in it). */
-  env?(arm: Arm): Record<string, string>
-  check(c: C, finalText: string, workdir: string): Checked | Promise<Checked>
+  /** `workdir`: the arm's own copy of the project; `armDir`: the arm's own folder outside it, the one beforeArm was given. */
+  check(c: C, finalText: string, workdir: string, armDir?: string): Checked | Promise<Checked>
+  /**
+   * Before an arm's steps: start what the arm needs (a local test site) in `dir`, its own folder
+   * outside the project `workdir`, and say what its calls get beyond the runner's.
+   */
+  beforeArm?(c: C, arm: Arm, dir: string, workdir: string): Promise<ArmSetup>
   /**
    * Did the arm do what it is meant to (compact, say)? A short error code when it plainly did
    * not, and the row is an error instead of a score; null when it did or cannot be told. `all`
@@ -286,4 +277,6 @@ export interface TaskAdapter<C extends TaskCase = TaskCase> {
   maxUsdPerCall?: number
   /** Lines the plan prints under its estimate: how the adapter priced its steps. */
   estimateNote?(cases: readonly C[]): string[]
+  /** More for the report, under the comparison with plain Claude Code: a Markdown block from the task rows (routing: spend by model and by difficulty). */
+  report?(rows: readonly Row[]): string
 }

@@ -82,16 +82,17 @@ test('the overlay: the filter on in the jev-mod arm (at the swept bar), every ot
 test('an arm whose filter was never asked is no_long_fetch, never a score; plain Claude Code is left alone', () => {
   const [c] = task.cases()
   const arms = armsFor(task, ['openrouter'], null, {})
+  const spend = { requests: 1, calls: 1, cost_usd: 0.0001 }
   const row = (arm: string): Row => ({ outcome: 'ok', success: true, score: 1, case: c!.id, arm } as unknown as Row)
   const done: { arm: (typeof arms)[number]; row: Row; run: ArmRun }[] = [
     { arm: arms[0]!, row: row('claude'), run: { ledgerEntries: 0, contextTokens: 9, compaction: null, byFeature: {} } },
-    { arm: arms[1]!, row: row('jev'), run: { ledgerEntries: 1, contextTokens: 9, compaction: null, byFeature: { screening: 1 } } },
+    { arm: arms[1]!, row: row('jev'), run: { ledgerEntries: 1, contextTokens: 9, compaction: null, byFeature: { screening: spend } } },
   ]
   verifyArms(task, c!, done)
   expect(done[0]!.row.outcome).toBe('ok')
   expect(done[1]!.row).toMatchObject({ outcome: 'error', error: 'no_long_fetch' })
   expect(done[1]!.row.score).toBeUndefined()
-  const asked = [{ ...done[1]!, row: row('jev'), run: { ...done[1]!.run, byFeature: { screening: 1, 'web-filter': 1 } } }]
+  const asked = [{ ...done[1]!, row: row('jev'), run: { ...done[1]!.run, byFeature: { screening: spend, 'web-filter': spend } } }]
   verifyArms(task, c!, asked)
   expect(asked[0]!.row.outcome).toBe('ok')
 })

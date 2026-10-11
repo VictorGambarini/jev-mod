@@ -12,7 +12,7 @@
 
 import { proc, repoRoot, run } from '../../../bench/node'
 import type { TaskAdapter } from '../../../bench/types'
-import { CHECKS, DIFFICULTIES, overlayOf, stepsFor, TASKS, USD, verdict, type RoutingTask } from './task-cases'
+import { byDifficulty, CHECKS, DIFFICULTIES, overlayOf, stepsFor, TASKS, USD, verdict, type RoutingTask } from './task-cases'
 
 const PY = { env: { ...proc.env, PYTHONDONTWRITEBYTECODE: '1' }, timeoutMs: 120_000 }
 
@@ -26,6 +26,8 @@ export const task: TaskAdapter<RoutingTask> = {
     const hidden = await run('python3', ['-B', `${repoRoot()}/${CHECKS}/${t.id}.py`], { cwd: workdir, input: finalText, ...PY })
     return verdict(t, suite, hidden)
   },
+  // the shared report adds the spend by difficulty and by model under its comparison
+  report: byDifficulty,
   usdPerCall: 1,
   // a hard case on Opus may take many turns
   maxUsdPerCall: 5,

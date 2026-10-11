@@ -67,14 +67,16 @@ export function guard(p: Plan, yes: boolean): string | null {
 }
 
 /**
- * The bench overlay's feature sections for an arm: every feature that changes what the model
- * sees is off (so arms differ only in the one under test), then the adapter's own sections.
- * Protective features (screening, the gates) are left as the person has them: an overlay may
- * not loosen them, so they are the same in every arm.
+ * The bench overlay's feature sections for an arm: every feature the overlay may switch off is off
+ * (so a jev-mod arm runs the feature under test and as little else as it can), then the adapter's
+ * own sections. Protective features (screening, the gates) stay as the person has them: an
+ * overlay may only make them stricter. What they still ask is in the row's `by_feature`, apart
+ * from the feature's own decisions. A plain arm runs with jev-mod off whole (task.ts), so this only
+ * matters to it as a second guard.
  */
 export function overlayFor(adapter: TaskAdapter, arm: Arm, ledger: string): Record<string, unknown> {
   const features: Record<string, Record<string, unknown>> = {}
-  for (const f of FEATURES) if (!f.protective && !f.risky && f.id !== 'band' && f.modes.includes('off')) features[f.id] = { mode: 'off' }
+  for (const f of FEATURES) if (!f.protective && f.id !== 'band' && f.modes.includes('off')) features[f.id] = { mode: 'off' }
   const own = adapter.overlay(arm)
   for (const [id, section] of Object.entries(own.features)) features[id] = { ...(features[id] ?? {}), ...section }
   return { features, ...(own.compact ? { compact: own.compact } : {}), ledger }

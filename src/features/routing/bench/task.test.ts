@@ -3,8 +3,7 @@ import { overlayFor } from '../../../bench/plan'
 import { parseClaude } from '../../../bench/task-rows'
 import type { Arm, Row } from '../../../bench/types'
 import type { TaskAdapter } from '../../../bench/types'
-import { DIFFICULTIES, overlayOf, SESSION_TOOLS, stepsFor, TASKS, unittestCounts, USD, verdict } from './task-cases'
-import { family, groups, markdown, modelMix, plot } from './task-summary'
+import { byDifficulty, DIFFICULTIES, family, groups, modelMix, overlayOf, SESSION_TOOLS, stepsFor, TASKS, unittestCounts, USD, verdict } from './task-cases'
 
 // Routing's task bench: the cases, the scoring and the tables. That each hidden check fails on
 // the fixture as shipped and passes on a known fix needs python3 and git, which tests do not run:
@@ -18,7 +17,7 @@ test('ten cases of mixed difficulty, each its own fresh git project with no shar
   expect(DIFFICULTIES.map(d => TASKS.filter(t => t.difficulty === d).length)).toEqual([4, 3, 3])
   expect(new Set(TASKS.map(t => t.id)).size).toBe(10)
   for (const t of TASKS) {
-    expect([t.fresh, t.git, t.setup.length, t.allowedTools]).toEqual([true, true, 0, SESSION_TOOLS])
+    expect([t.git, t.setup.length, t.allowedTools]).toEqual([true, 0, SESSION_TOOLS])
     expect(t.prompt.length).toBeGreaterThan(60)
   }
 })
@@ -81,9 +80,8 @@ test('the summary groups by difficulty and arm, adds Claude and decision cost, a
     'all/claude/2/2', 'all/jev-mod openrouter/1/2'])
   expect(modelMix(g[0]!.models)).toBe('opus 98%, haiku 3%')
   expect(family('claude-sonnet-5-5')).toBe('sonnet')
-  const md = markdown(rows, 't')
+  const md = byDifficulty(rows)
   expect(md).toContain('| trivial | jev-mod openrouter | 1/1 | $0.050 | $0.00003 | $0.050 | 20 | haiku 100% |')
   expect(md).toContain('| gst-rounding | hard | jev-mod openrouter | no | 0.50 | $0.800 | $0.00003 | 20 | sonnet |')
   expect(md).not.toContain('| setup |')
-  expect(plot(rows, true)).toContain('FAKE')
 })

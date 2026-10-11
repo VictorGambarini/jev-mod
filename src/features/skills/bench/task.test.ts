@@ -98,7 +98,7 @@ test('the row records which skill loaded, and whether it was the right one (none
 
 test('the plan: both arms for ten cases, one prompt each in its own folder, no setup, skills on only in the jev-mod arm', () => {
   const cases = task.cases()
-  expect(cases.every(c => c.isolate === true && c.git === true && c.setup.length === 0)).toBe(true)
+  expect(cases.every(c => c.git === true && c.setup.length === 0)).toBe(true)
   const arms = armsFor(task, ['openrouter'], null, {})
   expect(arms.map(a => a.kind)).toEqual(['claude', 'jev-mod'])
   const p = plan(task, cases, arms)
@@ -107,8 +107,10 @@ test('the plan: both arms for ten cases, one prompt each in its own folder, no s
   expect(guard(p, false)).toContain('Nothing was run')
   const mode = (arm: (typeof arms)[number]) => (overlayFor(task, arm, '/tmp/l') as { features: Record<string, { mode: string }> }).features.skills!.mode
   expect([mode(arms[0]!), mode(arms[1]!)]).toEqual(['off', 'on'])
-  const none = { ledgerEntries: 0, contextTokens: null, compaction: null }
+  const none = { ledgerEntries: 0, byFeature: {}, contextTokens: null, compaction: null }
   expect(task.verify!(cases[0]!, arms[1]!, none, new Map())).toBe('skills_not_run')
   expect(task.verify!(cases[0]!, arms[0]!, none, new Map())).toBe(null)
-  expect(task.verify!(cases[0]!, arms[1]!, { ...none, ledgerEntries: 2 }, new Map())).toBe(null)
+  expect(task.verify!(cases[0]!, arms[1]!, { ...none, ledgerEntries: 2, byFeature: { skills: { requests: 2, calls: 2, cost_usd: 0.0002 } } }, new Map())).toBe(null)
+  // another feature asking (screening, say) is not the skills feature running
+  expect(task.verify!(cases[0]!, arms[1]!, { ...none, ledgerEntries: 1, byFeature: { screening: { requests: 1, calls: 1, cost_usd: 0.0001 } } }, new Map())).toBe('skills_not_run')
 })

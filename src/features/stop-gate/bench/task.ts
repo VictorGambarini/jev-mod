@@ -171,7 +171,6 @@ export const task = gateTask({
   usdPerCall: USD_PER_RUN,
   // one verdict per final message that claims something, and a stop-short check; a nudge adds a turn that is judged again
   decisionCallsPerArm: 3,
-  decides: true,
   note: [`  priced at about $${USD_PER_RUN.toFixed(2)} a run (a headless session of 5 to 12 turns on a small project; a nudge adds a turn or two on a grown context);`,
     '  pass --claude-arg --model --claude-arg sonnet to run on a cheaper model; the smoke run measures it'],
 })

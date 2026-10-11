@@ -124,10 +124,10 @@ A task succeeds when the project's own tests pass and so does its hidden check
 (`bench/task-checks/<id>.py`, run after the arm, never seen by it): exact CLI output, exact
 values from the API, no old name left, nothing changed for the lookup. Per task the row records
 success and the share of checks passed, the wall time, Claude's cost, the models that answered
-and what each cost (`claude_models`, from `modelUsage`), and the decision model's cost (routing's
-one request, plus any the stop gate made: protective features stay as the person has them, in
-both arms). `bun src/features/routing/bench/task-report.ts` writes `results/task-routing.md` and
-`task-routing.svg`: success, total cost and wall time by difficulty and arm, and where each arm's
+and what each cost (`claude_models`, from `modelUsage`), and the decision model's cost: routing's
+one request apart from any other jev-mod feature's (a protective one stays as the person has it in
+the jev-mod arm; plain Claude Code runs with jev-mod off whole). `bun src/bench/report.ts routing`
+adds, under the comparison, success, cost and wall time by difficulty and arm, and where each arm's
 Claude spend went by model, so the table shows where routing saves money and whether it loses
 accuracy on hard work.
 

@@ -11,7 +11,7 @@
 // The checker is deterministic: for a fix, the project's own tests (or build, or dry run) run
 // again on the arm's folder with the original tests and scripts put back, so the only way to
 // pass is to fix the code; for the diagnosis, the answer must name the request, the tenant and
-// the cause. Each arm works in a copy of its own (`isolate`), so one arm's fix is not the next
+// the cause. Each arm works in a copy of its own (as every task bench does), so one arm's fix is not the next
 // arm's starting point.
 //
 // There is no verify: whether trimming fired shows in context_tokens and in the decision calls, and folding
@@ -39,61 +39,61 @@ const PYTEST = ['python3', '-m', 'pytest', '-q', '-p', 'no:cacheprovider']
 
 export const TASKS: TrimTask[] = [
   {
-    id: 'slugify-letters', fixture: `${FIXTURE}/slugify`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 1100,
+    id: 'slugify-letters', fixture: `${FIXTURE}/slugify`, git: true, setup: [], allowedTools: TOOLS, lines: 1100,
     prompt: 'A few of our page titles come out with the wrong slug. Run the tests with `make test`, work out why ' +
       `the failing ones fail, and fix it in slugger/. ${FIX} When it is all green, say in one sentence what was wrong.`,
     check: { kind: 'tests', argv: PYTEST, restore: ['tests'] },
   },
   {
-    id: 'tax-refunds', fixture: `${FIXTURE}/pricing`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 450,
+    id: 'tax-refunds', fixture: `${FIXTURE}/pricing`, git: true, setup: [], allowedTools: TOOLS, lines: 450,
     prompt: 'Finance says some refund tax amounts are a cent out. `make test` shows what fails; find the cause in shop/ and ' +
       `fix it. ${FIX} Tell me in a sentence what it was.`,
     check: { kind: 'tests', argv: PYTEST, restore: ['tests'] },
   },
   {
-    id: 'month-ends', fixture: `${FIXTURE}/cycles`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 550,
+    id: 'month-ends', fixture: `${FIXTURE}/cycles`, git: true, setup: [], allowedTools: TOOLS, lines: 550,
     prompt: 'Billing cycles that start at the end of a month sometimes land on the wrong day. Run `make test`, find what ' +
       `is wrong in billing/calendar_utils.py and fix it. ${FIX}`,
     check: { kind: 'tests', argv: PYTEST, restore: ['tests'] },
   },
   {
-    id: 'csv-quotes', fixture: `${FIXTURE}/csvparse`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 300,
+    id: 'csv-quotes', fixture: `${FIXTURE}/csvparse`, git: true, setup: [], allowedTools: TOOLS, lines: 300,
     prompt: 'Our CSV import mangles some customer notes. Run `make test`, see which lines fail and why, and ' +
       `fix csvlite/parser.py. ${FIX}`,
     check: { kind: 'tests', argv: PYTEST, restore: ['tests'] },
   },
   {
-    id: 'prerelease-order', fixture: `${FIXTURE}/semver`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 560,
+    id: 'prerelease-order', fixture: `${FIXTURE}/semver`, git: true, setup: [], allowedTools: TOOLS, lines: 560,
     prompt: 'Release candidates are sorting in the wrong order in our updater. `make test` runs the version comparison ' +
       `tests; find out what is wrong in vercmp/ and fix it. ${FIX}`,
     check: { kind: 'tests', argv: PYTEST, restore: ['tests'] },
   },
   {
-    id: 'pib-sizes', fixture: `${FIXTURE}/sizes`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 570,
+    id: 'pib-sizes', fixture: `${FIXTURE}/sizes`, git: true, setup: [], allowedTools: TOOLS, lines: 570,
     prompt: 'A handful of size parsing tests fail in this Go package. Run `make test`, find the cause and fix sizes.go. ' +
       `${FIX} One sentence on what it was when done.`,
     check: { kind: 'tests', argv: ['go', 'test', '-v', './...'], restore: ['sizes_test.go'] },
   },
   {
-    id: 'lru-falsy', fixture: `${FIXTURE}/lru`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 350,
+    id: 'lru-falsy', fixture: `${FIXTURE}/lru`, git: true, setup: [], allowedTools: TOOLS, lines: 350,
     prompt: 'The LRU cache loses some entries it should have kept. Run `npm test`, see which scenarios fail, and fix src/lru.js. ' +
       `${FIX}`,
     check: { kind: 'tests', argv: ['npm', 'test'], restore: ['test'] },
   },
   {
-    id: 'build-template', fixture: `${FIXTURE}/site`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 380,
+    id: 'build-template', fixture: `${FIXTURE}/site`, git: true, setup: [], allowedTools: TOOLS, lines: 380,
     prompt: 'The site build is failing. Run `make build`, find out what breaks it and fix it so the build finishes. Do not change ' +
       'build.sh or anything in tools/.',
     check: { kind: 'script', argv: ['./build.sh'], restore: ['build.sh', 'tools'] },
   },
   {
-    id: 'migration-order', fixture: `${FIXTURE}/app`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 600,
+    id: 'migration-order', fixture: `${FIXTURE}/app`, git: true, setup: [], allowedTools: TOOLS, lines: 600,
     prompt: 'The migrations stop partway in CI. `make check` is the dry run; run it to see where, work out why, and fix the ' +
       'migrations so all of them apply cleanly. Do not edit tools/migrate.py, and do not change what any migration does.',
     check: { kind: 'script', argv: ['python3', 'tools/migrate.py', '--dry-run'], restore: ['tools'] },
   },
   {
-    id: 'pool-timeouts', fixture: `${FIXTURE}/trace`, git: true, isolate: true, setup: [], allowedTools: TOOLS, lines: 1080,
+    id: 'pool-timeouts', fixture: `${FIXTURE}/trace`, git: true, setup: [], allowedTools: TOOLS, lines: 1080,
     prompt: 'Users reported 500s from the API on 2026-10-09 around 03:02. Replay the trace with `make replay` and tell me which request failed first, which tenant it belongs to, and why it failed: the root cause, ' +
       'not only the error message. Do not change anything. A few lines is enough.',
     check: { kind: 'answer', patterns: [/r-4861/, /t-0417/, /pool/i, /reload|pool_size|10\s*(to|→|->|=>)\s*2|shrunk|shrank|reduc|lower|smaller|dropped/i, /export/i] },

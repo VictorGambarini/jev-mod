@@ -1,6 +1,6 @@
 // The web filter's task-level bench: a person asks Claude Code something that a long web page
 // answers in a sentence or two, and Claude fetches it with WebFetch. Plain Claude Code (jev-mod
-// switched off whole) reads whatever WebFetch returns; with jev-mod the web filter cuts the parts
+// switched off whole, as in every bench) reads whatever WebFetch returns; with jev-mod the web filter cuts the parts
 // the question does not need before Claude reads it. The checker is the exact answer, so a filter
 // that cuts the sentence it needed shows as a wrong answer; wall time, Claude's cost (what the
 // model reads is most of it), the decision model's cost and the total are in the row.
@@ -14,7 +14,7 @@
 // on these pages, and an arm whose filter was never asked is an error (`no_long_fetch`), not a score.
 
 import { addresses } from '../../../bench/web-server-address'
-import type { Arm, ArmRun, Checked, Step, TaskAdapter, TaskCase } from '../../../bench/types'
+import type { Arm, ArmRun, ArmSetup, Checked, Step, TaskAdapter, TaskCase } from '../../../bench/types'
 import { FILTER_TASKS, type FilterTask } from './pages'
 
 export type FilterCase = TaskCase & { task: FilterTask }
@@ -37,21 +37,21 @@ export function check(t: FilterTask, text: string): Checked {
 }
 
 /**
- * What needs the machine (the local site, the scratch config folder) is filled in by task-io.ts,
- * so that this file and its tests load without it. `env` is what an arm's Claude calls are given.
+ * What needs the machine (the local site) is filled in by task-io.ts, so that this file and its
+ * tests load without it: the site started for an arm, and what its Claude calls are given.
  */
 export const io = {
-  start: async (): Promise<() => Promise<void>> => { throw new Error('the web-filter task bench needs task-io.ts') },
-  env: (_arm: Arm): Record<string, string> => ({}),
+  site: async (): Promise<ArmSetup> => { throw new Error('the web-filter task bench needs task-io.ts') },
 }
 
 export const task: TaskAdapter<FilterCase> = {
   feature: 'web-filter',
   cases: () => FILTER_TASKS.map(t => ({ id: t.id, fixture: FIXTURE, setup: [], allowedTools: ['WebFetch', 'Read'], task: t })),
-  start: () => io.start(),
-  steps(c, arm): Step[] {
+  // each arm gets the site afresh, and trusts its certificate
+  beforeArm: () => io.site(),
+  steps(c): Step[] {
     // the https address is fixed before the site starts, so a plan can print the prompts
-    return [{ prompt: promptFor(c.task, addresses().https), final: true, env: io.env(arm), usd: 0.12 }]
+    return [{ prompt: promptFor(c.task, addresses().https), final: true, usd: 0.12 }]
   },
   overlay(arm) {
     const features: Record<string, Record<string, unknown>> = {}
@@ -61,7 +61,7 @@ export const task: TaskAdapter<FilterCase> = {
   check: (c, text) => check(c.task, text),
   verify(_c: FilterCase, arm: Arm, run: ArmRun): string | null {
     // the filter only looks at a WebFetch result of 4000 characters or more
-    return arm.kind === 'jev-mod' && !(run.byFeature?.['web-filter'] ?? 0) ? 'no_long_fetch' : null
+    return arm.kind === 'jev-mod' && !(run.byFeature['web-filter']?.requests ?? 0) ? 'no_long_fetch' : null
   },
   usdPerCall: 0.12,
   maxUsdPerCall: 1,

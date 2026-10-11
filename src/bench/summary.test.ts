@@ -184,21 +184,26 @@ test('task rows give a comparison table with accuracy, speed and cost, plain Cla
     task('claude', { ...plainBackend, wall_ms: 40_000, claude_cost_usd: 0.6, cost_usd: 0 }),
     task('claude', { ...plainBackend, wall_ms: 80_000, claude_cost_usd: 0.8, cost_usd: 0, success: false, score: 0.5 }),
     task('claude', { ...plainBackend, wall_ms: 60_000, claude_cost_usd: 0.7, cost_usd: 0 }),
-    task('jev-mod typesafe minConfidence=0.8', { wall_ms: 20_000, claude_cost_usd: 0.3, cost_usd: 0.01 }),
+    task('jev-mod typesafe minConfidence=0.8', { wall_ms: 20_000, claude_cost_usd: 0.3, cost_usd: 0.01,
+      by_feature: { [explained.feature]: { requests: 2, calls: 2, cost_usd: 0.008 }, screening: { requests: 1, calls: 1, cost_usd: 0.002 } } }),
   ]
   const s = summarise(explained, [...rows, ...rs], false)
   const [plain, jev] = s.arms
   expect([plain!.kind, jev!.kind]).toEqual(['plain', 'jev-mod'])
   expect([plain!.wallMedian, plain!.wallTotal, jev!.totalCost]).toEqual([60_000, 180_000, 0.31])
+  // the feature's own decisions apart from what other jev-mod features asked
+  expect([jev!.featureCost, Math.round(jev!.otherCost! * 1e6)]).toEqual([0.008, 2000])
   const md = markdown(explained, s, { task: 'task.svg' })
   expect(md).toContain('![task](task.svg)')
-  expect(md).toContain('| arm | runs | success | mean score | median time | total time | Claude cost | decision cost | total cost |')
+  expect(md).toContain('| arm | runs | success | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |')
   expect(md.indexOf('| plain Claude Code | 3 |')).toBeLessThan(md.indexOf('| jev-mod typesafe minConfidence=0.8 | 1 |'))
-  expect(md).toContain('| plain Claude Code | 3 | 66.7% | 83.3% | 60.0 s | 180.0 s | $0.700 | $0 | $0.700 |')
+  expect(md).toContain('| plain Claude Code | 3 | 66.7% | 83.3% | 60.0 s | 180.0 s | $0.700 | $0 | $0 | $0.700 |')
+  expect(md).toContain('| jev-mod typesafe minConfidence=0.8 | 1 | 100.0% | 100.0% | 20.0 s | 20.0 s | $0.300 | $0.00800 | $0.00200 | $0.310 |')
+  expect(markdown(explained, s, {}, '**By difficulty**')).toContain('**By difficulty**')
   expect(md).toContain('- jev-mod typesafe minConfidence=0.8: right on 100.0% (plain Claude Code 66.7%) of runs, median 20.0 s (plain Claude Code 60.0 s)')
   // the comparison comes before the decision-level table
   expect(md.indexOf('| plain Claude Code |')).toBeLessThan(md.indexOf('| backend · model |'))
   const svg = plots(explained, s).task!
-  for (const word of ['success', 'score', 'wall time (median)', 'Claude cost', 'decision cost', 'total cost']) expect(svg).toContain(word)
+  for (const word of ['success', 'score', 'wall time (median)', 'Claude cost', 'feature decision cost', 'other decision cost', 'total cost']) expect(svg).toContain(word)
   expect(svg).not.toContain('question context')
 })

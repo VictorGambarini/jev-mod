@@ -104,7 +104,7 @@ lines. A task is what a person says to Claude Code: *run `make test`, work out w
 
 Plain Claude Code sees every line it asks for; the arm with the feature on gets the output after the hook trimmed it. A third arm,
 *jev-mod folding only* (`localOnly`), folds repeats locally and asks no model, so the table shows what the decision model adds.
-Each arm works in a copy of the project of its own (`isolate`). The checker is deterministic: it puts the original tests (or build
+Each arm works in a copy of the project of its own, as in every task bench. The checker is deterministic: it puts the original tests (or build
 script, or migrate tool) back, runs them on the arm's code, and passes only when they pass; the diagnosis must name the request, the
 tenant and the cause. Measured per arm: success and score, wall time, Claude's cost and tokens, `context_tokens` (the run's input
 tokens, added up over its model calls), the decision model's cost and calls, and the total. `bench/check-fixtures.ts` proves with

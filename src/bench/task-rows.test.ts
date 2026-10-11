@@ -32,7 +32,7 @@ test('a step\'s context is its input tokens, cached or not; none reported is unk
 })
 
 const run = (ledgerEntries: number, contextTokens: number | null, dropped?: number): ArmRun =>
-  ({ ledgerEntries, contextTokens, compaction: dropped === undefined ? null : { messages: 300, kept: 300 - dropped, dropped, skip: dropped ? null : 'Jev marked no turn drop; nothing to remove' } })
+  ({ ledgerEntries, byFeature: {}, contextTokens, compaction: dropped === undefined ? null : { messages: 300, kept: 300 - dropped, dropped, skip: dropped ? null : 'Jev marked no turn drop; nothing to remove' } })
 
 test('an arm that did not compact is an error, not_compacted, and loses its score', () => {
   const none = arm('no compaction', 'claude')
@@ -80,10 +80,13 @@ test('the ledger: decision calls are added up, the last compaction is what the a
     { name: '1701-b.json', text: JSON.stringify({ at: 2, feature: 'compact', calls: 2, cost: 0.0003, model: 'jev-1.13', error: null }) },
     { name: 'compaction-1702-c.json', text: JSON.stringify({ at: 3, kind: 'compaction', messages: 310, kept: 140, dropped: 170, skip: null }) },
     { name: '1703-d.json', text: '{"at": 4, "calls"' },
+    { name: '1704-e.json', text: JSON.stringify({ at: 5, feature: 'stop-gate', calls: 1, cost: 0.0001, model: 'jev-1.13', error: null }) },
   ])
-  expect(book.decisions).toBe(2)
-  expect(book.calls).toBe(3)
-  expect(Math.round(book.cost * 1e6)).toBe(500)
+  expect(book.decisions).toBe(3)
+  expect(book.byFeature.compact).toEqual({ requests: 2, calls: 3, cost_usd: 0.0005 })
+  expect(book.byFeature['stop-gate']).toEqual({ requests: 1, calls: 1, cost_usd: 0.0001 })
+  expect(book.calls).toBe(4)
+  expect(Math.round(book.cost * 1e6)).toBe(600)
   expect(book.model).toBe('jev-1.13')
   expect(book.compaction).toEqual({ messages: 310, kept: 140, dropped: 170, skip: null })
   expect(readLedger([]).compaction).toBe(null)

@@ -134,21 +134,16 @@ export type GateBench = {
   tools: string[]
   usdPerCall: number
   decisionCallsPerArm: number
-  /** The gate asks the decision model, so a plain arm that shows decision calls had the gate on (set in the person's own config, which an overlay cannot loosen). */
-  decides: boolean
   note: string[]
 }
 
 export function gateTask(o: GateBench): TaskAdapter<GateCase> {
   return {
     feature: o.feature,
-    cases: () => o.cases.map(c => ({ ...c, allowedTools: o.tools, git: true, isolated: true, setup: [] })),
+    cases: () => o.cases.map(c => ({ ...c, allowedTools: o.tools, git: true, setup: [] })),
     steps: (c): Step[] => [{ prompt: c.prompt, final: true, usd: c.usd ?? o.usdPerCall }],
-    // the plain arm reads an empty config folder: an overlay cannot loosen a gate the person's own config turned on
-    env: (arm: Arm): Record<string, string> => arm.kind === 'claude' ? { XDG_CONFIG_HOME: `${S().env('TMPDIR') || '/tmp'}/jev-mod-bench-no-config` } : {},
     overlay: (arm: Arm) => ({ features: { [o.feature]: { mode: arm.kind === 'jev-mod' ? 'on' : 'off' } } }),
     check: async (c, final, dir) => checked(c.kind, await c.judge(final, dir)),
-    verify: (_c, arm: Arm, run: ArmRun) => o.decides && arm.kind === 'claude' && run.ledgerEntries > 0 ? 'gate_on_in_plain_arm' : null,
     usdPerCall: o.usdPerCall,
     maxUsdPerCall: 3,
     decisionCallsPerArm: o.decisionCallsPerArm,

@@ -49,7 +49,7 @@ export const PROMPT = 'I have uncommitted changes in this repo that I am about t
   'If you find no defect, write `FINDING: none`.'
 
 const base = (id: string, patchLines: number, bugs: Spot[], tolerated: Spot[] = []): ReviewTask => ({
-  id, fixture: `${FIXTURE}/base`, patch: `${FIXTURE}/patches/${id}.patch`, git: true, isolate: true, setup: [], allowedTools: TOOLS,
+  id, fixture: `${FIXTURE}/base`, patch: `${FIXTURE}/patches/${id}.patch`, git: true, setup: [], allowedTools: TOOLS,
   prompt: PROMPT, bugs, tolerated, patchLines,
 })
 
@@ -158,7 +158,7 @@ export const told = (arm: Arm) => arm.settings.told !== 0 && arm.settings.told !
 /** Plain Claude Code has no triage; a jev-mod arm whose triage asked no decision model is plain Claude Code under another name. */
 export function verify(_t: ReviewTask, arm: Arm, run: ArmRun): string | null {
   if (arm.kind !== 'jev-mod') return null
-  return (run.ledgerFeatures?.['review-triage'] ?? 0) === 0 ? 'not_triaged' : null
+  return (run.byFeature['review-triage']?.requests ?? 0) === 0 ? 'not_triaged' : null
 }
 
 // Claude's prices per token that the trim-output smoke fitted (a cache read, a cache write, an output token).

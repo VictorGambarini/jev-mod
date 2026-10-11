@@ -191,6 +191,6 @@ export function playwrightConfig(chrome: string): string {
 /** The `claude` arguments of one arm: its browser tool and nothing else from MCP. */
 export function armArgs(arm: Arm, mcpConfigPath: string): string[] {
   return arm.kind === 'claude'
-    ? ['--strict-mcp-config', '--mcp-config', mcpConfigPath, '--allowedTools', 'mcp__playwright']
-    : ['--strict-mcp-config', '--allowedTools', 'mcp__jev-mod__browse']
+    ? ['--mcp-config', mcpConfigPath, '--allowedTools', 'mcp__playwright']
+    : ['--allowedTools', 'mcp__jev-mod__browse']
 }

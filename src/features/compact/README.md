@@ -58,18 +58,19 @@ Two benches (src/bench/README.md). The decision level asks Jev about ten labelle
 
 ![task](bench/results/task.svg)
 
-| arm | runs | success | mean score | median time | total time | Claude cost | decision cost | total cost |
-|---|---|---|---|---|---|---|---|---|
-| plain Claude Code | 1 | 100.0% | 100.0% | 97.0 s | 97.0 s | $6.783 | $0 | $6.783 |
-| no compaction | 1 | 100.0% | 100.0% | 10.9 s | 10.9 s | $4.291 | $0 | $4.291 |
-| jev-mod openrouter drop=0.6 | 1 (failed: 1 not_compacted) | – | – | – | 12.6 s | – | – | – |
-| jev-mod openrouter drop=0.7 | 1 (failed: 1 not_compacted) | – | – | – | 12.8 s | – | – | – |
-| jev-mod openrouter drop=0.8 | 1 (failed: 1 not_compacted) | – | – | – | 14.6 s | – | – | – |
-| jev-mod openrouter drop=0.9 | 1 (failed: 1 not_compacted) | – | – | – | 15.4 s | – | – | – |
+| arm | runs | success | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |
+|---|---|---|---|---|---|---|---|---|---|
+| plain Claude Code | 1 | 100.0% | 100.0% | 97.0 s | 97.0 s | $6.783 | $0 | $0 | $6.783 |
+| no compaction | 1 | 100.0% | 100.0% | 10.9 s | 10.9 s | $4.291 | $0 | $0 | $4.291 |
+| jev-mod openrouter drop=0.6 | 1 (failed: 1 not_compacted) | – | – | – | 12.6 s | – | – | – | – |
+| jev-mod openrouter drop=0.7 | 1 (failed: 1 not_compacted) | – | – | – | 12.8 s | – | – | – | – |
+| jev-mod openrouter drop=0.8 | 1 (failed: 1 not_compacted) | – | – | – | 14.6 s | – | – | – | – |
+| jev-mod openrouter drop=0.9 | 1 (failed: 1 not_compacted) | – | – | – | 15.4 s | – | – | – | – |
 
 - success: the share of scored runs the checker marked right; mean score: its partial credit (the share of questions answered right, say).
 - median time: over scored runs; total time: every run of the arm, failed ones too.
-- costs are per scored run; total cost is Claude plus the decision model. A failed run is never scored.
+- costs are per scored run. Feature decision cost: what compact's own decisions cost; other jev-mod decision cost: what other jev-mod features still asked in the arm (a protective feature the bench may not switch off, as the person has it). Total cost is Claude plus both. A failed run is never scored.
+- plain Claude Code runs with jev-mod switched off whole, so it makes no decisions; a plain run that shows any is an error (`decisions_in_plain_arm`). Runs from jev-mod 0.12.0 and before switched off only the features that change what the model sees.
 
 - jev-mod openrouter drop=0.6: no scored run (1 not_compacted).
 - jev-mod openrouter drop=0.7: no scored run (1 not_compacted).

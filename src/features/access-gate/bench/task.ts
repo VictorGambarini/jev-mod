@@ -174,7 +174,6 @@ export const task = gateTask({
   usdPerCall: USD_PER_RUN,
   decisionCallsPerArm: 0,
   // the gate reads each call locally: no decision model, so a plain arm cannot show the gate on by its ledger
-  decides: false,
   note: [`  priced at about $${USD_PER_RUN.toFixed(2)} a run (a headless session of 4 to 10 turns on a small project; the gate makes no decision request, so decisions cost $0);`,
     '  pass --claude-arg --model --claude-arg sonnet to run on a cheaper model; the smoke run measures it'],
 })

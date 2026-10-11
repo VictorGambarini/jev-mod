@@ -29,6 +29,9 @@ async function report(feature: string, fake: boolean, tuning: boolean, readme: b
     rows.push(...mine.filter(r => fake || !r.fake))
   }
   const s = summarise(adapter, rows, fake)
+  // the task bench's own block under the comparison (routing: by difficulty and by model)
+  const taskRows = rows.filter(r => r.level === 'task' && r.feature === feature)
+  const extra = taskRows.length ? BENCHES[feature]?.task?.report?.(taskRows) ?? '' : ''
   const svgs = plots(adapter, s)
   const suffix = fake ? '-fake' : ''
   const images: Record<string, string> = {}
@@ -36,10 +39,10 @@ async function report(feature: string, fake: boolean, tuning: boolean, readme: b
     await f.writeFile(`${dir}/${name}${suffix}.svg`, svg + '\n')
     images[name] = `bench/${fake ? 'fake' : 'results'}/${name}${suffix}.svg`
   }
-  const block = markdown(adapter, s, images)
+  const block = markdown(adapter, s, images, extra)
   // summary.md sits beside the plots, so its image links are relative to that folder
   await f.writeFile(`${dir}/summary${suffix}.md`, `# ${adapter.title}: bench summary${fake ? ' (FAKE backend)' : ''}\n\n` +
-    markdown(adapter, s, Object.fromEntries(Object.entries(images).map(([k, v]) => [k, v.split('/').pop()!]))) + '\n')
+    markdown(adapter, s, Object.fromEntries(Object.entries(images).map(([k, v]) => [k, v.split('/').pop()!])), extra) + '\n')
   say(`${feature}: ${rows.length} row(s) → ${Object.keys(svgs).length} plot(s) and summary${suffix}.md in ${dir}`)
   if (!fake || readme) {
     const path = `${repo}/${benchDir(feature).replace(/\/bench$/, '')}/README.md`

@@ -12,7 +12,6 @@ test('ten changes: three clean, seven with one to three defects, each reviewed i
   expect(TASKS.filter(t => t.bugs.length === 0).map(t => t.id)).toEqual(['docs-typos', 'rename-money', 'logging'])
   expect(TASKS.reduce((n, t) => n + t.bugs.length, 0)).toBe(12)
   for (const t of TASKS) {
-    expect(t.isolate).toBe(true)
     expect(t.git).toBe(true)
     expect(t.setup).toEqual([])
     expect(t.patch).toBe(`src/features/review-triage/bench/task-fixture/patches/${t.id}.patch`)
@@ -106,7 +105,8 @@ test('a jev-mod arm is told to use the tool unless told=0; plain Claude Code nev
 test('a jev-mod arm whose triage asked no decision model is an error, whatever other features asked', () => {
   const t = TASKS[3]!
   const mod = { id: 'jev-mod openrouter', kind: 'jev-mod' as const, backend: 'openrouter', settings: {} }
-  const run = (n: number, other = 2) => ({ ledgerEntries: n + other, ledgerFeatures: { 'stop-gate': other, ...(n ? { 'review-triage': n } : {}) }, contextTokens: null, compaction: null })
+  const spend = (n: number) => ({ requests: n, calls: n, cost_usd: 0.0001 * n })
+  const run = (n: number, other = 2) => ({ ledgerEntries: n + other, byFeature: { 'stop-gate': spend(other), ...(n ? { 'review-triage': spend(n) } : {}) }, contextTokens: null, compaction: null })
   expect(verify(t, mod, run(0))).toBe('not_triaged')
   expect(verify(t, mod, run(2))).toBeNull()
   expect(verify(t, { id: 'claude', kind: 'claude', backend: null, settings: {} }, run(0))).toBeNull()

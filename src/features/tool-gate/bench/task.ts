@@ -236,7 +236,6 @@ export const task = gateTask({
   usdPerCall: USD_PER_RUN,
   // a flagged Bash call is one request; a case holds a few
   decisionCallsPerArm: 3,
-  decides: true,
   note: [`  priced at about $${USD_PER_RUN.toFixed(2)} a run (one headless session of 6 to 12 turns on a small project: the cached system prompt, the turns reading it,`,
     '  a few hundred output tokens a turn); pass --claude-arg --model --claude-arg sonnet to run on a cheaper model; the smoke run measures it'],
 })

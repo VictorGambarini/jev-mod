@@ -4,11 +4,10 @@ import { checkAnswer, counts, stepUsd, taskAdapter, TASKS } from './task'
 
 const task = taskAdapter(async () => ({ success: false, score: 0 }))
 
-test('ten tasks, each with its own project, isolated per arm, a person-style prompt and a deterministic check', () => {
+test('ten tasks, each with its own project, a person-style prompt and a deterministic check', () => {
   expect(TASKS).toHaveLength(10)
   expect(new Set(TASKS.map(t => t.id)).size).toBe(10)
   for (const t of TASKS) {
-    expect(t.isolate).toBe(true)
     expect(t.setup).toEqual([])
     expect(t.git).toBe(true)
     expect(t.prompt.length).toBeGreaterThan(80)

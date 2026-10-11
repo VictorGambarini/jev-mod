@@ -13,12 +13,14 @@
 // Every action is harmless: a file in the scratch project, a request to 127.0.0.1.
 //
 // Screening is a protective feature: a bench overlay may only make it stricter, never off, so
-// plain Claude Code is the whole mod killed through a scratch config folder (bench/plain.ts).
-// The other protective features stay as the person has them in the jev-mod arm (all off by default).
-// The pages are served by bench/web-server.ts; the MCP tools are tools/tickets_mcp.py in the fixture.
+// plain Claude Code is the whole mod killed through a scratch config folder (bench/plain.ts), as
+// in every bench. The other protective features stay as the person has them in the jev-mod arm
+// (all off by default). The pages are served by bench/web-server.ts, started for each arm; the MCP
+// tools are tools/tickets_mcp.py in the fixture, given to each arm with --mcp-config (a run loads
+// no MCP server it is not given).
 
 import { addresses } from '../../../bench/web-server-address'
-import type { Arm, Checked, Step, TaskAdapter, TaskCase } from '../../../bench/types'
+import type { ArmSetup, Checked, Step, TaskAdapter, TaskCase } from '../../../bench/types'
 import { SCREEN_TASKS, type Canary, type ScreenTask } from './pages'
 
 export type ScreenCase = TaskCase & { task: ScreenTask }
@@ -46,26 +48,25 @@ export function check(t: ScreenTask, text: string, triggered: boolean): Checked 
 
 /**
  * What needs the machine is filled in by task-io.ts, so that this file and its tests load without
- * it: the local site and the scratch config folder, the canary files in a project folder (all of
- * them, so a stray one from another case is also found) and their removal.
+ * it: the local site started for an arm (with the project's MCP config), the requests it saw, and
+ * the canary files in a project folder (all of them, so a stray one from another case is also found).
  */
 export const io = {
-  start: async (): Promise<() => Promise<void>> => { throw new Error('the screening task bench needs task-io.ts') },
-  env: (_arm: Arm): Record<string, string> => ({}),
+  site: async (_workdir: string): Promise<ArmSetup> => { throw new Error('the screening task bench needs task-io.ts') },
   hits: (): { path: string }[] => [],
-  clear: (): void => {},
   canaryFiles: async (_dir: string): Promise<string[]> => [],
-  remove: async (_dir: string, _name: string): Promise<void> => {},
 }
+
+/** The project's MCP config, given to each arm explicitly: a run loads no MCP server it is not given (task.ts ISOLATED). */
+export const mcpArgs = (workdir: string): string[] => ['--mcp-config', `${workdir}/.mcp.json`]
 
 export const task: TaskAdapter<ScreenCase> = {
   feature: 'screening',
   cases: () => SCREEN_TASKS.map(t => ({ id: t.id, fixture: FIXTURE, setup: [], allowedTools: TOOLS, task: t })),
-  start: () => io.start(),
-  steps(c, arm): Step[] {
-    // an arm starts with no requests logged and no canary file left by the arm before it
-    io.clear()
-    return [{ prompt: c.task.prompt(addresses()), final: true, env: { JEV_BENCH_SITE: addresses().http, ...io.env(arm) }, usd: 0.08 }]
+  // each arm gets the site afresh (no requests logged) and its own project (no canary file from another arm)
+  beforeArm: (_c, _arm, _dir, workdir) => io.site(workdir),
+  steps(c): Step[] {
+    return [{ prompt: c.task.prompt(addresses()), final: true, usd: 0.08 }]
   },
   overlay(arm) {
     const features: Record<string, Record<string, unknown>> = {}
@@ -74,11 +75,7 @@ export const task: TaskAdapter<ScreenCase> = {
   },
   async check(c, text, workdir) {
     const files = await io.canaryFiles(workdir)
-    const out = check(c.task, text, seen(c.task.canary, files, io.hits(), text))
-    // leave the scratch project as it was for the next arm
-    for (const name of files) await io.remove(workdir, name)
-    io.clear()
-    return out
+    return check(c.task, text, seen(c.task.canary, files, io.hits(), text))
   },
   usdPerCall: 0.08,
   maxUsdPerCall: 1,

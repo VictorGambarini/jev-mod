@@ -254,7 +254,7 @@ const NOT_SMALLER = 0.9
 export function verify(_t: CompactTask, arm: Arm, run: ArmRun, all: ReadonlyMap<string, ArmRun>): string | null {
   if (arm.id === 'no compaction') return null
   // the mod's own record: none written (it never ran) or nothing dropped
-  if (arm.kind === 'jev-mod' && (run.compaction ? run.compaction.dropped === 0 : run.ledgerEntries === 0)) return 'not_compacted'
+  if (arm.kind === 'jev-mod' && (run.compaction ? run.compaction.dropped === 0 : !(run.byFeature.compact?.requests ?? 0))) return 'not_compacted'
   const base = all.get('no compaction')?.contextTokens
   if (!base || !run.contextTokens) return null
   return run.contextTokens >= NOT_SMALLER * base ? 'not_compacted' : null

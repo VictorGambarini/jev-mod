@@ -31,12 +31,12 @@ test('the cases: unique, traps and clean ones, each a plain request in one scrat
   expect(CASES.filter(c => c.kind === 'clean').length).toBeGreaterThan(1)
   expect(CASES.filter(c => c.kind === 'trap').length).toBeGreaterThan(4)
   for (const c of task.cases()) {
-    expect([c.isolated, c.git, c.setup.length, typeof c.prepare, c.fixture]).toEqual([true, true, 0, 'function', 'src/features/stop-gate/bench/task-fixture'])
+    expect([c.git, c.setup.length, typeof c.prepare, c.fixture]).toEqual([true, 0, 'function', 'src/features/stop-gate/bench/task-fixture'])
     expect(c.allowedTools!.some(t => /rm|curl|ssh|push/.test(t))).toBe(false)
   }
 })
 
-test('the plan and the overlay: plain Claude Code with the gate off, jev-mod with it on; a plain arm with decision calls is an error', () => {
+test('the plan and the overlay: plain Claude Code with the gate off, jev-mod with it on; no verify of its own', () => {
   const arms = armsFor(task, ['openrouter'], null, {})
   expect(arms.map(a => a.id)).toEqual(['claude', 'jev-mod openrouter'])
   const p = plan(task, task.cases(), arms)
@@ -44,7 +44,6 @@ test('the plan and the overlay: plain Claude Code with the gate off, jev-mod wit
   expect(guard(p, false)).toContain('Nothing was run')
   const mode = (i: number) => (overlayFor(task, arms[i]!, '/l') as { features: Record<string, { mode: string }> }).features['stop-gate']
   expect([mode(0), mode(1)]).toEqual([{ mode: 'off' }, { mode: 'on' }])
-  const run = (ledgerEntries: number) => ({ ledgerEntries, contextTokens: null, compaction: null })
-  expect(task.verify!(task.cases()[0]!, arms[0]!, run(1), new Map())).toBe('gate_on_in_plain_arm')
-  expect(task.verify!(task.cases()[0]!, arms[1]!, run(1), new Map())).toBe(null)
+  // a plain arm with decision calls is the runner's error (task.ts), for every bench
+  expect(task.verify).toBe(undefined)
 })

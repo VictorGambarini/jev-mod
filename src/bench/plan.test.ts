@@ -63,14 +63,15 @@ test('without --yes nothing runs: the guard returns the plan and says how to sta
   expect(guard(plan(compactTask, [], []), true)).toContain('nothing to run')
 })
 
-test('an arm\'s overlay turns the other plain features off, leaves protective ones alone, and carries no key', () => {
+test('an arm\'s overlay turns every feature it may off, the risky browser too, leaves protective ones alone, and carries no key', () => {
   const [, , on] = armsFor(compactTask, ['typesafe'], { name: 'drop', values: [0.85] }, {})
   const overlay = overlayFor(compactTask, on!, '/scratch/ledger') as { features: Record<string, { mode: string }>; compact?: { dropConfidence: number }; ledger: string }
   expect(overlay.compact).toEqual({ dropConfidence: 0.85 })
   expect(overlay.ledger).toBe('/scratch/ledger')
   for (const f of FEATURES) {
-    if (f.protective || f.risky) expect(overlay.features[f.id]).toBe(undefined)
+    if (f.protective) expect(overlay.features[f.id]).toBe(undefined)
   }
+  expect(overlay.features.browser).toEqual({ mode: 'off' })
   expect(overlay.features.routing).toEqual({ mode: 'off' })
   expect(overlay.features['trim-output']).toEqual({ mode: 'off' })
   // what the mod reads back is the same overlay: nothing in it looks like a key

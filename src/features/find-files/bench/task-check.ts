@@ -59,7 +59,7 @@ async function fakeRun() {
   await f.writeFile(`${tmp}/bin/claude`, `#!/usr/bin/env python3
 import json, os, sys
 args = sys.argv[1:]
-case = os.path.basename(os.path.dirname(os.getcwd()))
+case = os.path.basename(os.path.dirname(os.environ['JEV_MOD_BENCH_OVERLAY']))
 overlay = json.load(open(os.environ['JEV_MOD_BENCH_OVERLAY']))
 on = overlay['features'].get('find-files', {}).get('mode') == 'on'
 assert os.path.isdir('src') and os.path.isdir('.git'), 'the project was not copied as a git repository'
@@ -91,7 +91,7 @@ print(json.dumps({'type': 'result', 'is_error': False, 'result': text, 'session_
       claudeArgs: [], maxUsdPerCall: 1, timeoutMs: 120_000 })
     const mine = (c: string, a: string) => rows.find(r => r.case === c && r.arm === a)!
     const j = 'jev-mod openrouter'
-    check(rows.filter(r => r.setup).length === 2, 'a setup row per case, with no calls')
+    check(rows.filter(r => r.setup).length === 0, 'no setup row for a case with no setup prompts')
     check(mine(exp.id, 'claude').outcome === 'ok' && mine(exp.id, 'claude').success === false, 'plain: the extra file fails the case')
     check(same([mine(exp.id, 'claude').detail?.precision, mine(exp.id, 'claude').detail?.recall], [2 / 3, 1]), 'plain: precision 2/3, recall 1')
     check(mine(tax.id, 'claude').success === false && mine(tax.id, 'claude').detail?.recall === 2 / 3, 'plain: a missed read gives recall 2/3')

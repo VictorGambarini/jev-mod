@@ -14,7 +14,7 @@
 //
 // This file is pure (no files, no processes: a test imports it); task.ts gives it the real ones.
 //
-// Each arm works in its own copy of the project (`isolate`). Which skill was loaded is read from
+// Each arm works in its own copy of the project (as every task bench does). Which skill was loaded is read from
 // the session's transcript (the Skill tool calls) when it can be found, and is recorded with the
 // row; it is not part of the score.
 
@@ -329,7 +329,7 @@ export type Host = {
 export function makeTask(host: Host): TaskAdapter<SkillTask> {
   return {
     feature: 'skills',
-    cases: () => TASKS.map(t => ({ ...t, fixture: FIXTURE, git: true, isolate: true as const, allowedTools: SESSION_TOOLS })),
+    cases: () => TASKS.map(t => ({ ...t, fixture: FIXTURE, git: true, allowedTools: SESSION_TOOLS })),
     steps: (t): Step[] => [{ prompt: t.prompt, final: true }],
     overlay: (arm): { features: Record<string, Record<string, unknown>> } => ({ features: arm.kind === 'jev-mod' ? { skills: { mode: 'on' } } : {} }),
     async check(c, finalText, workdir) {
@@ -340,7 +340,7 @@ export function makeTask(host: Host): TaskAdapter<SkillTask> {
         skill_ok: loaded === null ? null : t.skill ? loaded.includes(t.skill) : loaded.length === 0 } }
     },
     // a jev-mod arm that never asked the decision model did not run the feature
-    verify: (_t, arm, run) => arm.kind === 'jev-mod' && run.ledgerEntries === 0 ? 'skills_not_run' : null,
+    verify: (_t, arm, run) => arm.kind === 'jev-mod' && !(run.byFeature.skills?.requests ?? 0) ? 'skills_not_run' : null,
     usdPerCall: USD_PER_RUN,
     maxUsdPerCall: 2,
     // one pick: rank the catalog, then verify the finalists

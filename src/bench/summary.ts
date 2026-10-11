@@ -49,7 +49,12 @@ export type ArmSummary = {
   /** Wall time summed over every run of the arm, failed ones too. */
   wallTotal: number | null
   claudeCost: number | null
+  /** Every decision the arm's jev-mod asked for, per scored run: the feature's own and the others'. */
   decisionCost: number | null
+  /** The decisions of the feature under test, per scored run. */
+  featureCost: number | null
+  /** Decisions other jev-mod features asked for in the arm (a protective one the overlay may not switch off), per scored run. */
+  otherCost: number | null
   /** Claude's and the decision model's cost per scored run, added. */
   totalCost: number | null
   /** `plain`: Claude Code with the feature off (arm `claude`); `jev-mod`: the feature on; `other`: any further arm (compaction's "no compaction"). */
@@ -74,6 +79,12 @@ export type Summary = {
   spend: { claude: number; decisions: number } | null
   versions: string[]
 }
+
+/**
+ * What the feature under test's own decisions cost in a task row: its entry in `by_feature`. A row
+ * from before rows recorded it holds the feature's decisions alone (the overlay switched the rest off).
+ */
+export const featureSpend = (r: Row, feature: string): number => (r.by_feature ? r.by_feature[feature]?.cost_usd ?? 0 : r.cost_usd)
 
 /** Each backend's answering model, the one most of its rows name: a case the feature settled
  * without a request has none, and belongs with the rest of its backend's rows. */
@@ -154,6 +165,7 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
       for (const r of mine) if (r.outcome === 'error') errors[r.error ?? 'error'] = (errors[r.error ?? 'error'] ?? 0) + 1
       const claudeCost = num(r => r.claude_cost_usd)
       const decisionCost = num(r => r.cost_usd)
+      const featureCost = num(r => featureSpend(r, adapter.feature))
       const walls = mine.map(r => r.wall_ms).filter((n): n is number => typeof n === 'number')
       return {
         kind: key === 'claude' ? 'plain' as const : key.startsWith('jev-mod') ? 'jev-mod' as const : 'other' as const,
@@ -162,7 +174,8 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
         totalCost: claudeCost === null && decisionCost === null ? null : (claudeCost ?? 0) + (decisionCost ?? 0),
         key, arm: mine[0]!.arm ?? '?', backend: mine[0]!.backend.kind === 'baseline' ? null : mine[0]!.backend.name, runs: mine.length, errors,
         success: num(r => (r.success === undefined ? undefined : r.success ? 1 : 0)), score: num(r => r.score),
-        wallMs: num(r => r.wall_ms), claudeCost, decisionCost,
+        wallMs: num(r => r.wall_ms), claudeCost, decisionCost, featureCost,
+        otherCost: decisionCost === null || featureCost === null ? null : Math.max(0, decisionCost - featureCost),
         tokens: num(r => (r.claude_tokens ? r.claude_tokens.input + r.claude_tokens.output + r.claude_tokens.cache_read + r.claude_tokens.cache_write : undefined)),
         // a compaction that did too little is an error, and what it read and kept is the reason: these count every run
         context: all(r => r.context_tokens),
@@ -232,13 +245,14 @@ export function plots(adapter: DecisionAdapter, s: Summary): Record<string, stri
       s.arms.some(a => f(a) !== null) ? [{ title, format, rows: rows(f) }] : []
     out.task = barPanels({
       title: `${adapter.title}: plain Claude Code (orange) against jev-mod, end to end${tag}`, fake,
-      subtitle: 'accuracy: success and score · speed: median wall time per run · cost per run: Claude, decisions, both',
+      subtitle: 'accuracy: success and score · speed: median wall time per run · cost per run: Claude, the feature\'s decisions, other jev-mod decisions, all',
       panels: [
         { title: 'success', format: n => pct(n), max: 1, rows: rows(a => a.success) },
         { title: 'score', format: n => pct(n), max: 1, rows: rows(a => a.score) },
         { title: 'wall time (median)', format: ms, rows: rows(a => a.wallMedian) },
         { title: 'Claude cost', format: usd, rows: rows(a => a.claudeCost) },
-        { title: 'decision cost', format: usd, rows: rows(a => a.decisionCost) },
+        { title: 'feature decision cost', format: usd, rows: rows(a => a.featureCost) },
+        { title: 'other decision cost', format: usd, rows: rows(a => a.otherCost) },
         { title: 'total cost', format: usd, rows: rows(a => a.totalCost) },
         ...extra('question context', tok, a => a.context),
         ...extra('messages dropped', n => `${Math.round(n)}`, a => a.compaction?.dropped ?? null),
@@ -291,7 +305,7 @@ const COLUMNS: [string, string][] = [
 ]
 
 /** The Markdown block for the README (between the bench markers), or for the fake summary file. */
-export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<string, string>): string {
+export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<string, string>, extra = ''): string {
   const t = adapter.threshold
   const e = adapter.explain
   const lines: string[] = []
@@ -307,13 +321,14 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
   if (s.arms.length) {
     show('task')
     if (images.task) lines.push('')
-    lines.push('| arm | runs | success | mean score | median time | total time | Claude cost | decision cost | total cost |', '|---|---|---|---|---|---|---|---|---|')
+    lines.push('| arm | runs | success | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |', '|---|---|---|---|---|---|---|---|---|---|')
     const failed = (a: ArmSummary) => Object.entries(a.errors).map(([code, n]) => `${n} ${code}`).join(', ')
-    for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${ms(a.wallMedian)} | ${ms(a.wallTotal)} | ${usd(a.claudeCost)} | ${usd(a.decisionCost)} | ${usd(a.totalCost)} |`)
+    for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${ms(a.wallMedian)} | ${ms(a.wallTotal)} | ${usd(a.claudeCost)} | ${usd(a.featureCost)} | ${usd(a.otherCost)} | ${usd(a.totalCost)} |`)
     lines.push('',
       '- success: the share of scored runs the checker marked right; mean score: its partial credit (the share of questions answered right, say).',
       '- median time: over scored runs; total time: every run of the arm, failed ones too.',
-      '- costs are per scored run; total cost is Claude plus the decision model. A failed run is never scored.', '')
+      `- costs are per scored run. Feature decision cost: what ${adapter.feature}'s own decisions cost; other jev-mod decision cost: what other jev-mod features still asked in the arm (a protective feature the bench may not switch off, as the person has it). Total cost is Claude plus both. A failed run is never scored.`,
+      '- plain Claude Code runs with jev-mod switched off whole, so it makes no decisions; a plain run that shows any is an error (`decisions_in_plain_arm`). Runs from jev-mod 0.12.0 and before switched off only the features that change what the model sees.', '')
     const plain = s.arms.find(a => a.kind === 'plain')
     if (!plain) lines.push('Plain Claude Code was not run here, so there is nothing to compare the jev-mod arms with yet.', '')
     for (const a of s.arms.filter(x => x.kind === 'jev-mod')) {
@@ -321,7 +336,7 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
       if (!plain) continue
       const vs = (x: string, y: string) => `${x} (plain Claude Code ${y})`
       lines.push(`- ${a.key}: right on ${vs(pct(a.success), pct(plain.success))} of runs, median ${vs(ms(a.wallMedian), ms(plain.wallMedian))}, ` +
-        `${vs(usd(a.totalCost), usd(plain.totalCost))} per run (Claude ${usd(a.claudeCost)}, decisions ${usd(a.decisionCost)}).`)
+        `${vs(usd(a.totalCost), usd(plain.totalCost))} per run (Claude ${usd(a.claudeCost)}, ${adapter.feature}'s decisions ${usd(a.featureCost)}, other jev-mod decisions ${usd(a.otherCost)}).`)
     }
     if (s.arms.some(x => x.kind === 'jev-mod')) lines.push('')
     if (s.arms.some(a => a.context !== null || a.compaction)) {
@@ -335,6 +350,7 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
       lines.push(`Spend in all: ${usd(s.spend.claude)} Claude${setup}; ${usd(s.spend.decisions)} decisions. ` +
         'A failed run is never scored, but its spend counts here.', '')
     }
+    if (extra.trim()) lines.push(extra.trim(), '')
   }
   // the decision level
   if (s.backends.length) {

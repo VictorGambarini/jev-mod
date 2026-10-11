@@ -1,5 +1,5 @@
 {
   "extends": "./.claude-plugin/types/tsconfig.json",
   "include": ["src/**/*.ts", "src/**/*.tsx", "types/**/*", "test/**/*.ts"],
-  "exclude": ["**/*.mjs", "node_modules"]
+  "exclude": ["**/*.mjs", "node_modules", "src/features/find-files/bench/task-fixture"]
 }

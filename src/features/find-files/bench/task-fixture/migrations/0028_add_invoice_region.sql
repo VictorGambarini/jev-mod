@@ -1,0 +1,1 @@
+ALTER TABLE invoices ADD COLUMN region text NOT NULL DEFAULT 'NZ';

@@ -1,0 +1,14 @@
+services:
+  api:
+    build: .
+    ports: ["8080:8080"]
+    environment:
+      DATABASE_URL: postgres://tillbox:tillbox@db:5432/tillbox
+      TAX_RATE: "0.15"
+      LOG_LEVEL: debug
+    depends_on: [db]
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: tillbox
+      POSTGRES_PASSWORD: tillbox

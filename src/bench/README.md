@@ -32,11 +32,10 @@ bun src/bench/report.ts compact --suggest-tuning
 ```
 
 Several backends in one go: `--backend typesafe,openrouter,laya`. The other benches:
-`trim-output` (sweeps `notNeeded`), `rules-gate` (sweeps `minConfidence`), `screening` (sweeps `injection`) and `web-filter` (sweeps `minConfidence`). Every bench's
-`trim-output` (sweeps `notNeeded`), `rules-gate`, `tool-gate` and `stop-gate` (each sweeps `minConfidence`), and `access-gate` (no threshold: it reads calls locally). Every bench's
-`trim-output` (sweeps `notNeeded`), `rules-gate` (sweeps `minConfidence`), `routing` (sweeps
-`smallConfidence`), `skills` (sweeps `match`) and `find-files` (sweeps `limit`). Every bench's
-`trim-output` (sweeps `notNeeded`), `rules-gate` and `review-triage` (sweep `minConfidence`) and `browser` (sweeps `confirmConfidence`). Every bench's
+`trim-output` (sweeps `notNeeded`); `rules-gate`, `tool-gate`, `stop-gate`, `web-filter` and
+`review-triage` (each sweeps `minConfidence`); `screening` (sweeps `injection`); `routing` (sweeps
+`smallConfidence`); `skills` (sweeps `match`); `find-files` (sweeps `limit`); `browser` (sweeps
+`confirmConfidence`); and `access-gate` (no threshold: it reads calls locally). Every bench's
 plots and tables at once: `bun src/bench/report.ts all`.
 
 A task-level comparison, jev-mod against plain Claude Code. Without `--yes` it prints the plan
@@ -61,6 +60,7 @@ this checkout where jev-mod is not installed).
 |---|---|---|
 | Decision level, `compact`, one backend | 10 requests, about 15k input tokens | about $0.0006 at Jev's list price; $0 on a free tier or your own server |
 | Decision level, `trim-output` / `rules-gate` | 4 / 8 requests, about 13k / 5k tokens | under $0.001 each |
+| Decision level, `screening` / `web-filter` / `tool-gate` / `stop-gate` / `access-gate` | about 45 / 19 / 62 / 42 / 0 requests (stop-gate's carry up to about 6k characters of evidence each) | pennies at most at Jev's list price; not yet measured |
 | Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
 | Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 48 headless Claude calls (15 shared setup, then 11 per case), about 24 decision calls | Claude: about $5-10 at $0.10-0.20 a call (the plan prints the estimate); decisions: about $0.01 |

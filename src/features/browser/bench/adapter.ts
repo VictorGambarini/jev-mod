@@ -6,7 +6,8 @@
 // - the confirm question, when the page offers a consequential row and the goal names that kind of
 //   action (as the loop asks it); otherwise the loop would stop without asking, and the item is
 //   unscored;
-// - the page check, when the goal could be called done on the page.
+// - the page check, when the goal could be called done on the page (its yes/no, and which page line
+//   shows the goal's thing: "none" scores 0).
 //
 // Scored items are the confirm and page-check questions: the loop proceeds (takes the consequential
 // step, accepts "done") when p reaches confirmConfidence (the feature's 0.85). Positive = proceed.
@@ -20,7 +21,7 @@ import type { DecisionAdapter, Item, Metrics, Row } from '../../../bench/types'
 import { feature } from '../../../core/registry'
 import { EARLY_STOP, judgedStuck, pageOf, stalled } from '../index'
 import {
-  allowedHosts, buildTable, confirmRequest, doneRequest, goalNames, riskOf, stepRequest, yes, type Action, type Observation, type Step,
+  allowedHosts, buildTable, confirmRequest, doneRequest, doneVerdict, goalNames, riskOf, stepRequest, yes, type Action, type Observation, type Step,
 } from '../rules'
 import { CASES, type PageCase } from './cases'
 
@@ -117,7 +118,9 @@ export const adapter: DecisionAdapter<PageCase> = {
         const check = doneRequest(c.goal, page, obs)
         const reply = await ask(ctx.host, check.state, check.questions, options)
         calls.push(reply)
-        items.push({ id: 'achieved', gold: c.achieved, score: yes(reply.answers.achieved) })
+        // as the loop judges it: with page lines offered, "none" of them showing the goal's thing is a no at any threshold
+        const v = doneVerdict(reply.answers, check.evidence, 0)
+        items.push({ id: 'achieved', gold: c.achieved, score: v.lines && v.shown === null ? 0 : yes(reply.answers.achieved) })
       }
       return { items, detail: detail as unknown as Record<string, unknown>, calls, errors: [] }
     } catch (error) {
@@ -130,6 +133,8 @@ export const adapter: DecisionAdapter<PageCase> = {
     if (question === 'goal_reached') return c.reached
     if (question === 'stuck') return c.stuck
     if (question === 'achieved') return c.achieved
+    // the fake cannot tell which line holds it: the first, when the page shows it
+    if (question === 'shown_in') return c.achieved === undefined ? undefined : c.achieved ? 'line-1' : 'none'
     if (question === 'asked') return c.risky?.asks
     return undefined
   },

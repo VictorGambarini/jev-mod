@@ -1,7 +1,8 @@
 import { test, expect } from 'claude-code/testing'
 import {
-  allowed, allowedHosts, bandText, botCheck, buildTable, DEAD_REPEATS, actionKey, eventText, goalNames, linkAllowed, render, reveal,
-  riskOf, safeLabel, scrub, secretInput, stepRequest, type Action, type Element, type Observation,
+  allowed, allowedHosts, bandText, botCheck, buildTable, DEAD_REPEATS, actionKey, doneRequest, doneVerdict, eventText, FOUND_PAGES,
+  FOUND_PER_PAGE, FOUND_TOTAL, goalNames, goalWords, linkAllowed, matching, noteFound, render, reveal, riskOf, safeLabel, scrub,
+  secretInput, stepRequest, type Action, type Element, type Found, type Observation,
 } from './rules'
 import { BOT_PAGES, NOT_BOT_PAGES } from './bots.fixture'
 
@@ -242,4 +243,79 @@ test('the answer carries the bot check, the unknown attempt, the signals and the
   expect(text).toContain('signals: goal reached 1 (page check agreed 0), stuck 1')
   expect(text).toContain('- step 1 network: GET https://shop.test/x answered 500')
   expect(text).toContain('(3 more not kept)')
+})
+
+// ── the page check names the thing; what was found along the way ─────────────
+
+const SALES = 'For Enterprise plans, volume pricing and procurement questions, our enterprise sales team is on +64 9 555 0142 (9am to 5pm NZT). '
+  + 'Already a customer with an outage? Use the support line.'
+const CONTACT = 'Questions about your account? Our support team answers the phone on +64 9 555 0100. We read every email.\nOffice: 12 Kea Street.'
+
+test('the goal\'s words: common words, short words and the format\'s "progress" words out, a plural\'s s off', () => {
+  expect(goalWords('Find Fernbird\'s enterprise sales team phone number; the Contact or Sales links count as progress'))
+    .toEqual(['fernbird', 'enterprise', 'sale', 'team', 'phone', 'number', 'contact'])
+  expect(goalWords('Go to the page')).toEqual([])
+})
+
+test('matching sentences: the ones sharing most of the goal\'s words, in the page\'s order, cut short', () => {
+  const words = goalWords('the enterprise sales phone number')
+  expect(matching(SALES, words, 1)).toEqual([SALES.split('. ')[0] + '.'])
+  expect(matching(CONTACT, words, 3)).toEqual(['Our support team answers the phone on +64 9 555 0100.'])
+  expect(matching('x'.repeat(50) + ' sales ' + 'y'.repeat(300), words, 1, 40)[0]).toHaveLength(40)
+  expect(matching(SALES, [], 3)).toEqual([])
+})
+
+test('the page check asks which page line shows exactly what the goal asks for; "none" is not done at any yes', () => {
+  const page = { url: 'https://fernbird.test/contact.html', title: 'Contact', text: CONTACT }
+  const obs: Observation = { url: page.url, title: page.title, text: CONTACT, elements: [] }
+  const check = doneRequest('Find the enterprise sales phone number', page, obs)
+  expect(check.evidence).toEqual(['Our support team answers the phone on +64 9 555 0100.'])
+  expect(Object.keys(check.questions.shown_in!.criteria as object)).toEqual(['line-1', 'none'])
+  expect(String(check.questions.achieved!.instructions)).toContain('exact thing the goal asks for')
+  expect(JSON.stringify(check.questions.achieved!.criteria)).toContain('a support number when the goal asks for the sales number')
+  const answers = (pick: string, p: number) => ({ achieved: { type: 'noul' as const, noul: p },
+    shown_in: { type: 'choice' as const, choice: pick, probabilities: {}, confidence: 0.9 } })
+  expect(doneVerdict(answers('none', 0.99), check.evidence, 0.85)).toEqual({ p: 0.99, achieved: false, shown: null, lines: 1 })
+  expect(doneVerdict(answers('line-1', 0.9), check.evidence, 0.85)).toMatchObject({ achieved: true, shown: check.evidence[0] })
+  expect(doneVerdict(answers('line-1', 0.6), check.evidence, 0.85).achieved).toBe(false)
+  // no line shares the goal's words, or no page text: the yes/no alone, as before
+  const bare = doneRequest('Reach the dashboard', { ...page, text: 'Welcome back.' }, obs)
+  expect(bare.evidence).toEqual([])
+  expect(bare.questions.shown_in).toBeUndefined()
+  expect(doneVerdict({ achieved: { type: 'noul', noul: 0.9 } }, [], 0.85)).toEqual({ p: 0.9, achieved: true, shown: null, lines: 0 })
+  expect(doneRequest('Find the sales number', { ...page, text: null, withheld: 'a password field' }, obs).questions.shown_in).toBeUndefined()
+  // an input's value never reaches a line
+  expect(doneRequest('Find the phone for [input:who]', page, obs, { who: 'support' }).evidence.join(' ')).not.toContain('support')
+})
+
+test('found along the way: each page by URL with its best sentences, merged on a revisit, capped, withheld pages said', () => {
+  const found: Found[] = []
+  const goal = 'Find the enterprise sales phone number'
+  noteFound(found, { url: 'https://f.test/contact', title: 'Contact', text: CONTACT }, goal)
+  noteFound(found, { url: 'https://f.test/sales', title: 'Talk to sales', text: SALES }, goal)
+  noteFound(found, { url: 'https://f.test/login', title: 'Log in', text: null }, goal)
+  noteFound(found, { url: 'https://f.test/contact', title: 'Contact', text: CONTACT + ' Sales questions go to the sales page.' }, goal)
+  expect(found.map(f => f.url)).toEqual(['https://f.test/contact', 'https://f.test/sales', 'https://f.test/login'])
+  expect(found[0]!.lines.map(l => l.text)).toEqual(['Our support team answers the phone on +64 9 555 0100.', 'Sales questions go to the sales page.'])
+  expect(found[2]!.withheld).toBe(true)
+  const text = render({ status: 'done', reason: 'r', steps: [], found })
+  expect(text).toContain('found along the way')
+  expect(text).toContain('- https://f.test/sales "Talk to sales":\n  · For Enterprise plans')
+  expect(text).toContain('+64 9 555 0142')
+  expect(text).toContain('- https://f.test/login "Log in" (text withheld)')
+  // at most FOUND_PAGES pages (the weakest match goes first), FOUND_PER_PAGE lines each, FOUND_TOTAL characters in all
+  const many: Found[] = []
+  for (let i = 0; i < FOUND_PAGES + 5; i++) {
+    noteFound(many, { url: `https://f.test/${i}`, title: `P${i}`, text: Array.from({ length: 6 }, (_, k) => `Sales line ${k} of page ${i} ${'z'.repeat(150)}.`).join(' ') }, goal)
+  }
+  noteFound(many, { url: 'https://f.test/blank', title: 'Blank', text: 'Nothing here.' }, goal)
+  expect(many.length).toBe(FOUND_PAGES)
+  expect(many.some(f => f.url === 'https://f.test/blank')).toBe(false)
+  expect(Math.max(...many.map(f => f.lines.length))).toBe(FOUND_PER_PAGE)
+  const shown = render({ status: 'done', reason: 'r', steps: [], found: many }).split('found along the way')[1]!
+  const sentences = shown.split('\n').filter(l => l.startsWith('  · ')).map(l => l.slice(4))
+  expect(sentences.join('').length).toBeLessThanOrEqual(FOUND_TOTAL)
+  expect(shown).toMatch(/\(\d+ more sentences not shown\)/)
+  // nothing matched anywhere: no section
+  expect(render({ status: 'done', reason: 'r', steps: [], found: [{ url: 'u', title: 't', lines: [] }] })).not.toContain('found along the way')
 })

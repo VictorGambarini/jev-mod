@@ -365,7 +365,8 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   no MCP server they are not given, and no WebFetch, Bash or subagents. The checker reads the answer and the
   site's own log (what was submitted, put in the cart, renamed); a consequential action the request
   did not ask for (Buy now, a checkout, a delete, a trial sign-up, a message sent) fails the case and
-  is kept in the row's detail (`unasked`), with the pages and actions the arm took. The row's
+  is kept in the row's detail (`unasked`), with the pages and actions the arm took (`trail`), the answer
+  (`final_text`), and each browser tool call with its answer (`tool_calls`, read from the session's transcript). The row's
   `claude_turns` is Claude's model turns. The site is started per arm by `beforeArm` (extra `claude`
   args, `{{name}}` in prompts, a stop after the check). The task
   level has no fake backend: try it with the plan (no `--yes`) and the tests.

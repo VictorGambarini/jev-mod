@@ -32,7 +32,7 @@ bun src/bench/report.ts compact --suggest-tuning
 ```
 
 Several backends in one go: `--backend typesafe,openrouter,laya`. The other benches:
-`trim-output` (sweeps `notNeeded`) and `rules-gate` (sweeps `minConfidence`). Every bench's
+`trim-output` (sweeps `notNeeded`), `rules-gate` and `review-triage` (sweep `minConfidence`) and `browser` (sweeps `confirmConfidence`). Every bench's
 plots and tables at once: `bun src/bench/report.ts all`.
 
 A task-level comparison, jev-mod against plain Claude Code. Without `--yes` it prints the plan
@@ -57,6 +57,7 @@ this checkout where jev-mod is not installed).
 |---|---|---|
 | Decision level, `compact`, one backend | 10 requests, about 15k input tokens | about $0.0006 at Jev's list price; $0 on a free tier or your own server |
 | Decision level, `trim-output` / `rules-gate` | 4 / 8 requests, about 13k / 5k tokens | under $0.001 each |
+| Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 48 headless Claude calls (15 shared setup, then 11 per case), about 24 decision calls | Claude: about $5-10 at $0.10-0.20 a call (the plan prints the estimate); decisions: about $0.01 |
 
 ## Backends and keys
@@ -115,6 +116,8 @@ Per threshold the report computes, per feature:
 | `compact` | `drop` (0.7 today) | message outside the last six | accuracy, precision, recall, F1, share dropped, keep messages lost | peak accuracy | higher: keeps more, and a dropped message cannot be had back |
 | `trim-output` | `notNeeded` (0.9 today) | log line | accuracy, share cut, gold lines lost | fewest gold lines lost, then most cut | higher: cuts fewer blocks |
 | `rules-gate` | `minConfidence` (0.8 today) | rule | accuracy, precision, recall, F1, share refused | peak accuracy | higher: refuses fewer edits, and the mod fails open |
+| `review-triage` | `minConfidence` (0.8 today) | change: quick only if every one of its questions reaches the bar | accuracy, precision, recall, F1, share called quick, full reviews skipped | peak accuracy | higher: answers quick less often; a full review costs time, a wrong quick skips one |
+| `browser` | `confirmConfidence` (0.85 today) | consequential step (does the goal ask for it) and "done" (page check) | accuracy, precision, recall, F1, share proceeded, plus the step pick, goal_reached and stuck accuracy and consequential rows picked wrongly | peak accuracy | higher: stops before more consequential steps, and the person is asked |
 
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
@@ -196,6 +199,15 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
 - `trim-output`: the four test logs that were `evals/trim-tests/`, with "keep failures only" as a
   baseline that needs no backend. `pipeline.test.ts` still holds the old benchmark's numbers.
 - `rules-gate`: eight edits against 23 written rules.
+- `review-triage`: 51 synthetic diffs (docs, renames, fixes with and without tests, auth, schema,
+  concurrency, rule breaks, scope creep) with a gold yes/no per question, run through
+  `requestOf` and `questionsOf`; the case is quick when all its questions are confident noes.
+  The follow-up that names files is not benched: it changes no verdict.
+- `browser`: 59 synthetic page snapshots with a goal, no browser and no website. The feature's
+  own `buildTable`, `stepRequest`, `confirmRequest` and `doneRequest` build the questions; gold
+  is the right next row, whether the goal is reached, stuck, and for a consequential row whether
+  the goal asks for it. `confirmConfidence` is swept over the confirm and page-check answers;
+  the other three are scored beside it as extra columns. The page-screening request is not made.
 
 Not verified yet, as only a real run can show it: that `claude -p --resume <id> --fork-session`
 with `/compact` or `/jev-mod compact` compacts a headless session (the mod queues `/compact` from

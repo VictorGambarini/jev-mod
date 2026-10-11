@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="Browser: consequential steps and &quot;done&quot; accepted against confirmConfidence (FAKE)">
+<title>Browser: consequential steps and &quot;done&quot; accepted against confirmConfidence (FAKE)</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">Browser: consequential steps and &quot;done&quot; accepted against confirmConfidence (FAKE)</text>
+<text class="fake" x="64" y="44">FAKE BACKEND: example numbers, not a measurement</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="220.89" y2="220.89"/>
+<text class="ax" x="56" y="224.89" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="147.78" y2="147.78"/>
+<text class="ax" x="56" y="151.78" text-anchor="end">40%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">0.5</text>
+<text class="ax" x="132.89" y="312" text-anchor="middle">0.55</text>
+<text class="ax" x="201.78" y="312" text-anchor="middle">0.6</text>
+<text class="ax" x="270.67" y="312" text-anchor="middle">0.65</text>
+<text class="ax" x="339.56" y="312" text-anchor="middle">0.7</text>
+<text class="ax" x="408.44" y="312" text-anchor="middle">0.75</text>
+<text class="ax" x="477.33" y="312" text-anchor="middle">0.8</text>
+<text class="ax" x="546.22" y="312" text-anchor="middle">0.85</text>
+<text class="ax" x="615.11" y="312" text-anchor="middle">0.9</text>
+<text class="ax" x="684" y="312" text-anchor="middle">0.95</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">confirmConfidence threshold</text>
+<text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">consequential steps and &quot;done&quot; accepted</text>
+<line class="guide" x1="546.22" x2="546.22" y1="78" y2="294"/>
+<text class="ax" x="550.22" y="88">today 0.85</text>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,78 132.89,78 201.78,102.92 270.67,127.85 339.56,144.46 408.44,161.08 477.33,177.69 546.22,194.31 615.11,227.54 684,252.46"/>
+<circle class="d1 dot" cx="64" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 0.5 → 59%</title></circle>
+<circle class="d1 dot" cx="132.89" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 0.55 → 59%</title></circle>
+<circle class="d1 dot" cx="201.78" cy="102.92" r="4" stroke-width="2"><title>fake · fake-jev: 0.6 → 52%</title></circle>
+<circle class="d1 dot" cx="270.67" cy="127.85" r="4" stroke-width="2"><title>fake · fake-jev: 0.65 → 45%</title></circle>
+<circle class="d1 dot" cx="339.56" cy="144.46" r="4" stroke-width="2"><title>fake · fake-jev: 0.7 → 41%</title></circle>
+<circle class="d1 dot" cx="408.44" cy="161.08" r="4" stroke-width="2"><title>fake · fake-jev: 0.75 → 36%</title></circle>
+<circle class="d1 dot" cx="477.33" cy="177.69" r="4" stroke-width="2"><title>fake · fake-jev: 0.8 → 32%</title></circle>
+<circle class="d1 dot" cx="546.22" cy="194.31" r="4" stroke-width="2"><title>fake · fake-jev: 0.85 → 27%</title></circle>
+<circle class="d1 dot" cx="615.11" cy="227.54" r="4" stroke-width="2"><title>fake · fake-jev: 0.9 → 18%</title></circle>
+<circle class="d1 dot" cx="684" cy="252.46" r="4" stroke-width="2"><title>fake · fake-jev: 0.95 → 11%</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">fake · fake-jev</text>
+</svg>

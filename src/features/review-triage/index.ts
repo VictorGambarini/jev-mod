@@ -163,6 +163,61 @@ function whyNot(calls: Calls, timeoutMs: number): string {
   return code ? `the decision backend failed: ${code}` : 'the decision model gave no answer'
 }
 
+// ── the request ──────────────────────────────────────────────────────────────
+
+/** The diff as the decision model may see it: secrets left out, redacted, cut to `maxChars`. */
+export const summaryOf = (files: readonly FileDiff[], maxChars: number) =>
+  summarize(files, maxChars, isSensitive, text => redact(text, Math.max(4000, text.length * 2)))
+
+export type Request = {
+  state: Record<string, unknown>
+  summary: ReturnType<typeof summaryOf>
+  /** Hunks or files cut away to fit what the backend takes. */
+  incomplete: boolean
+  trimmed: boolean
+}
+
+/**
+ * The state sent with the questions: the summary, the intent and the rules. The whole request
+ * (files list, rules and notes too) has to fit what the backend takes: the diff shrinks first, then the files list.
+ */
+export function requestOf(files: readonly FileDiff[], source: Source, stats: ReturnType<typeof statsOf>, first: ReturnType<typeof summaryOf>,
+  intent: string, rules: readonly string[], maxDiffChars: number): Request {
+  let summary = first
+  const withheld = summary.withheld
+  const stateOf = (sum: typeof summary): Record<string, unknown> => {
+    const trimmed = sum.trimmed + sum.omitted > 0
+    const state: Record<string, unknown> = {
+      task: 'Triage a code change before it is reviewed: is a single quick review pass enough, or does it need a full review?',
+      change: describeSource(source),
+      stats: { files: stats.files, lines_added: stats.added, lines_removed: stats.removed },
+      files: sum.sent.map(s => ({ id: s.id, path: redact(s.file.path, 300), status: s.file.status, added: s.file.added, removed: s.file.removed,
+        ...(s.file.oldPath ? { renamed_from: redact(s.file.oldPath, 300) } : {}) })),
+      diff: Object.fromEntries(sum.sent.map(s => [s.id, s.text])),
+    }
+    if (trimmed) state.diff_note = `hunks were cut to fit (${sum.trimmed} trimmed, ${sum.omitted} left out); judge what is shown`
+    if (withheld.length) state.withheld_note = `${withheld.length} part(s) were not sent because they look like they hold a secret`
+    if (intent) state.intent = redact(intent, MAX_INTENT_CHARS)
+    if (rules.length) state.project_rules = rules
+    return state
+  }
+  const fits = (s: Record<string, unknown>) => [...encode(s, { compact: true })].length <= MAX_STATE_CHARS - STATE_MARGIN
+  let state = stateOf(summary)
+  let budget = maxDiffChars
+  for (let i = 0; i < 6 && !fits(state) && budget > MIN_DIFF_BUDGET; i++) {
+    const over = [...encode(state, { compact: true })].length - (MAX_STATE_CHARS - STATE_MARGIN)
+    budget = Math.max(MIN_DIFF_BUDGET, budget - over - 500)
+    summary = summaryOf(files, budget)
+    state = stateOf(summary)
+  }
+  while (!fits(state) && summary.sent.length > 1) {
+    const keep = Math.ceil(summary.sent.length / 2)
+    summary = { ...summary, sent: summary.sent.slice(0, keep), omitted: summary.omitted + summary.sent.length - keep }
+    state = stateOf(summary)
+  }
+  return { state, summary, incomplete: summary.omitted > 0, trimmed: summary.trimmed + summary.omitted > 0 }
+}
+
 // ── the tool ─────────────────────────────────────────────────────────────────
 
 type Input = { base?: unknown; paths?: unknown; intent?: unknown }
@@ -218,7 +273,7 @@ export async function triage(io: IO, input: Input): Promise<string> {
     if (await isPrivate(io, await jevDir(io))) { void activity.count(io, ID, 'undecided'); return undecided(shown, 'private mode') }
     if (coolingOff()) { void activity.count(io, ID, 'undecided'); return undecided(shown, 'the decision backend is cooling off after a failure') }
 
-    let summary = summarize(files, maxDiffChars, isSensitive, text => redact(text, Math.max(4000, text.length * 2)))
+    let summary = summaryOf(files, maxDiffChars)
     const withheld = summary.withheld
     if (withheld.length) void activity.count(io, ID, 'withheld', withheld.length)
     const sentAnything = summary.sent.some(s => s.text.trim())
@@ -236,40 +291,12 @@ export async function triage(io: IO, input: Input): Promise<string> {
     const rules = await projectRules(io, root)
     const skipped = rules.length ? [] : ["project rules (no rules found in the project's CLAUDE.md or AGENTS.md)"]
 
-    const stateOf = (sum: typeof summary): Record<string, unknown> => {
-      const trimmed = sum.trimmed + sum.omitted > 0
-      const state: Record<string, unknown> = {
-        task: 'Triage a code change before it is reviewed: is a single quick review pass enough, or does it need a full review?',
-        change: describeSource(source),
-        stats: { files: stats.files, lines_added: stats.added, lines_removed: stats.removed },
-        files: sum.sent.map(s => ({ id: s.id, path: redact(s.file.path, 300), status: s.file.status, added: s.file.added, removed: s.file.removed,
-          ...(s.file.oldPath ? { renamed_from: redact(s.file.oldPath, 300) } : {}) })),
-        diff: Object.fromEntries(sum.sent.map(s => [s.id, s.text])),
-      }
-      if (trimmed) state.diff_note = `hunks were cut to fit (${sum.trimmed} trimmed, ${sum.omitted} left out); judge what is shown`
-      if (withheld.length) state.withheld_note = `${withheld.length} part(s) were not sent because they look like they hold a secret`
-      if (hasIntent) state.intent = redact(intent, MAX_INTENT_CHARS)
-      if (rules.length) state.project_rules = rules
-      return state
-    }
-    // The whole request (files list, rules and notes too) has to fit what the backend takes: the diff shrinks first, then the files list.
-    const fits = (s: Record<string, unknown>) => [...encode(s, { compact: true })].length <= MAX_STATE_CHARS - STATE_MARGIN
-    let state = stateOf(summary)
-    let budget = maxDiffChars
-    for (let i = 0; i < 6 && !fits(state) && budget > MIN_DIFF_BUDGET; i++) {
-      const over = [...encode(state, { compact: true })].length - (MAX_STATE_CHARS - STATE_MARGIN)
-      budget = Math.max(MIN_DIFF_BUDGET, budget - over - 500)
-      summary = summarize(files, budget, isSensitive, text => redact(text, Math.max(4000, text.length * 2)))
-      state = stateOf(summary)
-    }
-    while (!fits(state) && summary.sent.length > 1) {
-      const keep = Math.ceil(summary.sent.length / 2)
-      summary = { ...summary, sent: summary.sent.slice(0, keep), omitted: summary.omitted + summary.sent.length - keep }
-      state = stateOf(summary)
-    }
-    const incomplete = summary.omitted > 0
+    const request = requestOf(files, source, stats, summary, intent, rules, maxDiffChars)
+    summary = request.summary
+    const state = request.state
+    const incomplete = request.incomplete
     if (incomplete) notes.push(`${summary.omitted} hunk(s) or file(s) not shown to the decision model (cut to fit); a quick verdict would be a guess about them`)
-    const trimmed = summary.trimmed + summary.omitted > 0
+    const trimmed = request.trimmed
 
     const limits = await limitsOf(io)
     const deadline = Date.now() + timeoutMs

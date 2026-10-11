@@ -3,7 +3,10 @@
 
 import { adapter as compact } from '../features/compact/bench/adapter'
 import { task as compactTask } from '../features/compact/bench/task'
+import { adapter as accessGate } from '../features/access-gate/bench/adapter'
 import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
+import { adapter as stopGate } from '../features/stop-gate/bench/adapter'
+import { adapter as toolGate } from '../features/tool-gate/bench/adapter'
 import { adapter as trimOutput } from '../features/trim-output/bench/adapter'
 import type { DecisionAdapter, TaskAdapter } from './types'
 
@@ -13,6 +16,9 @@ export const BENCHES: Record<string, Bench> = {
   compact: { decision: compact, task: compactTask },
   'trim-output': { decision: trimOutput },
   'rules-gate': { decision: rulesGate },
+  'tool-gate': { decision: toolGate },
+  'access-gate': { decision: accessGate },
+  'stop-gate': { decision: stopGate },
 }
 
 /** The feature's bench folder, relative to the repo root. */

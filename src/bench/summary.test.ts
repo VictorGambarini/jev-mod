@@ -93,3 +93,11 @@ test('task-level rows become one bar per arm', () => {
   expect(s.arms.map(a => [a.key, a.success])).toEqual([['claude', 0.5], ['jev-mod typesafe minConfidence=0.8', 1]])
   expect(plots(gate, s).task).toContain('wall time')
 })
+
+test('a case settled without a request counts with its backend, not as a backend of its own', () => {
+  const local = row('openrouter', 'jev-latest', [[true, 1]], { answered_model: null, calls: 0, latencies_ms: [], cost_usd: 0 })
+  const asked = row('openrouter', 'jev-latest', [[false, 0.2]], { answered_model: 'jev-1.13' })
+  const s = summarise(gate, [local, asked], false)
+  expect(s.backends.map(b => b.key)).toEqual(['openrouter · jev-1.13'])
+  expect(s.backends[0]!.rows).toBe(2)
+})

@@ -57,7 +57,23 @@ export type Summary = {
   versions: string[]
 }
 
-const keyOf = (r: Row) => `${r.backend.name}${r.answered_model || r.backend.model ? ` · ${r.answered_model ?? r.backend.model}` : ''}`
+/** Each backend's answering model, the one most of its rows name: a case the feature settled
+ * without a request has none, and belongs with the rest of its backend's rows. */
+function answeredBy(rows: readonly Row[]): Map<string, string> {
+  const counts = new Map<string, Map<string, number>>()
+  for (const r of rows) {
+    if (!r.answered_model) continue
+    const mine = counts.get(r.backend.name) ?? new Map<string, number>()
+    mine.set(r.answered_model, (mine.get(r.answered_model) ?? 0) + 1)
+    counts.set(r.backend.name, mine)
+  }
+  return new Map([...counts].map(([name, mine]) => [name, [...mine].sort((a, b) => b[1] - a[1])[0]![0]]))
+}
+
+const keyOf = (models: Map<string, string>) => (r: Row) => {
+  const model = r.answered_model ?? models.get(r.backend.name) ?? r.backend.model
+  return `${r.backend.name}${model ? ` · ${model}` : ''}`
+}
 
 /** The recommended point: the objective's peak (accuracy unless the adapter says), ties to the safer side. */
 function best(adapter: DecisionAdapter, points: readonly Point[]): { threshold: number; accuracy: number } | null {
@@ -90,13 +106,14 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
   const decision = rows.filter(r => r.level === 'decision' && r.feature === adapter.feature)
   const sweep = sweepFor(adapter, decision)
   const backends: BackendSummary[] = []
-  for (const [key, mine] of groupBy(decision.filter(r => r.backend.kind !== 'baseline'), keyOf)) {
+  const models = answeredBy(decision)
+  for (const [key, mine] of groupBy(decision.filter(r => r.backend.kind !== 'baseline'), keyOf(models))) {
     const ok = mine.filter(r => r.outcome === 'ok')
     const points = sweep.map(threshold => ({ threshold, metrics: adapter.evaluate(mine, threshold) }))
     const latencies = ok.flatMap(r => r.latencies_ms)
     const tokens = ok.map(r => r.input_tokens).filter((n): n is number => n !== null)
     backends.push({
-      key, backend: mine[0]!.backend.name, model: mine[0]!.answered_model ?? mine[0]!.backend.model,
+      key, backend: mine[0]!.backend.name, model: mine[0]!.answered_model ?? models.get(mine[0]!.backend.name) ?? mine[0]!.backend.model,
       rows: mine.length, errors: mine.length - ok.length, points,
       recommended: ok.length ? best(adapter, points) : null,
       atDefault: ok.length ? adapter.evaluate(mine, adapter.threshold.default) : null,

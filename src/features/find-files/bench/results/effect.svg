@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="find-files: candidates returned against limit">
+<title>find-files: candidates returned against limit</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">find-files: candidates returned against limit</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="233.13" y2="233.13"/>
+<text class="ax" x="56" y="237.13" text-anchor="end">10%</text>
+<line class="g" x1="64" x2="684" y1="172.25" y2="172.25"/>
+<text class="ax" x="56" y="176.25" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="111.38" y2="111.38"/>
+<text class="ax" x="56" y="115.38" text-anchor="end">30%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">1</text>
+<text class="ax" x="129.26" y="312" text-anchor="middle">3</text>
+<text class="ax" x="194.53" y="312" text-anchor="middle">5</text>
+<text class="ax" x="259.79" y="312" text-anchor="middle">7</text>
+<text class="ax" x="325.05" y="312" text-anchor="middle">9</text>
+<text class="ax" x="390.32" y="312" text-anchor="middle">11</text>
+<text class="ax" x="455.58" y="312" text-anchor="middle">13</text>
+<text class="ax" x="520.84" y="312" text-anchor="middle">15</text>
+<text class="ax" x="586.11" y="312" text-anchor="middle">17</text>
+<text class="ax" x="651.37" y="312" text-anchor="middle">19</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">limit threshold</text>
+<text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">candidates returned</text>
+<line class="guide" x1="357.68" x2="357.68" y1="60" y2="294"/>
+<text class="ax" x="361.68" y="70">today 10</text>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,217.09 96.63,159.82 129.26,125.45 161.89,100.91 194.53,86.18 227.16,74.73 259.79,69.82 292.42,64.91 325.05,61.64 357.68,60 390.32,60 422.95,60 455.58,60 488.21,60 520.84,60 553.47,60 586.11,60 618.74,60 651.37,60 684,60"/>
+<circle class="d1 dot" cx="64" cy="217.09" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 1 → 13%</title></circle>
+<circle class="d1 dot" cx="96.63" cy="159.82" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 2 → 22%</title></circle>
+<circle class="d1 dot" cx="129.26" cy="125.45" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 3 → 28%</title></circle>
+<circle class="d1 dot" cx="161.89" cy="100.91" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 4 → 32%</title></circle>
+<circle class="d1 dot" cx="194.53" cy="86.18" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 5 → 34%</title></circle>
+<circle class="d1 dot" cx="227.16" cy="74.73" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 6 → 36%</title></circle>
+<circle class="d1 dot" cx="259.79" cy="69.82" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 7 → 37%</title></circle>
+<circle class="d1 dot" cx="292.42" cy="64.91" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 8 → 38%</title></circle>
+<circle class="d1 dot" cx="325.05" cy="61.64" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 9 → 38%</title></circle>
+<circle class="d1 dot" cx="357.68" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 10 → 38%</title></circle>
+<circle class="d1 dot" cx="390.32" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 11 → 38%</title></circle>
+<circle class="d1 dot" cx="422.95" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 12 → 38%</title></circle>
+<circle class="d1 dot" cx="455.58" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 13 → 38%</title></circle>
+<circle class="d1 dot" cx="488.21" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 14 → 38%</title></circle>
+<circle class="d1 dot" cx="520.84" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 15 → 38%</title></circle>
+<circle class="d1 dot" cx="553.47" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 16 → 38%</title></circle>
+<circle class="d1 dot" cx="586.11" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 17 → 38%</title></circle>
+<circle class="d1 dot" cx="618.74" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 18 → 38%</title></circle>
+<circle class="d1 dot" cx="651.37" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 19 → 38%</title></circle>
+<circle class="d1 dot" cx="684" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 20 → 38%</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">openrouter · typesafe/jev-1.1…</text>
+</svg>

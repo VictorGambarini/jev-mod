@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="find-files: accuracy against limit">
+<title>find-files: accuracy against limit</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">find-files: accuracy against limit</text>
+<text class="st" x="64" y="44">ringed: recommended per backend (peak F2 (recall counts double); ties go lower)</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
+<text class="ax" x="56" y="251.2" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="200.4" y2="200.4"/>
+<text class="ax" x="56" y="204.4" text-anchor="end">40%</text>
+<line class="g" x1="64" x2="684" y1="153.6" y2="153.6"/>
+<text class="ax" x="56" y="157.6" text-anchor="end">60%</text>
+<line class="g" x1="64" x2="684" y1="106.8" y2="106.8"/>
+<text class="ax" x="56" y="110.8" text-anchor="end">80%</text>
+<line class="g" x1="64" x2="684" y1="60" y2="60"/>
+<text class="ax" x="56" y="64" text-anchor="end">100%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">1</text>
+<text class="ax" x="129.26" y="312" text-anchor="middle">3</text>
+<text class="ax" x="194.53" y="312" text-anchor="middle">5</text>
+<text class="ax" x="259.79" y="312" text-anchor="middle">7</text>
+<text class="ax" x="325.05" y="312" text-anchor="middle">9</text>
+<text class="ax" x="390.32" y="312" text-anchor="middle">11</text>
+<text class="ax" x="455.58" y="312" text-anchor="middle">13</text>
+<text class="ax" x="520.84" y="312" text-anchor="middle">15</text>
+<text class="ax" x="586.11" y="312" text-anchor="middle">17</text>
+<text class="ax" x="651.37" y="312" text-anchor="middle">19</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">limit threshold</text>
+<text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
+<line class="guide" x1="357.68" x2="357.68" y1="60" y2="294"/>
+<text class="ax" x="361.68" y="70">today 10</text>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,61.89 96.63,83.9 129.26,97.11 161.89,106.55 194.53,112.21 227.16,116.61 259.79,118.5 292.42,120.39 325.05,121.65 357.68,122.27 390.32,122.27 422.95,122.27 455.58,122.27 488.21,122.27 520.84,122.27 553.47,122.27 586.11,122.27 618.74,122.27 651.37,122.27 684,122.27"/>
+<circle class="d1 dot" cx="64" cy="61.89" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 1 → 99%</title></circle>
+<circle class="d1 dot" cx="96.63" cy="83.9" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 2 → 90%</title></circle>
+<circle class="d1 dot" cx="129.26" cy="97.11" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 3 → 84%</title></circle>
+<circle class="d1 dot" cx="161.89" cy="106.55" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 4 → 80%</title></circle>
+<circle class="d1 dot" cx="194.53" cy="112.21" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 5 → 78%</title></circle>
+<circle class="d1 dot" cx="227.16" cy="116.61" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 6 → 76%</title></circle>
+<circle class="d1 dot" cx="259.79" cy="118.5" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 7 → 75%</title></circle>
+<circle class="d1 dot" cx="292.42" cy="120.39" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 8 → 74%</title></circle>
+<circle class="d1 dot" cx="325.05" cy="121.65" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 9 → 74%</title></circle>
+<circle class="d1 dot" cx="357.68" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 10 → 73%</title></circle>
+<circle class="d1 dot" cx="390.32" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 11 → 73%</title></circle>
+<circle class="d1 dot" cx="422.95" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 12 → 73%</title></circle>
+<circle class="d1 dot" cx="455.58" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 13 → 73%</title></circle>
+<circle class="d1 dot" cx="488.21" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 14 → 73%</title></circle>
+<circle class="d1 dot" cx="520.84" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 15 → 73%</title></circle>
+<circle class="d1 dot" cx="553.47" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 16 → 73%</title></circle>
+<circle class="d1 dot" cx="586.11" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 17 → 73%</title></circle>
+<circle class="d1 dot" cx="618.74" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 18 → 73%</title></circle>
+<circle class="d1 dot" cx="651.37" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 19 → 73%</title></circle>
+<circle class="d1 dot" cx="684" cy="122.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 20 → 73%</title></circle>
+<circle class="l1" cx="64" cy="61.89" r="8" fill="none" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: recommended 1</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">openrouter · typesafe/jev-1.1…</text>
+</svg>

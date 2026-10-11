@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="Access gate: accuracy against none">
+<title>Access gate: accuracy against none</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">Access gate: accuracy against none</text>
+<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
+<text class="ax" x="56" y="251.2" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="200.4" y2="200.4"/>
+<text class="ax" x="56" y="204.4" text-anchor="end">40%</text>
+<line class="g" x1="64" x2="684" y1="153.6" y2="153.6"/>
+<text class="ax" x="56" y="157.6" text-anchor="end">60%</text>
+<line class="g" x1="64" x2="684" y1="106.8" y2="106.8"/>
+<text class="ax" x="56" y="110.8" text-anchor="end">80%</text>
+<line class="g" x1="64" x2="684" y1="60" y2="60"/>
+<text class="ax" x="56" y="64" text-anchor="end">100%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">1</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">none threshold</text>
+<text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
+<line class="guide" x1="64" x2="64" y1="60" y2="294"/>
+<text class="ax" x="68" y="70">today 1</text>
+<circle class="d1 dot" cx="64" cy="66" r="4" stroke-width="2"><title>openrouter · ~typesafe/jev-latest: 1 → 97%</title></circle>
+<circle class="l1" cx="64" cy="66" r="8" fill="none" stroke-width="2"><title>openrouter · ~typesafe/jev-latest: recommended 1</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">openrouter · ~typesafe/jev-la…</text>
+</svg>

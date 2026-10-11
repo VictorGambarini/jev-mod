@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="Browser: accuracy against confirmConfidence">
+<title>Browser: accuracy against confirmConfidence</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">Browser: accuracy against confirmConfidence</text>
+<text class="st" x="64" y="44">ringed: recommended per backend (peak accuracy; ties go higher)</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="247.2" y2="247.2"/>
+<text class="ax" x="56" y="251.2" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="200.4" y2="200.4"/>
+<text class="ax" x="56" y="204.4" text-anchor="end">40%</text>
+<line class="g" x1="64" x2="684" y1="153.6" y2="153.6"/>
+<text class="ax" x="56" y="157.6" text-anchor="end">60%</text>
+<line class="g" x1="64" x2="684" y1="106.8" y2="106.8"/>
+<text class="ax" x="56" y="110.8" text-anchor="end">80%</text>
+<line class="g" x1="64" x2="684" y1="60" y2="60"/>
+<text class="ax" x="56" y="64" text-anchor="end">100%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">0.5</text>
+<text class="ax" x="132.89" y="312" text-anchor="middle">0.55</text>
+<text class="ax" x="201.78" y="312" text-anchor="middle">0.6</text>
+<text class="ax" x="270.67" y="312" text-anchor="middle">0.65</text>
+<text class="ax" x="339.56" y="312" text-anchor="middle">0.7</text>
+<text class="ax" x="408.44" y="312" text-anchor="middle">0.75</text>
+<text class="ax" x="477.33" y="312" text-anchor="middle">0.8</text>
+<text class="ax" x="546.22" y="312" text-anchor="middle">0.85</text>
+<text class="ax" x="615.11" y="312" text-anchor="middle">0.9</text>
+<text class="ax" x="684" y="312" text-anchor="middle">0.95</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">confirmConfidence threshold</text>
+<text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
+<line class="guide" x1="546.22" x2="546.22" y1="60" y2="294"/>
+<text class="ax" x="550.22" y="70">today 0.85</text>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,65.32 132.89,70.64 201.78,75.95 270.67,75.95 339.56,75.95 408.44,81.27 477.33,86.59 546.22,91.91 615.11,102.55 684,134.45"/>
+<circle class="d1 dot" cx="64" cy="65.32" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 98%</title></circle>
+<circle class="d1 dot" cx="132.89" cy="70.64" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 95%</title></circle>
+<circle class="d1 dot" cx="201.78" cy="75.95" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.6 → 93%</title></circle>
+<circle class="d1 dot" cx="270.67" cy="75.95" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.65 → 93%</title></circle>
+<circle class="d1 dot" cx="339.56" cy="75.95" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.7 → 93%</title></circle>
+<circle class="d1 dot" cx="408.44" cy="81.27" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.75 → 91%</title></circle>
+<circle class="d1 dot" cx="477.33" cy="86.59" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.8 → 89%</title></circle>
+<circle class="d1 dot" cx="546.22" cy="91.91" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.85 → 86%</title></circle>
+<circle class="d1 dot" cx="615.11" cy="102.55" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.9 → 82%</title></circle>
+<circle class="d1 dot" cx="684" cy="134.45" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.95 → 68%</title></circle>
+<circle class="l1" cx="64" cy="65.32" r="8" fill="none" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: recommended 0.5</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">openrouter · typesafe/jev-1.1…</text>
+</svg>

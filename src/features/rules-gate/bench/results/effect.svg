@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="Rules gate: rules judged broken against minConfidence">
+<title>Rules gate: rules judged broken against minConfidence</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">Rules gate: rules judged broken against minConfidence</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="217.11" y2="217.11"/>
+<text class="ax" x="56" y="221.11" text-anchor="end">10%</text>
+<line class="g" x1="64" x2="684" y1="140.23" y2="140.23"/>
+<text class="ax" x="56" y="144.23" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="63.34" y2="63.34"/>
+<text class="ax" x="56" y="67.34" text-anchor="end">30%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">0.5</text>
+<text class="ax" x="132.89" y="312" text-anchor="middle">0.55</text>
+<text class="ax" x="201.78" y="312" text-anchor="middle">0.6</text>
+<text class="ax" x="270.67" y="312" text-anchor="middle">0.65</text>
+<text class="ax" x="339.56" y="312" text-anchor="middle">0.7</text>
+<text class="ax" x="408.44" y="312" text-anchor="middle">0.75</text>
+<text class="ax" x="477.33" y="312" text-anchor="middle">0.8</text>
+<text class="ax" x="546.22" y="312" text-anchor="middle">0.85</text>
+<text class="ax" x="615.11" y="312" text-anchor="middle">0.9</text>
+<text class="ax" x="684" y="312" text-anchor="middle">0.95</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">minConfidence threshold</text>
+<text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">rules judged broken</text>
+<line class="guide" x1="477.33" x2="477.33" y1="60" y2="294"/>
+<text class="ax" x="481.33" y="70">today 0.8</text>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,60 132.89,93.43 201.78,93.43 270.67,93.43 339.56,93.43 408.44,93.43 477.33,93.43 546.22,126.86 615.11,126.86 684,160.29"/>
+<circle class="d1 dot" cx="64" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 30%</title></circle>
+<circle class="d1 dot" cx="132.89" cy="93.43" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 26%</title></circle>
+<circle class="d1 dot" cx="201.78" cy="93.43" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.6 → 26%</title></circle>
+<circle class="d1 dot" cx="270.67" cy="93.43" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.65 → 26%</title></circle>
+<circle class="d1 dot" cx="339.56" cy="93.43" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.7 → 26%</title></circle>
+<circle class="d1 dot" cx="408.44" cy="93.43" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.75 → 26%</title></circle>
+<circle class="d1 dot" cx="477.33" cy="93.43" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.8 → 26%</title></circle>
+<circle class="d1 dot" cx="546.22" cy="126.86" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.85 → 22%</title></circle>
+<circle class="d1 dot" cx="615.11" cy="126.86" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.9 → 22%</title></circle>
+<circle class="d1 dot" cx="684" cy="160.29" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.95 → 17%</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">openrouter · typesafe/jev-1.1…</text>
+</svg>

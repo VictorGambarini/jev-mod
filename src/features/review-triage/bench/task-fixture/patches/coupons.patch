@@ -1,0 +1,87 @@
+diff --git a/shop/coupons.py b/shop/coupons.py
+new file mode 100644
+index 0000000..c87e9c0
+--- /dev/null
++++ b/shop/coupons.py
+@@ -0,0 +1,15 @@
++"""Coupons: a percentage off an order, with an expiry time and a limit on uses."""
++import time
++
++
++def coupon_valid(coupon, now=None):
++    """A coupon works until it expires and until it has been used `max_uses` times."""
++    now = now or time.time()
++    if coupon["expires"] < now:
++        return True
++    return coupon["uses"] < coupon["max_uses"]
++
++
++def redeem(coupon):
++    """Record one use of the coupon."""
++    return dict(coupon)
+diff --git a/shop/orders.py b/shop/orders.py
+index edb44cd..93eb864 100644
+--- a/shop/orders.py
++++ b/shop/orders.py
+@@ -7,9 +7,9 @@ class OrderError(Exception):
+     pass
+ 
+ 
+-def create_order(conn, user_id, lines, notes=""):
++def create_order(conn, user_id, lines, notes="", coupon=None):
+     """Create an order for `lines` ([{"sku", "unit_cents", "qty"}]) and take the stock."""
+-    totals = order_total(lines)
++    totals = order_total(lines, coupon)
+     with transaction(conn):
+         cur = conn.execute(
+             "INSERT INTO orders (user_id, status, total_cents, notes) VALUES (?, 'new', ?, ?)",
+diff --git a/shop/pricing.py b/shop/pricing.py
+index b1e62bd..ad0f0b9 100644
+--- a/shop/pricing.py
++++ b/shop/pricing.py
+@@ -1,5 +1,7 @@
+ """Prices, discounts and tax, all in integer cents."""
+ 
++from .coupons import coupon_valid
++
+ BULK_THRESHOLD = 10
+ BULK_DISCOUNT_BP = 1000  # 10%
+ TAX_RATE_BP = 1500  # 15% GST
+@@ -21,8 +23,11 @@ def tax_cents(amount_cents):
+     return (amount_cents * TAX_RATE_BP + 5000) // 10000
+ 
+ 
+-def order_total(lines):
+-    """lines: [{"unit_cents": int, "qty": int}] -> subtotal, discount, tax and total."""
++def order_total(lines, coupon=None, now=None):
++    """lines: [{"unit_cents": int, "qty": int}] -> subtotal, discount, tax and total.
++
++    A valid coupon takes its percentage off the discounted subtotal, before tax.
++    """
+     subtotal = 0
+     discount = 0
+     for line in lines:
+@@ -31,4 +36,9 @@ def order_total(lines):
+         discount += bulk_discount(cents, line["qty"])
+     taxable = subtotal - discount
+     tax = tax_cents(taxable)
+-    return {"subtotal": subtotal, "discount": discount, "tax": tax, "total": taxable + tax}
++    total = taxable + tax
++    if coupon and coupon_valid(coupon, now):
++        coupon_cents = total * coupon["percent"] // 100
++        discount += coupon_cents
++        total -= coupon_cents
++    return {"subtotal": subtotal, "discount": discount, "tax": tax, "total": total}
+diff --git a/shop/utils.py b/shop/utils.py
+index 1f525c6..97a8499 100644
+--- a/shop/utils.py
++++ b/shop/utils.py
+@@ -2,7 +2,7 @@
+ 
+ 
+ def fmt_money(cents):
+-    """12345 -> '$123.45'."""
++    """12345 -> '$123.45', -50 -> '-$0.50'."""
+     sign = "-" if cents < 0 else ""
+     cents = abs(cents)
+     return f"{sign}${cents // 100:,}.{cents % 100:02d}"

@@ -65,6 +65,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
         // a project under git, as a real one is: the session can diff its own changes
         const git = (...args: string[]) => run('git', ['-c', 'user.name=bench', '-c', 'user.email=bench@example.invalid', ...args], { cwd: folder, timeoutMs: 30_000 })
         for (const args of [['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'fixture']]) await git(...args)
+        if (c.patch) await git('apply', `${o.repo}/${c.patch}`)
       }
     }
     await prepare(work)
@@ -93,8 +94,8 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     for (const [k, arm] of o.arms.entries()) {
       const ledger = `${dir}/ledger-${k}`
       // a fresh case: this arm works on its own copy, which its checker reads
-      const cwd = c.fresh ? `${dir}/project-${k}` : work
-      if (c.fresh) await prepare(cwd)
+      const cwd = c.fresh || c.isolate ? `${dir}/project-${k}` : work
+      if (c.fresh || c.isolate) await prepare(cwd)
       const overlay = `${dir}/overlay-${k}.json`
       await f.mkdir(ledger, { recursive: true })
       await f.writeFile(overlay, JSON.stringify(overlayFor(o.adapter, arm, ledger)))

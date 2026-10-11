@@ -82,3 +82,28 @@ Best per backend:
 
 - openrouter · typesafe/jev-1.13-20260917: minConfidence 0.55 (accuracy 94.1%; default 0.8: 84.3%)
 <!-- bench:end -->
+
+### Task level: what does triage change in a real review?
+
+`bun src/bench/run.ts review-triage --level task --backend openrouter --sweep told=0:1:1` prints a plan; `--yes` runs it.
+Ten uncommitted changes to a small shop service (`bench/task-fixture/`, made by `bench/task-fixture-gen.py`), each reviewed the way
+a person asks: *I'm about to commit this, review it for bugs* (real defects only, one `FINDING: file:line - text` line each). Three
+changes are clean (docs, a rename, logging) and seven carry 12 real defects between them among harmless edits: an off-by-one, a
+missing `@require_admin`, SQL built with an f-string, a partial refund that restocks and can refund twice, a migration that
+drops a column still read, float money and a swallowed exception, and a coupon with three bugs.
+
+The checker is deterministic. A finding is matched to a defect by file and line (the gold is a line found by a needle in the changed
+file, plus two lines either side); a defect matched is caught, a finding that matches no defect is false, and a real but minor
+issue the prompt did not ask about is tolerated (neither). A change's score is the F1 of defects caught and false findings (a clean
+change: 1 with nothing reported, 0 with anything), and it succeeds when every defect is caught and nothing is false.
+
+Plain Claude Code is the arm without the tool. The jev-mod arm has it offered and its prompt ends with "Use the review_triage tool
+first to decide how deep to go", which is what a person who turned the feature on would write in their CLAUDE.md: in the first smoke
+Claude Code, offered the tool and told by its description to call it first, did not call it (`told=0` runs that, and an arm that
+never calls the tool is an error, `not_triaged`, which is the adoption result). Measured per arm: defects caught, false findings,
+wall time, Claude's cost and tokens, the decision cost.
+
+What it can and cannot compare. Triage never reviews: it sets how deep the first pass goes (quick, or full with the files to start
+with), and Claude is free to read more. So the bench shows what that hint does to a review, and it cannot show a saving that is
+not there: a quick verdict on a clean change should cost less than a full review, and a quick verdict on a buggy one costs the
+defect. In the first smoke (`bulk-threshold`, one off-by-one) both arms found it; the jev-mod arm cost $0.006 and 0.4 s more.

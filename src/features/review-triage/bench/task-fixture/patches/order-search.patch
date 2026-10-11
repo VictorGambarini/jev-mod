@@ -1,0 +1,45 @@
+diff --git a/shop/api.py b/shop/api.py
+index 9825429..cf2366b 100644
+--- a/shop/api.py
++++ b/shop/api.py
+@@ -41,5 +41,5 @@ def handle_refund(request):
+ @require_admin
+ def handle_list_orders(request):
+     conn = connect()
+-    rows = orders.search_orders(conn, request["user_id"], request.get("status"))
++    rows = orders.search_orders(conn, request["user_id"], request.get("status"), request.get("q"))
+     return {"status": 200, "orders": [dict(r) for r in rows]}
+diff --git a/shop/orders.py b/shop/orders.py
+index edb44cd..cadc71c 100644
+--- a/shop/orders.py
++++ b/shop/orders.py
+@@ -57,10 +57,15 @@ def refund_order(conn, order_id, amount_cents=None):
+     return amount_cents
+ 
+ 
+-def search_orders(conn, user_id, status=None):
++def search_orders(conn, user_id, status=None, text=None, limit=50):
++    """A user's orders, newest first; `text` matches the order's note."""
+     sql = "SELECT * FROM orders WHERE user_id = ?"
+     args = [user_id]
+     if status:
+         sql += " AND status = ?"
+         args.append(status)
+-    return conn.execute(sql + " ORDER BY id DESC", args).fetchall()
++    if text:
++        sql += f" AND notes LIKE '%{text}%'"
++    sql += " ORDER BY id DESC LIMIT ?"
++    args.append(limit)
++    return conn.execute(sql, args).fetchall()
+diff --git a/shop/utils.py b/shop/utils.py
+index 1f525c6..390220a 100644
+--- a/shop/utils.py
++++ b/shop/utils.py
+@@ -9,6 +9,7 @@ def fmt_money(cents):
+ 
+ 
+ def chunks(items, size):
++    # kept for the bulk importer
+     """Yield lists of at most `size` items."""
+     for i in range(0, len(items), size):
+         yield items[i:i + size]

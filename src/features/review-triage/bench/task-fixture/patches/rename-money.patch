@@ -1,0 +1,64 @@
+diff --git a/shop/api.py b/shop/api.py
+index 9825429..91312e8 100644
+--- a/shop/api.py
++++ b/shop/api.py
+@@ -2,7 +2,7 @@
+ from . import orders
+ from .auth import require_admin, verify_token
+ from .db import connect
+-from .utils import fmt_money
++from .utils import format_money
+ 
+ 
+ def handle_get_order(request):
+@@ -13,7 +13,7 @@ def handle_get_order(request):
+     order = orders.get_order(conn, request["order_id"])
+     if order is None or (order["user_id"] != who["user_id"] and who["role"] != "admin"):
+         return {"status": 404, "error": "no such order"}
+-    return {"status": 200, "order": dict(order), "total": fmt_money(order["total_cents"])}
++    return {"status": 200, "order": dict(order), "total": format_money(order["total_cents"])}
+ 
+ 
+ def handle_create_order(request):
+@@ -35,7 +35,7 @@ def handle_refund(request):
+         amount = orders.refund_order(conn, request["order_id"], request.get("amount_cents"))
+     except orders.OrderError as error:
+         return {"status": 409, "error": str(error)}
+-    return {"status": 200, "refunded": fmt_money(amount)}
++    return {"status": 200, "refunded": format_money(amount)}
+ 
+ 
+ @require_admin
+diff --git a/shop/notifications.py b/shop/notifications.py
+index 3f95ca3..f5a698c 100644
+--- a/shop/notifications.py
++++ b/shop/notifications.py
+@@ -1,13 +1,13 @@
+ """Receipts."""
+ import logging
+ 
+-from .utils import fmt_money
++from .utils import format_money
+ 
+ log = logging.getLogger(__name__)
+ 
+ 
+ def format_receipt(order):
+-    lines = [f"Order #{order['id']}", f"Total: {fmt_money(order['total_cents'])}"]
++    lines = [f"Order #{order['id']}", f"Total: {format_money(order['total_cents'])}"]
+     if order["notes"]:
+         lines.append(f"Note: {order['notes']}")
+     return "\n".join(lines)
+diff --git a/shop/utils.py b/shop/utils.py
+index 1f525c6..6585c78 100644
+--- a/shop/utils.py
++++ b/shop/utils.py
+@@ -1,7 +1,7 @@
+ """Small helpers."""
+ 
+ 
+-def fmt_money(cents):
++def format_money(cents):
+     """12345 -> '$123.45'."""
+     sign = "-" if cents < 0 else ""
+     cents = abs(cents)

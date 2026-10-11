@@ -1,0 +1,32 @@
+diff --git a/shop/api.py b/shop/api.py
+index 9825429..062e658 100644
+--- a/shop/api.py
++++ b/shop/api.py
+@@ -6,6 +6,7 @@ from .utils import fmt_money
+ 
+ 
+ def handle_get_order(request):
++    """One order, to its owner or an admin."""
+     who = verify_token(request.get("token"))
+     if not who:
+         return {"status": 401, "error": "sign in"}
+@@ -17,6 +18,7 @@ def handle_get_order(request):
+ 
+ 
+ def handle_create_order(request):
++    """Place an order for the signed-in user."""
+     who = verify_token(request.get("token"))
+     if not who:
+         return {"status": 401, "error": "sign in"}
+@@ -43,3 +45,11 @@ def handle_list_orders(request):
+     conn = connect()
+     rows = orders.search_orders(conn, request["user_id"], request.get("status"))
+     return {"status": 200, "orders": [dict(r) for r in rows]}
++
++
++def handle_export_orders(request):
++    """Every order of one user as CSV lines, for the accounting export."""
++    conn = connect()
++    rows = orders.search_orders(conn, request["user_id"])
++    lines = [f"{r['id']},{r['status']},{r['total_cents']}" for r in rows]
++    return {"status": 200, "csv": "\n".join(lines)}

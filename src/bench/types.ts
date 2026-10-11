@@ -191,7 +191,12 @@ export type TaskCase = {
   allowedTools?: string[]
   /** The scratch project is made a git repository with one commit first, as a real project is. */
   git?: boolean
-  /** Each arm works in its own copy of the scratch project, for cases whose arms change files (the checker reads that copy). */
+  /** A unified diff (relative to the repo) applied to the project after that commit, left uncommitted: the change to review. */
+  patch?: string
+  /**
+   * Every arm works in a copy of the project of its own, so one arm's edits are not the next arm's
+   * starting point. Not with `setup` prompts: their session belongs to the shared folder.
+   */
   isolate?: true
   /** About what the shared setup costs, in dollars, for the estimate (else its prompts at the adapter's setup price). */
   setupUsd?: number
@@ -217,6 +222,8 @@ export type Checked = { success: boolean; score: number; detail?: Record<string,
 export type ArmRun = {
   /** Decision entries the mod wrote to the arm's ledger: one per decision request it made. */
   ledgerEntries: number
+  /** The same, per feature (protective features, the stop gate say, ask in every arm). */
+  ledgerFeatures?: Record<string, number>
   /** The final step's input tokens, cached or not: the context its model call read. null: no usage reported. */
   contextTokens: number | null
   /** The last compaction the mod recorded in the arm's ledger, or null when it recorded none. */

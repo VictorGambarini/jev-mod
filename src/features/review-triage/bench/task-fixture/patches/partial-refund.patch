@@ -1,0 +1,49 @@
+diff --git a/shop/api.py b/shop/api.py
+index 9825429..94f71bd 100644
+--- a/shop/api.py
++++ b/shop/api.py
+@@ -35,7 +35,7 @@ def handle_refund(request):
+         amount = orders.refund_order(conn, request["order_id"], request.get("amount_cents"))
+     except orders.OrderError as error:
+         return {"status": 409, "error": str(error)}
+-    return {"status": 200, "refunded": fmt_money(amount)}
++    return {"status": 200, "refunded": fmt_money(amount), "partial": request.get("amount_cents") is not None}
+ 
+ 
+ @require_admin
+diff --git a/shop/orders.py b/shop/orders.py
+index edb44cd..ab7cc5f 100644
+--- a/shop/orders.py
++++ b/shop/orders.py
+@@ -42,17 +42,28 @@ def restock(conn, order_id):
+         conn.execute("UPDATE products SET stock = stock + ? WHERE sku = ?", (line["qty"], line["sku"]))
+ 
+ 
++def refunded_so_far(conn, order_id):
++    row = conn.execute("SELECT COALESCE(SUM(amount_cents), 0) AS n FROM refunds WHERE order_id = ?", (order_id,)).fetchone()
++    return row["n"]
++
++
+ def refund_order(conn, order_id, amount_cents=None):
+-    """Refund a paid order, in full by default. A refund cannot be larger than the total."""
++    """Refund a paid order, in full by default, or part of it.
++
++    Together the refunds of an order cannot exceed its total. Only a full refund puts the
++    stock back and marks the order refunded; a partial refund leaves both alone.
++    """
+     order = get_order(conn, order_id)
+     if order is None or order["status"] != "paid":
+         raise OrderError("only a paid order can be refunded")
+-    amount_cents = order["total_cents"] if amount_cents is None else amount_cents
++    full = amount_cents is None
++    amount_cents = order["total_cents"] if full else amount_cents
+     if amount_cents <= 0 or amount_cents > order["total_cents"]:
+         raise OrderError("refund must be between 1 cent and the order total")
+     with transaction(conn):
+         conn.execute("INSERT INTO refunds (order_id, amount_cents) VALUES (?, ?)", (order_id, amount_cents))
+-        conn.execute("UPDATE orders SET status = 'refunded' WHERE id = ?", (order_id,))
++        if full:
++            conn.execute("UPDATE orders SET status = 'refunded' WHERE id = ?", (order_id,))
+         restock(conn, order_id)
+     return amount_cents
+ 

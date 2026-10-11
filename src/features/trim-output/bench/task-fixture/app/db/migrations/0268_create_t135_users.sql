@@ -1,0 +1,1 @@
+CREATE TABLE t135_users (id INTEGER PRIMARY KEY, created_at TEXT);

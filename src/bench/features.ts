@@ -9,6 +9,7 @@ import { task as compactTask } from '../features/compact/bench/task'
 import { adapter as findFiles } from '../features/find-files/bench/adapter'
 import { task as findFilesTask } from '../features/find-files/bench/task'
 import { adapter as reviewTriage } from '../features/review-triage/bench/adapter'
+import { task as reviewTriageTask } from '../features/review-triage/bench/task-check'
 import { adapter as routing } from '../features/routing/bench/adapter'
 import { task as routingTask } from '../features/routing/bench/task'
 import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
@@ -18,6 +19,7 @@ import { task as skillsTask } from '../features/skills/bench/task'
 import { adapter as stopGate } from '../features/stop-gate/bench/adapter'
 import { adapter as toolGate } from '../features/tool-gate/bench/adapter'
 import { adapter as trimOutput } from '../features/trim-output/bench/adapter'
+import { task as trimOutputTask } from '../features/trim-output/bench/task-check'
 import { adapter as webFilter } from '../features/web-filter/bench/adapter'
 import type { DecisionAdapter, TaskAdapter } from './types'
 
@@ -25,7 +27,7 @@ export type Bench = { decision?: DecisionAdapter<any>; task?: TaskAdapter<any> }
 
 export const BENCHES: Record<string, Bench> = {
   compact: { decision: compact, task: compactTask },
-  'trim-output': { decision: trimOutput },
+  'trim-output': { decision: trimOutput, task: trimOutputTask },
   'rules-gate': { decision: rulesGate },
   screening: { decision: screening },
   'web-filter': { decision: webFilter },
@@ -36,7 +38,7 @@ export const BENCHES: Record<string, Bench> = {
   skills: { decision: skills, task: skillsTask },
   'find-files': { decision: findFiles, task: findFilesTask },
   browser: { decision: browser, task: browserTask },
-  'review-triage': { decision: reviewTriage },
+  'review-triage': { decision: reviewTriage, task: reviewTriageTask },
 }
 
 /** The feature's bench folder, relative to the repo root. */

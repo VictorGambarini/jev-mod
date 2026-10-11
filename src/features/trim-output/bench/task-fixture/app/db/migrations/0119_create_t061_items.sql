@@ -1,0 +1,1 @@
+CREATE TABLE t061_items (id INTEGER PRIMARY KEY, created_at TEXT);

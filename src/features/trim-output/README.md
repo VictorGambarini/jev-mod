@@ -85,3 +85,33 @@ Best per backend:
 
 - openrouter · typesafe/jev-1.13-20260917: notNeeded 0.8 (accuracy 49.6%; default 0.9: 18.1%)
 <!-- bench:end -->
+
+### Task level: does trimming hurt a real task?
+
+`bun src/bench/run.ts trim-output --level task --backend openrouter` prints a plan; `--yes` runs it (`src/bench/README.md` has the options).
+Ten small projects in `bench/task-fixture/` (made by `bench/task-fixture-gen.py`) whose natural command prints hundreds of
+lines. A task is what a person says to Claude Code: *run `make test`, work out why the failing ones fail and fix the code*, or
+*`make build` fails, fix it*, or *replay this trace and tell me which request failed first and why*.
+
+| Task | Command (lines) | What is wrong |
+|---|---|---|
+| `slugify-letters`, `tax-refunds`, `month-ends`, `csv-quotes`, `prerelease-order` | `make test`, pytest -v (300 to 550) | 3 or 4 of 300 to 500 tests fail: ł/ø/đ, negative halves, leap Februaries, `""` in a field, `rc.9` against `rc.11` |
+| `pib-sizes` | `make test`, go test -v (570) | three subtests fail, listed in the middle of the run |
+| `lru-falsy` | `npm test`, node's runner (350) | falsy values are not refreshed |
+| `build-template` | `make build` (380) | one template names a filter that does not exist, 140 lines before the end |
+| `migration-order` | `make check` (600) | two migrations are numbered in the wrong order; the failure is in the middle |
+| `pool-timeouts` | `make replay` (1,080) | diagnosis only: the first 500, its tenant, and the cause, which is an INFO line 50 lines earlier |
+
+Plain Claude Code sees every line it asks for; the arm with the feature on gets the output after the hook trimmed it. A third arm,
+*jev-mod folding only* (`localOnly`), folds repeats locally and asks no model, so the table shows what the decision model adds.
+Each arm works in a copy of the project of its own (`isolate`). The checker is deterministic: it puts the original tests (or build
+script, or migrate tool) back, runs them on the arm's code, and passes only when they pass; the diagnosis must name the request, the
+tenant and the cause. Measured per arm: success and score, wall time, Claude's cost and tokens, `context_tokens` (the run's input
+tokens, added up over its model calls), the decision model's cost and calls, and the total. `bench/check-fixtures.ts` proves with
+real tools that each project fails its check as shipped and passes once fixed.
+
+What the smoke runs showed (2026-10-11, one project each): Claude Code pipes a verbose command through `tail -40` by itself, so a
+suite of 300 passing tests reaches it as 40 lines in every arm and trimming has nothing to cut (`csv-quotes`: 131k, 130k and 130k
+tokens, all three fixed it). A failure in the middle of a long run does reach it whole: on `migration-order` the hook cut 690 lines
+to 148 and the run read 15% fewer tokens, and the arm still found the cause. The protective features (the stop gate) ask the decision
+model in every arm, plain Claude Code's too, so that arm's decision cost is not always $0.

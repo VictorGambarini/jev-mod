@@ -55,6 +55,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     if (ran.code !== 0 && parsed.ok) return { ...parsed, ok: false, error: `claude exited ${ran.code}`, ms: ran.ms }
     return { ...parsed, ms: ran.ms }
   }
+  const stop = await o.adapter.start?.()
   for (const c of o.cases) {
     const dir = `${base}/${c.id}`
     const work = `${dir}/project`
@@ -158,6 +159,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
         `$${row.claude_cost_usd!.toFixed(3)} Claude, $${row.cost_usd.toFixed(5)} decisions`)
     }
   }
+  await stop?.()
   warn(`scratch folder kept for inspection: ${base}`)
   return rows
 }

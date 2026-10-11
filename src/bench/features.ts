@@ -14,6 +14,7 @@ import { adapter as routing } from '../features/routing/bench/adapter'
 import { task as routingTask } from '../features/routing/bench/task'
 import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
 import { adapter as screening } from '../features/screening/bench/adapter'
+import { task as screeningTask } from '../features/screening/bench/task-io'
 import { adapter as skills } from '../features/skills/bench/adapter'
 import { task as skillsTask } from '../features/skills/bench/task'
 import { adapter as stopGate } from '../features/stop-gate/bench/adapter'
@@ -21,6 +22,7 @@ import { adapter as toolGate } from '../features/tool-gate/bench/adapter'
 import { adapter as trimOutput } from '../features/trim-output/bench/adapter'
 import { task as trimOutputTask } from '../features/trim-output/bench/task-check'
 import { adapter as webFilter } from '../features/web-filter/bench/adapter'
+import { task as webFilterTask } from '../features/web-filter/bench/task-io'
 import type { DecisionAdapter, TaskAdapter } from './types'
 
 export type Bench = { decision?: DecisionAdapter<any>; task?: TaskAdapter<any> }
@@ -29,8 +31,8 @@ export const BENCHES: Record<string, Bench> = {
   compact: { decision: compact, task: compactTask },
   'trim-output': { decision: trimOutput, task: trimOutputTask },
   'rules-gate': { decision: rulesGate },
-  screening: { decision: screening },
-  'web-filter': { decision: webFilter },
+  screening: { decision: screening, task: screeningTask },
+  'web-filter': { decision: webFilter, task: webFilterTask },
   'tool-gate': { decision: toolGate },
   'access-gate': { decision: accessGate },
   'stop-gate': { decision: stopGate },

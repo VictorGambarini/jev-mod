@@ -179,6 +179,8 @@ export type Step = {
   disallowedTools?: string[]
   /** About what this call costs, in dollars, for the estimate (else the adapter's usdPerCall). */
   usd?: number
+  /** Environment variables for this call, beyond the backend's (a scratch config folder, a CA file). Never a key. */
+  env?: Record<string, string>
 }
 
 export type TaskCase = {
@@ -228,6 +230,8 @@ export type ArmRun = {
   contextTokens: number | null
   /** The last compaction the mod recorded in the arm's ledger, or null when it recorded none. */
   compaction: Compaction | null
+  /** Decision entries by the feature that made them (the screen and the web filter both ask on a fetched page). */
+  byFeature?: Record<string, number>
 }
 
 /** What an arm runs with beyond its case (TaskAdapter.beforeArm): more `claude` arguments, words for its prompts, what to stop after it. */
@@ -244,6 +248,8 @@ export type ArmSetup = {
 export interface TaskAdapter<C extends TaskCase = TaskCase> {
   feature: string
   cases(): readonly C[]
+  /** Called once before the first case; what it returns is called after the last (a local site the cases fetch from). */
+  start?(): Promise<() => Promise<void> | void>
   /** Arms beyond plain Claude Code and the feature on (compaction adds one with no compaction at all). */
   extraArms?(): Arm[]
   /** The prompts one arm sends after the shared setup (for compaction: the compaction, then the questions). */

@@ -77,3 +77,14 @@ Best per backend:
 
 - openrouter · typesafe/jev-1.13-20260917: minConfidence 0.9 (accuracy 97.6%; default 0.9: 97.6%)
 <!-- bench:end -->
+
+### Task level: what plain Claude Code reads against what the filter leaves
+
+`bun src/bench/run.ts web-filter --level task --backend openrouter` (add `--yes` to spend). One task is a question a long page answers in a sentence or two: nine of them, on made-up handbook pages of 14,000 to 19,000 characters served from 127.0.0.1 (`bench/pages.ts`, `src/bench/web-server.ts`), with the needle among look-alike sections that answer other questions, and one task spread over two pages. Claude fetches the page with WebFetch, asking for a section-by-section listing, and answers; the checker is the exact answer (every pattern of it must match).
+
+- **Plain Claude Code** is jev-mod switched off whole (a kill file in a scratch config folder); it reads what WebFetch returns, all of it.
+- **jev-mod** has the web filter on (`--sweep minConfidence=0.7:0.9:0.1` to sweep it), with screening as shipped, so it first screens the result and then cuts what the question does not need.
+
+Measured per arm: accuracy, wall time, Claude's cost and the context its question read (what the filter shrinks), the decision model's cost (the screen's calls and the filter's), and their total. An arm whose filter was never asked is `no_long_fetch`, not a score.
+
+What it does not cover: WebSearch cannot be served locally, so the filter's search path is judged at the decision level only. WebFetch does not return the page: a small model summarises it for the prompt Claude gives, and the filter sees that text (4,000 characters or more), so the prompt asks for a listing that runs long. A run is only as long as that summary is, and the summary varies from run to run.

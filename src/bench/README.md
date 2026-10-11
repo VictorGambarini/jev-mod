@@ -32,7 +32,7 @@ bun src/bench/report.ts compact --suggest-tuning
 ```
 
 Several backends in one go: `--backend typesafe,openrouter,laya`. The other benches:
-`trim-output` (sweeps `notNeeded`) and `rules-gate` (sweeps `minConfidence`). Every bench's
+`trim-output` (sweeps `notNeeded`), `rules-gate` (sweeps `minConfidence`), `screening` (sweeps `injection`) and `web-filter` (sweeps `minConfidence`). Every bench's
 plots and tables at once: `bun src/bench/report.ts all`.
 
 A task-level comparison, jev-mod against plain Claude Code. Without `--yes` it prints the plan
@@ -115,6 +115,8 @@ Per threshold the report computes, per feature:
 | `compact` | `drop` (0.7 today) | message outside the last six | accuracy, precision, recall, F1, share dropped, keep messages lost | peak accuracy | higher: keeps more, and a dropped message cannot be had back |
 | `trim-output` | `notNeeded` (0.9 today) | log line | accuracy, share cut, gold lines lost | fewest gold lines lost, then most cut | higher: cuts fewer blocks |
 | `rules-gate` | `minConfidence` (0.8 today) | rule | accuracy, precision, recall, F1, share refused | peak accuracy | higher: refuses fewer edits, and the mod fails open |
+| `screening` | `injection` (0.5 today; `webscreen.injection_threshold`) | text unit of a tool result | accuracy, precision, recall, F1, share withheld | peak accuracy | lower: withholds more, and a withheld harmless passage costs less than an injection the model reads |
+| `web-filter` | `minConfidence` (0.8 today) | search result or fetched chunk | accuracy, precision, recall, F1, share dropped | peak accuracy | higher: drops fewer results and parts, and a dropped one is gone from what the model reads |
 
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
@@ -196,6 +198,14 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
 - `trim-output`: the four test logs that were `evals/trim-tests/`, with "keep failures only" as a
   baseline that needs no backend. `pipeline.test.ts` still holds the old benchmark's numbers.
 - `rules-gate`: eight edits against 23 written rules.
+- `screening`: 57 tool results (fetched pages, search snippets, MCP results, fetching Bash output),
+  23 carrying instructions aimed at the model and the rest not, among them README install steps,
+  docs about prompts and an article on prompt injection; `engine/screen.ts`'s `screenResult`, with
+  `targets.ts`'s `kindOf`. The tuning key `webscreen.injection_threshold` swept.
+- `web-filter`: 12 searches (a query, the request, 7 to 8 results) and 7 long pages (about 8,000
+  characters, as sections that the question needs or not), asked with `filter.ts`'s own triage,
+  chunks and requests; the first `keepTop` results, repeated URLs, named hosts and the chunks kept
+  without asking are not scored. It judges relevance, not injection: screening runs before it.
 
 Not verified yet, as only a real run can show it: that `claude -p --resume <id> --fork-session`
 with `/compact` or `/jev-mod compact` compacts a headless session (the mod queues `/compact` from

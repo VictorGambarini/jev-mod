@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="Screening: texts withheld against injection (FAKE)">
+<title>Screening: texts withheld against injection (FAKE)</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">Screening: texts withheld against injection (FAKE)</text>
+<text class="fake" x="64" y="44">FAKE BACKEND: example numbers, not a measurement</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="232.44" y2="232.44"/>
+<text class="ax" x="56" y="236.44" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="170.88" y2="170.88"/>
+<text class="ax" x="56" y="174.88" text-anchor="end">40%</text>
+<line class="g" x1="64" x2="684" y1="109.32" y2="109.32"/>
+<text class="ax" x="56" y="113.32" text-anchor="end">60%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">0.1</text>
+<text class="ax" x="136.94" y="312" text-anchor="middle">0.2</text>
+<text class="ax" x="209.88" y="312" text-anchor="middle">0.3</text>
+<text class="ax" x="282.82" y="312" text-anchor="middle">0.4</text>
+<text class="ax" x="355.76" y="312" text-anchor="middle">0.5</text>
+<text class="ax" x="428.71" y="312" text-anchor="middle">0.6</text>
+<text class="ax" x="501.65" y="312" text-anchor="middle">0.7</text>
+<text class="ax" x="574.59" y="312" text-anchor="middle">0.8</text>
+<text class="ax" x="647.53" y="312" text-anchor="middle">0.9</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">injection threshold</text>
+<text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">texts withheld</text>
+<line class="guide" x1="355.76" x2="355.76" y1="78" y2="294"/>
+<text class="ax" x="359.76" y="88">today 0.5</text>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,78 100.47,83.4 136.94,105 173.41,115.8 209.88,142.8 246.35,164.4 282.82,191.4 319.29,202.2 355.76,202.2 392.24,202.2 428.71,218.4 465.18,223.8 501.65,240 538.12,250.8 574.59,250.8 611.06,256.2 647.53,261.6 684,283.2"/>
+<circle class="d1 dot" cx="64" cy="78" r="4" stroke-width="2"><title>fake · fake-jev: 0.1 → 70%</title></circle>
+<circle class="d1 dot" cx="100.47" cy="83.4" r="4" stroke-width="2"><title>fake · fake-jev: 0.15 → 68%</title></circle>
+<circle class="d1 dot" cx="136.94" cy="105" r="4" stroke-width="2"><title>fake · fake-jev: 0.2 → 61%</title></circle>
+<circle class="d1 dot" cx="173.41" cy="115.8" r="4" stroke-width="2"><title>fake · fake-jev: 0.25 → 58%</title></circle>
+<circle class="d1 dot" cx="209.88" cy="142.8" r="4" stroke-width="2"><title>fake · fake-jev: 0.3 → 49%</title></circle>
+<circle class="d1 dot" cx="246.35" cy="164.4" r="4" stroke-width="2"><title>fake · fake-jev: 0.35 → 42%</title></circle>
+<circle class="d1 dot" cx="282.82" cy="191.4" r="4" stroke-width="2"><title>fake · fake-jev: 0.4 → 33%</title></circle>
+<circle class="d1 dot" cx="319.29" cy="202.2" r="4" stroke-width="2"><title>fake · fake-jev: 0.45 → 30%</title></circle>
+<circle class="d1 dot" cx="355.76" cy="202.2" r="4" stroke-width="2"><title>fake · fake-jev: 0.5 → 30%</title></circle>
+<circle class="d1 dot" cx="392.24" cy="202.2" r="4" stroke-width="2"><title>fake · fake-jev: 0.55 → 30%</title></circle>
+<circle class="d1 dot" cx="428.71" cy="218.4" r="4" stroke-width="2"><title>fake · fake-jev: 0.6 → 25%</title></circle>
+<circle class="d1 dot" cx="465.18" cy="223.8" r="4" stroke-width="2"><title>fake · fake-jev: 0.65 → 23%</title></circle>
+<circle class="d1 dot" cx="501.65" cy="240" r="4" stroke-width="2"><title>fake · fake-jev: 0.7 → 18%</title></circle>
+<circle class="d1 dot" cx="538.12" cy="250.8" r="4" stroke-width="2"><title>fake · fake-jev: 0.75 → 14%</title></circle>
+<circle class="d1 dot" cx="574.59" cy="250.8" r="4" stroke-width="2"><title>fake · fake-jev: 0.8 → 14%</title></circle>
+<circle class="d1 dot" cx="611.06" cy="256.2" r="4" stroke-width="2"><title>fake · fake-jev: 0.85 → 12%</title></circle>
+<circle class="d1 dot" cx="647.53" cy="261.6" r="4" stroke-width="2"><title>fake · fake-jev: 0.9 → 11%</title></circle>
+<circle class="d1 dot" cx="684" cy="283.2" r="4" stroke-width="2"><title>fake · fake-jev: 0.95 → 4%</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">fake · fake-jev</text>
+</svg>

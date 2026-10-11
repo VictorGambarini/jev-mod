@@ -59,13 +59,36 @@ No answer within `timeoutMs`, no key, private mode, a secret in the change, the 
 ## Benchmarks
 
 <!-- bench:start -->
-**Bench** (`bun src/bench/report.ts rules-gate`; 0.11.0@14f7f68).
+**Bench** (`bun src/bench/report.ts rules-gate`; 0.11.0@14f7f68, 0.12.0@55065cf).
 
 - **One case:** an edit to a file in a project, with the written rules that apply to that file, and for each rule whether the edit breaks it.
 - **Measured:** for each rule, whether Jev says broken when it is. Refusing an edit that breaks no rule is a wasted turn; letting a breaking one through is the miss.
 - **The setting:** how sure Jev must be that a rule is broken before the edit is refused. Higher refuses fewer edits, and a doubtful one goes on. (`minConfidence`, default 0.9)
 
-**Compared with plain Claude Code: not yet.** No task-level run of this feature (a real Claude Code session with it off, then on, on the same task) has been made.
+**Compared with plain Claude Code:**
+
+![task](bench/results/task.svg)
+
+| arm | runs | success | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |
+|---|---|---|---|---|---|---|---|---|---|
+| plain Claude Code | 9 | 88.9% | 94.4% | 19.9 s | 176.3 s | $0.128 | $0 | $0 | $0.128 |
+| jev-mod openrouter | 9 | 66.7% | 77.8% | 20.1 s | 223.0 s | $0.139 | $0.00012 | $0.00009 | $0.139 |
+
+- success: the share of scored runs the checker marked right; mean score: its partial credit (the share of questions answered right, say).
+- median time: over scored runs; total time: every run of the arm, failed ones too.
+- costs are per scored run. Feature decision cost: what rules-gate's own decisions cost; other jev-mod decision cost: what other jev-mod features still asked in the arm (a protective feature the bench may not switch off, as the person has it). Total cost is Claude plus both. A failed run is never scored.
+- plain Claude Code runs with jev-mod switched off whole, so it makes no decisions; a plain run that shows any is an error (`decisions_in_plain_arm`). Runs from jev-mod 0.12.0 and before switched off only the features that change what the model sees.
+
+- jev-mod openrouter: right on 66.7% (plain Claude Code 88.9%) of runs, median 20.1 s (plain Claude Code 19.9 s), $0.139 (plain Claude Code $0.128) per run (Claude $0.139, rules-gate's decisions $0.00012, other jev-mod decisions $0.00009).
+
+| arm | question context | kept / dropped | Claude tokens |
+|---|---|---|---|
+| plain Claude Code | 113.8k | – | 115528 |
+| jev-mod openrouter | 128.7k | – | 130725 |
+
+- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it.
+
+Spend in all: $2.403 Claude; $0.00186 decisions. A failed run is never scored, but its spend counts here.
 
 **Decision level.** Jev answers each case by itself, and the bench replays its answers at every value of `minConfidence`. Best = where accuracy peaks; a tie goes to the higher value: a higher bar refuses fewer edits, and the mod fails open: a doubtful edit goes on.
 

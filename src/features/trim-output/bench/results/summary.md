@@ -1,12 +1,38 @@
 # Output trimming (test logs): bench summary
 
-**Bench** (`bun src/bench/report.ts trim-output`; 0.11.0@14f7f68).
+**Bench** (`bun src/bench/report.ts trim-output`; 0.11.0@14f7f68, 0.12.0@55065cf).
 
 - **One case:** a test run's log, with the goal it is read for ("why does this fail"), and the lines that must survive the trim.
 - **Measured:** line by line, whether the trimmed output keeps the lines the goal needs and cuts the rest. Losing a needed line is the costly mistake, so the best value is the one that loses fewest, then cuts most.
 - **The setting:** how sure Jev must be that a block of lines is not needed before it is cut. Higher cuts fewer blocks. (`notNeeded`, default 0.9)
 
-**Compared with plain Claude Code: not yet.** No task-level run of this feature (a real Claude Code session with it off, then on, on the same task) has been made.
+**Compared with plain Claude Code:**
+
+![task](task.svg)
+
+| arm | runs | success | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |
+|---|---|---|---|---|---|---|---|---|---|
+| plain Claude Code | 10 | 100.0% | 100.0% | 13.0 s | 154.6 s | $0.126 | $0 | $0 | $0.126 |
+| jev-mod folding only | 10 | 90.0% | 98.0% | 19.3 s | 189.1 s | $0.131 | $0 | $0.00009 | $0.131 |
+| jev-mod openrouter | 10 | 90.0% | 98.0% | 16.7 s | 204.9 s | $0.123 | $0.00010 | $0.00010 | $0.124 |
+
+- success: the share of scored runs the checker marked right; mean score: its partial credit (the share of questions answered right, say).
+- median time: over scored runs; total time: every run of the arm, failed ones too.
+- costs are per scored run. Feature decision cost: what trim-output's own decisions cost; other jev-mod decision cost: what other jev-mod features still asked in the arm (a protective feature the bench may not switch off, as the person has it). Total cost is Claude plus both. A failed run is never scored.
+- plain Claude Code runs with jev-mod switched off whole, so it makes no decisions; a plain run that shows any is an error (`decisions_in_plain_arm`). Runs from jev-mod 0.12.0 and before switched off only the features that change what the model sees.
+
+- jev-mod folding only: right on 90.0% (plain Claude Code 100.0%) of runs, median 19.3 s (plain Claude Code 13.0 s), $0.131 (plain Claude Code $0.126) per run (Claude $0.131, trim-output's decisions $0, other jev-mod decisions $0.00009).
+- jev-mod openrouter: right on 90.0% (plain Claude Code 100.0%) of runs, median 16.7 s (plain Claude Code 13.0 s), $0.124 (plain Claude Code $0.126) per run (Claude $0.123, trim-output's decisions $0.00010, other jev-mod decisions $0.00010).
+
+| arm | question context | kept / dropped | Claude tokens |
+|---|---|---|---|
+| plain Claude Code | 95.9k | – | 97122 |
+| jev-mod folding only | 101.8k | – | 103182 |
+| jev-mod openrouter | 99.4k | – | 100728 |
+
+- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it.
+
+Spend in all: $3.799 Claude; $0.00296 decisions. A failed run is never scored, but its spend counts here.
 
 **Decision level.** Jev answers each case by itself, and the bench replays its answers at every value of `notNeeded`. Best = fewest gold lines lost, then most lines cut; a tie goes to the higher value: a higher bar cuts fewer blocks, so fewer lines the goal needs are lost.
 

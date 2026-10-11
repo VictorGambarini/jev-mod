@@ -51,13 +51,36 @@ bun src/bench/run.ts find-files --level task --backend openrouter --claude-arg -
 ```
 
 <!-- bench:start -->
-**Bench** (`bun src/bench/report.ts find-files`; 0.11.0@14f7f68).
+**Bench** (`bun src/bench/report.ts find-files`; 0.11.0@14f7f68, 0.12.0@55065cf).
 
 - **One case:** a plain-words question about a made-up shop project (about 75 files), such as "where do we apply discounts", with the files that implement it.
 - **Measured:** the order Jev lists the files in: of the first k files returned, how many are the implementing ones, and how many implementing files are missed. Some queries have no right file, which measures the noise returned.
 - **The setting:** how many files the tool returns (it has no relevance bar). Fewer files is less for the model to open; more files misses fewer. (`limit`, default 10)
 
-**Compared with plain Claude Code: not yet.** No task-level run of this feature (a real Claude Code session with it off, then on, on the same task) has been made.
+**Compared with plain Claude Code:**
+
+![task](bench/results/task.svg)
+
+| arm | runs | success | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |
+|---|---|---|---|---|---|---|---|---|---|
+| plain Claude Code | 10 | 100.0% | 100.0% | 9077 ms | 103.0 s | $0.088 | $0 | $0 | $0.088 |
+| jev-mod openrouter | 10 | 100.0% | 100.0% | 9727 ms | 117.5 s | $0.103 | $0.00007 | $0.00004 | $0.103 |
+
+- success: the share of scored runs the checker marked right; mean score: its partial credit (the share of questions answered right, say).
+- median time: over scored runs; total time: every run of the arm, failed ones too.
+- costs are per scored run. Feature decision cost: what find-files's own decisions cost; other jev-mod decision cost: what other jev-mod features still asked in the arm (a protective feature the bench may not switch off, as the person has it). Total cost is Claude plus both. A failed run is never scored.
+- plain Claude Code runs with jev-mod switched off whole, so it makes no decisions; a plain run that shows any is an error (`decisions_in_plain_arm`). Runs from jev-mod 0.12.0 and before switched off only the features that change what the model sees.
+
+- jev-mod openrouter: right on 100.0% (plain Claude Code 100.0%) of runs, median 9727 ms (plain Claude Code 9077 ms), $0.103 (plain Claude Code $0.088) per run (Claude $0.103, find-files's decisions $0.00007, other jev-mod decisions $0.00004).
+
+| arm | question context | kept / dropped | Claude tokens |
+|---|---|---|---|
+| plain Claude Code | 56.3k | – | 56872 |
+| jev-mod openrouter | 58.1k | – | 58919 |
+
+- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it.
+
+Spend in all: $1.914 Claude; $0.00111 decisions. A failed run is never scored, but its spend counts here.
 
 **Decision level.** Jev answers each case by itself, and the bench replays its answers at every value of `limit`. Best = peak F2 (recall counts double); a tie goes to the lower value: a lower limit returns fewer files for the model to open and read; the cost is a miss when the right file ranks below it.
 

@@ -141,7 +141,7 @@ each setting does, is in the feature's page.
 | [`screening`](src/features/screening/README.md) | on, shadow, off | on | none |
 | [`tool-gate`](src/features/tool-gate/README.md) | on, shadow, off | off | `minConfidence`, `offMachineConfidence`, `scope`, `timeoutMs` |
 | [`stop-gate`](src/features/stop-gate/README.md) | on, shadow, off | off | `maxNudges`, `minConfidence`, `evidenceChars` |
-| [`rules-gate`](src/features/rules-gate/README.md) | on, shadow, off | off | `minConfidence`, `maxRules`, `timeoutMs`, `maxChangeChars`, `subagents` |
+| [`rules-gate`](src/features/rules-gate/README.md) | on, shadow, off | off | `minConfidence`, `waiverConfidence`, `maxRules`, `timeoutMs`, `maxChangeChars`, `subagents` |
 | [`access-gate`](src/features/access-gate/README.md) | on, shadow, off | off | `alwaysAllow` (your file only), `allowLocalhost` |
 | [`trim-output`](src/features/trim-output/README.md) | on, shadow, off | off | `minLines`, `keepThreshold`, `localOnly` |
 | [`web-filter`](src/features/web-filter/README.md) | on, shadow, off | off | `minConfidence`, `keepTop`, `fetchMinChars`, `timeoutMs` |

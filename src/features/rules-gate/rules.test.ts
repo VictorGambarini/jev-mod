@@ -1,7 +1,7 @@
 import { test, expect } from 'claude-code/testing'
 import type { Answer } from '../../engine/client'
 import {
-  changePieces, decide, describeChange, foldersDown, frontMatter, globMatches, lineDiff, parseRules, questionsFor, refusal,
+  changePieces, decide, describeChange, judgeRules, foldersDown, frontMatter, globMatches, lineDiff, parseRules, questionsFor, refusal,
   relativeTo, selectRules, stateOf, type Candidate,
 } from './rules'
 
@@ -168,4 +168,34 @@ test('a rule judged broken at or above minConfidence refuses, quoting it; below 
   expect(one).toContain('- "Use pnpm, never npm." (CLAUDE.md, under "Tooling")')
   expect(one).toContain('tell the person which rule and why')
   expect(refusal('src/a.ts', broken)).toContain('breaks 2 rules')
+})
+
+test("with the person's request: a leave question per rule, the request its own field; without, neither", () => {
+  const rules = [cand('Never edit generated/.', 'CLAUDE.md', 0, 0, 'Rules'), cand('Use pnpm, never npm.', 'CLAUDE.md', 0, 1)]
+  expect(Object.keys(questionsFor(rules))).toEqual(['rule_1', 'rule_2'])
+  const q = questionsFor(rules, true)
+  expect(Object.keys(q)).toEqual(['rule_1', 'waived_1', 'rule_2', 'waived_2'])
+  expect(q.waived_1!.instructions).toBe('Did the person, in the_persons_request, explicitly ask for this change even though it goes against this rule? '
+    + 'Rule (from CLAUDE.md, under "Rules"): "Never edit generated/."')
+  expect(String((q.waived_1!.criteria as { false: string }).false)).toContain('"go ahead"')
+  const change = { file: 'generated/m.py', tool: 'Edit', edit: { old_string: 'a', new_string: 'b' }, text: '' }
+  expect('the_persons_request' in stateOf(change, false)).toBe(false)
+  const state = stateOf(change, false, 'Edit generated/m.py by hand.')
+  expect(state.the_persons_request).toBe('Edit generated/m.py by hand.')
+  expect(String(state.task)).toContain('is not the person')
+})
+
+test('a broken rule the person gave leave for refuses nothing; leave for one rule is not leave for another', () => {
+  const rules = [cand('Never edit generated/.', 'CLAUDE.md', 0, 0), cand('Use pnpm, never npm.', 'CLAUDE.md', 0, 1)]
+  const noul = (p: number): Answer => ({ type: 'noul', noul: p })
+  const both = { rule_1: noul(0.95), waived_1: noul(0.9), rule_2: noul(0.92), waived_2: noul(0.2) }
+  const { broken, waived } = judgeRules(both, rules, 0.9, 0.8)
+  expect(broken.map(b => b.rule.text)).toEqual(['Use pnpm, never npm.'])
+  expect(waived.map(b => b.rule.text)).toEqual(['Never edit generated/.'])
+  // below the leave bar, or no answer to the leave question: still broken
+  expect(judgeRules({ rule_1: noul(0.95), waived_1: noul(0.79) }, rules, 0.9, 0.8).broken.length).toBe(1)
+  expect(judgeRules({ rule_1: noul(0.95) }, rules, 0.9, 0.8).broken.length).toBe(1)
+  // leave for a rule not broken changes nothing; decide() never reads leave
+  expect(judgeRules({ rule_1: noul(0.1), waived_1: noul(0.99) }, rules, 0.9, 0.8)).toEqual({ broken: [], waived: [] })
+  expect(decide(both, rules, 0.9).length).toBe(2)
 })

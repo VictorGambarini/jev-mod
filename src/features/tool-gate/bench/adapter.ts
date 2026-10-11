@@ -19,10 +19,12 @@ const num = (name: string) => (knob[name] as { default: number }).default
 const DEFAULT = num('minConfidence')
 const OFF_MACHINE = num('offMachineConfidence')
 
+// each case's prompts are the person's own, typed at the prompt
+const PERSON = { kind: 'composer' }
 const ROOT = '/home/u/proj'
 const HOME = '/home/u'
 
-const mineOf = (prompts: readonly string[]): Remembered => prompts.reduce<Remembered>((m, p) => ({ ...m, ...remember(m, p) }), {})
+const mineOf = (prompts: readonly string[]): Remembered => prompts.reduce<Remembered>((m, p) => ({ ...m, ...remember(m, p, PERSON) }), {})
 
 type Detail =
   | { route: 'unflagged' }
@@ -77,7 +79,7 @@ export const adapter: DecisionAdapter<ToolCase> = {
     const mine = mineOf(c.prompts)
     const questions = questionsFor(mine)
     try {
-      const reply = await ask(ctx.host, stateOf(c.tool, c.input, risk, mine, false), questions, { timeoutMs: ctx.timeoutMs, retries: 1, patient: true })
+      const reply = await ask(ctx.host, stateOf(c.tool, c.input, risk, mine, false, ROOT, HOME), questions, { timeoutMs: ctx.timeoutMs, retries: 1, patient: true })
       const answers: Record<string, number | null> = {}
       for (const q of Object.keys(questions)) { const a = reply.answers[q]; answers[q] = a?.type === 'noul' ? a.noul : null }
       const detail: Detail = { route: 'asked', kind: risk.kind, why: risk.why, answers }

@@ -10,14 +10,16 @@ import { isPrivate, jevDir } from '../../core/settings'
 import { ask, costOf, JevError, type Answer } from '../../engine/client'
 import {
   answeredAll, cacheText, callIsSensitive, decide, mcpRisk, questionsFor, readOnlyMayOverrule, remember as rememberPrompt, riskOf,
-  stateOf, type Remembered, type Risk, type Scope, type Verdict,
+  stateOf, type Origin, type Remembered, type Risk, type Scope, type Verdict,
 } from './rules'
 
 // The tool-call gate: before a consequential call runs (a push, a delete, a publish, a deploy,
 // a write outside the project, an MCP tool that sends or changes something), the decision model
 // is asked whether the person asked for it, whether it breaks a limit they stated, and whether
 // it is hard to undo. A doubtful call is put to the person (the permission dialog, with the
-// reason) instead of running unasked.
+// reason) instead of running unasked. Only the person's own prompts can ask for a call: their
+// latest is sent on its own, and a prompt from a notification, another session or a plugin is
+// sent marked as not theirs.
 //
 // It sits on `tool.check`, the engine's permission decision, and only ever tightens it: a call
 // Claude Code would refuse or already put to the person is left alone, and one it would allow
@@ -53,11 +55,14 @@ export function clearCache(): void {
   inFlight.clear()
 }
 
-/** At submit: the prompt, redacted, and the limits it states, for the calls that follow. */
-export async function analyse(io: IO, text: string): Promise<void> {
+/**
+ * At submit: the prompt, redacted, and the limits it states, for the calls that follow. `origin`
+ * is prompt.submit's: only the person's own prompt becomes their latest request.
+ */
+export async function analyse(io: IO, text: string, origin: Origin): Promise<void> {
   if (await modeOf(io, ID) === 'off') return
   const mine = memory.space<ToolGateSpace>(ID)
-  Object.assign(mine, rememberPrompt(mine, text))
+  Object.assign(mine, rememberPrompt(mine, text, origin))
   await memory.save(io)
 }
 
@@ -103,11 +108,12 @@ export async function check(io: IO, e: Call): Promise<Gate> {
     offMachineConfidence: Number(resolved.knobs.offMachineConfidence?.value ?? 0.7),
     timeoutMs: Number(resolved.knobs.timeoutMs?.value ?? 2000),
   }
+  const where: Where = { root, home }
   if (resolved.mode !== 'on') {
-    inBackground(() => judge(io, e, risk, knobs, true))
+    inBackground(() => judge(io, e, risk, knobs, where, true))
     return null
   }
-  const verdict = await judge(io, e, risk, knobs, false)
+  const verdict = await judge(io, e, risk, knobs, where, false)
   if (!verdict) return null
   await noteAsk(io, risk.why, 'asked-person')
   return { decision: 'ask', reason: verdict.reason }
@@ -138,6 +144,8 @@ export async function observe(io: IO, tool: string, result: { isReadOnly?: unkno
 }
 
 type Knobs = { minConfidence: number; offMachineConfidence: number; timeoutMs: number }
+// The project and home folders, for reading the paths a call names.
+type Where = { root?: string; home?: string }
 
 async function keyOf(e: Call, mine: Remembered): Promise<string> {
   const text = cacheText(memory.session() ?? '', e.tool, e.input, !!e.agentId, mine)
@@ -161,7 +169,7 @@ function keep(key: string, answers: Answers): void {
 }
 
 /** The decision model's verdict on a risky call when it doubts it, else null; every outcome but the ask counted here. */
-async function judge(io: IO, e: Call, risk: Risk, knobs: Knobs, shadow: boolean): Promise<Verdict | null> {
+async function judge(io: IO, e: Call, risk: Risk, knobs: Knobs, where: Where, shadow: boolean): Promise<Verdict | null> {
   const skip = async (): Promise<null> => { await activity.count(io, ID, 'skipped'); return null }
   const mine = memory.space<ToolGateSpace>(ID)
   if (!mine.prompts?.length) return skip() // nothing to judge it against
@@ -173,7 +181,7 @@ async function judge(io: IO, e: Call, risk: Risk, knobs: Knobs, shadow: boolean)
     let pending = inFlight.get(key)
     if (pending) await activity.count(io, ID, 'reused')
     else {
-      pending = request(io, e, risk, mine, knobs.timeoutMs, shadow, key)
+      pending = request(io, e, risk, mine, where, knobs.timeoutMs, shadow, key)
       inFlight.set(key, pending)
       const done = () => { inFlight.delete(key) }
       pending.then(done, done)
@@ -195,7 +203,7 @@ async function judge(io: IO, e: Call, risk: Risk, knobs: Knobs, shadow: boolean)
 }
 
 /** One request's answers, cached when every question was answered; null when none came (fail open). */
-async function request(io: IO, e: Call, risk: Risk, mine: Remembered, timeoutMs: number, shadow: boolean, key: string): Promise<Answers | null> {
+async function request(io: IO, e: Call, risk: Risk, mine: Remembered, where: Where, timeoutMs: number, shadow: boolean, key: string): Promise<Answers | null> {
   if (coolingOff()) return null
   const dir = await jevDir(io)
   if (await isPrivate(io, dir)) return null
@@ -206,7 +214,7 @@ async function request(io: IO, e: Call, risk: Risk, mine: Remembered, timeoutMs:
   }
   const questions = questionsFor(mine)
   try {
-    const asked = await ask(hostOf(io), stateOf(e.tool, e.input, risk, mine, !!e.agentId), questions, { timeoutMs, retries: 0 })
+    const asked = await ask(hostOf(io), stateOf(e.tool, e.input, risk, mine, !!e.agentId, where.root, where.home), questions, { timeoutMs, retries: 0 })
     await Promise.all([recordCalls(io, [asked], [], ID), limits?.charge(costOf(asked))])
     if (answeredAll(asked.answers, questions)) keep(key, asked.answers)
     return asked.answers

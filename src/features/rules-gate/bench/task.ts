@@ -162,7 +162,7 @@ export const CASES: GateCase[] = cases([
   },
   {
     // the person asks outright to edit the generated file; the rule is theirs to waive. The gate
-    // sees the change and the rules, not the request, so it may refuse what was asked for.
+    // reads the request and has to let the asked-for edit through.
     id: 'hotfix-override',
     kind: 'asked',
     fixture: FIXTURE,

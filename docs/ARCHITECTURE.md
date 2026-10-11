@@ -175,12 +175,17 @@ server's `readOnlyHint`); that changes nothing in the result.
 
 ## The tool gate
 
-`tool-gate` sits in the one `tool.check` hook without a matcher, after the access gate. A call
-Claude Code would allow and `rules.ts` flags as consequential is sent with the session's last
-prompts and stated limits, and four questions in one request: did the person ask for it, does it
-break a stated limit, is it hard to undo, does it send data off this machine. `decide` turns the
-answers into an ask or nothing. Answers are kept two minutes in a bounded in-process map, keyed
-on a SHA-256 of the session, tool, whole redacted input, subagent flag, prompts and limits, and a
+`tool-gate` sits in the one `tool.check` hook without a matcher, after the access gate. At
+`prompt.submit` it keeps the session's last prompts, redacted; one whose `origin` is not the
+person's (`composer`, `bridge` or `sdk`) is kept marked as such and never becomes the person's
+latest request, which is sent in a field of its own. For a delete, `namedTargets` lists which of
+its targets the request's own words name (a path, a folder, an extension), as information beside
+the call. A call Claude Code would allow and `rules.ts` flags as consequential is sent with the
+session's last prompts and stated limits, and four questions in one request: did the person ask
+for it, does it break a stated limit, is it hard to undo, does it send data off this machine.
+`decide` turns the answers into an ask or nothing. Answers are kept two minutes in a bounded
+in-process map, keyed on a SHA-256 of the session, tool, whole redacted input, subagent flag,
+prompts, latest request and limits, and a
 second identical call in flight waits on the first one's request; answers with a question
 unanswered, and failures, are not kept. An MCP tool remembered (in the session's memory) as
 declared read-only is passed unjudged when `readOnlyMayOverrule` says its name allows it; the
@@ -232,6 +237,10 @@ become `{ decision: 'deny', reason }`: nothing has run, and the reason is the er
 root), and `.claude/rules/**/*.md` whose front-matter `paths:` globs match the file (none: every
 file). Each file is parsed once per mtime. Edits outside the project are left to the tool gate,
 which only asks about them. In shadow everything past the config read runs in `inBackground`.
+At `prompt.submit` the person's own prompt (the tool gate's `personsRequest`: their `origin` only,
+redacted, withheld when secret-shaped) is kept in the session's memory as their request. With one,
+the request carries it as `the_persons_request` and a `waived_N` question beside each `rule_N`;
+`judgeRules` drops a broken rule whose leave reaches `waiverConfidence`.
 
 ## A tool of the mod's own
 

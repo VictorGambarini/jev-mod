@@ -1,0 +1,15 @@
+{
+  "billing": {
+    "dashboard": {
+      "empty": "No invoices yet",
+      "paid_one": "{count} invoice paid",
+      "paid_other": "{count} invoices paid",
+      "title": "Billing"
+    }
+  },
+  "orders": {
+    "list": {
+      "title": "Your orders"
+    }
+  }
+}

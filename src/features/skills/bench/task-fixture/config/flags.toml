@@ -1,0 +1,13 @@
+# Feature flags. Add new ones with scripts/new_flag.py; scripts/check_flags.py validates this file.
+
+[flags.partial_refunds]
+owner = "payments"
+default = false
+sunset = "2026-12-01"
+checksum = "7ec0a997"
+
+[flags.delivery_log]
+owner = "integrations"
+default = true
+sunset = "2026-11-15"
+checksum = "5334c9fb"

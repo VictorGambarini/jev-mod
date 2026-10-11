@@ -42,6 +42,16 @@ No answer (or one lost batch), a cool-off, private mode, the daily budget (a pic
 
 ## Benchmarks
 
+**Task level** (`bun src/bench/run.ts skills --level task --backend openrouter --yes`). One task is a
+request a person would make in a small project that has 21 skills installed, such as "PR #482 just
+merged and raises the webhook retry limit, add it to the changelog" or "write the ADR for moving
+the queue to SQS". Eight skills hold what the request needs (a convention, a script, a format), the
+others overlap them or are decoys, and two of the ten requests need no skill. Plain Claude Code
+sees the same skills and picks (or not) on its own; the jev-mod arm has this feature on. A
+deterministic checker reads the files (or the answer) and scores the share of checks right;
+which skill was loaded is recorded from the session's transcript. Measured per arm: accuracy,
+wall time, Claude's cost, the decision model's cost, and the two together.
+
 <!-- bench:start -->
 **Bench** (`bun src/bench/report.ts skills`; 0.11.0@14f7f68).
 

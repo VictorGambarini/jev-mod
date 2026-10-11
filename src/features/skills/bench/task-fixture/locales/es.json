@@ -1,0 +1,15 @@
+{
+  "billing": {
+    "dashboard": {
+      "empty": "Aún no hay facturas",
+      "paid_one": "{count} factura pagada",
+      "paid_other": "{count} facturas pagadas",
+      "title": "Facturación"
+    }
+  },
+  "orders": {
+    "list": {
+      "title": "Tus pedidos"
+    }
+  }
+}

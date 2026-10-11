@@ -83,9 +83,12 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       session = r.session
     }
     const setup = setupRow(o.meta, c.id, setupCalls, setupFailed)
-    rows.push(setup)
-    await f.appendFile(o.out, toLine(setup) + '\n')
-    say(`${c.id}: setup ${setupFailed ? `failed (${setupFailed})` : `done (session ${session ?? 'none'})`}, $${setup.claude_cost_usd!.toFixed(3)} Claude`)
+    // a case with no setup prompts has no setup row (nothing was spent)
+    if (c.setup.length) {
+      rows.push(setup)
+      await f.appendFile(o.out, toLine(setup) + '\n')
+      say(`${c.id}: setup ${setupFailed ? `failed (${setupFailed})` : `done (session ${session ?? 'none'})`}, $${setup.claude_cost_usd!.toFixed(3)} Claude`)
+    }
     const done: { arm: Arm; row: Row; run: ArmRun }[] = []
     for (const [k, arm] of o.arms.entries()) {
       const ledger = `${dir}/ledger-${k}`

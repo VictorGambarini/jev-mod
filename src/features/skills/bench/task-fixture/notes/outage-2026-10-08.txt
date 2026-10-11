@@ -1,0 +1,12 @@
+payments outage, wed 8 oct (all times are NZDT as that's what my laptop says)
+
+- 2:51pm Hana noticed checkout 502s in #support, said customers were reporting "payment failed"
+- 2:58pm PagerDuty fired for checkout error rate (should have fired ~10 min earlier but the alert window was 15m)
+- 3:05pm Aroha (oncall) acked, started looking at the payment gateway dashboards
+- 3:20pm found the connection pool to the gateway was exhausted; a deploy at 2:40pm raised the webhook retry fan-out so every retry held a connection for the 30s timeout
+- 3:34pm rolled back the 2:40pm deploy
+- 3:38pm checkout error rate back to normal (confirmed by Hana placing a test order)
+
+Customer impact: checkout failed for about 47 minutes, roughly 1,900 failed order attempts, no one was double charged. About 310 of those customers retried successfully after.
+Root cause: webhook retry fan-out change (PR 497) multiplied gateway calls by 5 under load and no limit on the pool.
+Follow ups we talked about: alert window to 5m (Hana, by 17 Oct), connection pool limit and a load test for the retry change (Aroha, by 24 Oct), add a canary for payments deploys (Tom, by 31 Oct)

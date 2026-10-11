@@ -64,6 +64,7 @@ this checkout where jev-mod is not installed).
 | Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
 | Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
 | Task level, `routing`, one backend | 20 headless Claude calls (10 tasks × 2 arms, no setup), about 10 decision calls | Claude: about $14.50 (plain on Opus: about $0.30 a trivial task, $0.80 medium, $1.50 hard; routed: $0.10, $0.50, $1.50); decisions: about $0.01. The smoke (`--cases lb-conversion`, both arms): $0.37 of Claude, $0.0004 of decisions, about a minute |
+| Task level, `skills`, one backend | 20 headless Claude calls (10 cases × 2 arms, no shared setup), about 20 decision calls | Claude: about $6 (about $0.30 a run; the first smoke run was $0.36 plain and $0.25 with the feature, about 30 s each); decisions: under $0.01. One case (`--cases adr-queue`): about $0.60 |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 69 headless Claude calls (36 shared setup, then 11 per case), about 48 decision calls | Claude: about $105 (setup about $12.80 a case: twelve prompts building ~105k tokens of conversation; per case, a question on the full context about $2.50, `/compact` about $2.90 then its question about $0.70, the mod's compaction about $2.50 then its question about $1.55; the plan prints how it priced them); decisions: about $0.02. One case (`--cases proration-fix`): about $35 |
 
 ## Backends and keys
@@ -281,7 +282,16 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
 - `skills`: 72 prompts against a catalog of 38 synthetic skills, ranked by `engine/skills.ts`
   `pick` (topK 1, both stages). Gold is the list of right skills (empty when none fits). An item
   is positive when a skill is suggested and right when the top skill is a gold one, so a wrong
-  suggestion counts against precision.
+  suggestion counts against precision. Its task level (`skills/bench/task.ts`, ten cases on
+  `task-fixture/`): harborview, a small order and refund service with 21 skills in `.claude/skills/`.
+  Eight skills hold what a request needs (a changelog section rule, an ADR numbering script, a
+  UTC incident format, migration locking rules, a flag script with a checksum, an error-code
+  rule, locale conventions, how the logs count a failed request); the other thirteen overlap them
+  or are decoys. Two requests need no skill. Both arms have the same skills installed: plain
+  Claude Code picks on its own, the jev-mod arm has the skills feature on. Each arm works in its
+  own copy of the project (`isolate`), a checker reads the files or the answer, and the row's
+  `detail` says which skill was loaded (from the session's transcript). `task.check.ts` runs the
+  checks against the real fixture: `bun src/features/skills/bench/task.check.ts`.
 - `find-files`: 48 queries over a synthetic project of 77 files, run through the tool's own steps
   (git's list and counts from a small fake git, `narrow`, `askAbout`, `rank`, `render`). The tool
   has no relevance bar, so the swept number is how many files it returns. Each row also keeps the

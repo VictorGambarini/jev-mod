@@ -291,7 +291,9 @@ const SECRET_KEY_WORD =
 const SECRET_KEY = `(?<![\\w$.-])[\\w$.-]{0,80}?(?:${SECRET_KEY_WORD})[\\w$-]{0,40}`
 const QUOTED = '"(?:[^"\\\\\\n]|\\\\.)*"|\'(?:[^\'\\\\\\n]|\\\\.)*\'|`(?:[^`\\\\]|\\\\.)*`'
 const SCHEME = '(?:bearer|basic|token|digest)\\s+[^\\s"\'`,;]+'
-const BARE = '[^\\s"\'`,;)}\\]]+'
+// A placeholder already masked is read whole, so masking twice changes nothing ("[secret]" stays,
+// never "[secret]]").
+const BARE = '\\[(?:secret|redacted)\\]|[^\\s"\'`,;)}\\]]+'
 // name, an optional closing quote, then `=` (not `==`), `:`, `:=`, `=>` or " is ", then the value;
 // a typed declaration (`apiKey: string = '…'`, `password: Optional[str] = "…"`) is a name too.
 const TYPE = ':\\s*[A-Za-z_$][\\w$.<>\\[\\]|?, ]{0,60}?\\s*=(?![=>])'

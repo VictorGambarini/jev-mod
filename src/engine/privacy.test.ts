@@ -170,3 +170,12 @@ test('a dotted value is masked unless it reads as a reference; user:pass after -
     expect(redactSecretValues(kept)).toBe(kept)
   }
 })
+
+test('masking twice changes nothing: a value already masked is not masked again', () => {
+  for (const text of ['password: hunter2xyz', 'token=abc123DEF456ghi789JKL', 'DB_PASSWORD=s3cret!', '--api-key=abc123def456',
+    'const apiKey = "sk-live-abcdefghijklmnop"', 'the password is correct.horse', 'password: [redacted]']) {
+    const once = redactSecretValues(text, Number.POSITIVE_INFINITY, { contacts: true })
+    expect(redactSecretValues(once, Number.POSITIVE_INFINITY, { contacts: true })).toBe(once)
+    expect(once).not.toContain('[secret]]')
+  }
+})

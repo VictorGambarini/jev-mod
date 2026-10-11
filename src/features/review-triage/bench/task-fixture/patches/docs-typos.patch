@@ -1,0 +1,87 @@
+diff --git a/README.md b/README.md
+index dca0b75..bc22aeb 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,8 @@
+ # kauri-shop
+ 
+-A small order service: prices, orders, refunds and receipts. Handlers take a request dict and
+-return a response dict, so they run behind any web framework.
++A small order service: prices, orders, refunds and receipts.
++
++Handlers take a request dict and return a response dict, so they can run behind any web framework.
++All amounts are integer cents.
+ 
+     python3 -m pytest -q
+diff --git a/shop/auth.py b/shop/auth.py
+index 2695246..fae52e3 100644
+--- a/shop/auth.py
++++ b/shop/auth.py
+@@ -28,7 +28,7 @@ def make_token(user_id, role, now=None):
+ 
+ 
+ def verify_token(token, now=None):
+-    """The token's user id and role, or None if it is forged or expired."""
++    """Return the token's user id and role, or None if the token is forged or has expired."""
+     try:
+         user_id, role, expires, sig = token.split(":")
+     except (ValueError, AttributeError):
+diff --git a/shop/db.py b/shop/db.py
+index 46fad8d..deb431c 100644
+--- a/shop/db.py
++++ b/shop/db.py
+@@ -1,4 +1,4 @@
+-"""SQLite access."""
++"""SQLite access: one connection helper and a transaction context manager."""
+ import contextlib
+ import sqlite3
+ 
+diff --git a/shop/orders.py b/shop/orders.py
+index edb44cd..36d0d61 100644
+--- a/shop/orders.py
++++ b/shop/orders.py
+@@ -43,7 +43,10 @@ def restock(conn, order_id):
+ 
+ 
+ def refund_order(conn, order_id, amount_cents=None):
+-    """Refund a paid order, in full by default. A refund cannot be larger than the total."""
++    """Refund a paid order, in full by default.
++
++    A refund cannot be larger than the order total.
++    """
+     order = get_order(conn, order_id)
+     if order is None or order["status"] != "paid":
+         raise OrderError("only a paid order can be refunded")
+diff --git a/shop/pricing.py b/shop/pricing.py
+index b1e62bd..de9e52d 100644
+--- a/shop/pricing.py
++++ b/shop/pricing.py
+@@ -1,4 +1,6 @@
+-"""Prices, discounts and tax, all in integer cents."""
++"""Prices, discounts and tax.
++
++Every amount here is an integer number of cents."""
+ 
+ BULK_THRESHOLD = 10
+ BULK_DISCOUNT_BP = 1000  # 10%
+@@ -17,7 +19,7 @@ def bulk_discount(line_cents, qty):
+ 
+ 
+ def tax_cents(amount_cents):
+-    """GST on an amount, rounded to the nearest cent."""
++    """GST on an amount in cents, rounded to the nearest cent (halves go up)."""
+     return (amount_cents * TAX_RATE_BP + 5000) // 10000
+ 
+ 
+diff --git a/shop/utils.py b/shop/utils.py
+index 1f525c6..2155e40 100644
+--- a/shop/utils.py
++++ b/shop/utils.py
+@@ -9,6 +9,6 @@ def fmt_money(cents):
+ 
+ 
+ def chunks(items, size):
+-    """Yield lists of at most `size` items."""
++    """Yield consecutive lists of at most `size` items; the last one may be shorter."""
+     for i in range(0, len(items), size):
+         yield items[i:i + size]

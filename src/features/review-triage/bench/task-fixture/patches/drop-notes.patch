@@ -1,0 +1,46 @@
+diff --git a/migrations/002_drop_order_notes.sql b/migrations/002_drop_order_notes.sql
+new file mode 100644
+index 0000000..3742396
+--- /dev/null
++++ b/migrations/002_drop_order_notes.sql
+@@ -0,0 +1,2 @@
++-- order notes were never used for anything
++ALTER TABLE orders DROP COLUMN notes;
+diff --git a/shop/api.py b/shop/api.py
+index 9825429..ec9cf62 100644
+--- a/shop/api.py
++++ b/shop/api.py
+@@ -22,7 +22,7 @@ def handle_create_order(request):
+         return {"status": 401, "error": "sign in"}
+     conn = connect()
+     try:
+-        order_id = orders.create_order(conn, who["user_id"], request["lines"], request.get("notes", ""))
++        order_id = orders.create_order(conn, who["user_id"], request["lines"])
+     except orders.OrderError as error:
+         return {"status": 409, "error": str(error)}
+     return {"status": 201, "order_id": order_id}
+diff --git a/shop/orders.py b/shop/orders.py
+index edb44cd..20cbc3f 100644
+--- a/shop/orders.py
++++ b/shop/orders.py
+@@ -7,13 +7,16 @@ class OrderError(Exception):
+     pass
+ 
+ 
+-def create_order(conn, user_id, lines, notes=""):
+-    """Create an order for `lines` ([{"sku", "unit_cents", "qty"}]) and take the stock."""
++def create_order(conn, user_id, lines, notes=None):
++    """Create an order for `lines` ([{"sku", "unit_cents", "qty"}]) and take the stock.
++
++    `notes` is accepted for old callers and no longer stored.
++    """
+     totals = order_total(lines)
+     with transaction(conn):
+         cur = conn.execute(
+-            "INSERT INTO orders (user_id, status, total_cents, notes) VALUES (?, 'new', ?, ?)",
+-            (user_id, totals["total"], notes),
++            "INSERT INTO orders (user_id, status, total_cents) VALUES (?, 'new', ?)",
++            (user_id, totals["total"]),
+         )
+         order_id = cur.lastrowid
+         for line in lines:

@@ -1,0 +1,34 @@
+diff --git a/shop/notifications.py b/shop/notifications.py
+index 3f95ca3..3139ea5 100644
+--- a/shop/notifications.py
++++ b/shop/notifications.py
+@@ -7,6 +7,7 @@ log = logging.getLogger(__name__)
+ 
+ 
+ def format_receipt(order):
++    """The receipt text: order number, total and the customer's note if there is one."""
+     lines = [f"Order #{order['id']}", f"Total: {fmt_money(order['total_cents'])}"]
+     if order["notes"]:
+         lines.append(f"Note: {order['notes']}")
+@@ -17,7 +18,6 @@ def send_receipt(order, mailer, to):
+     """Email a receipt; a mailer failure is logged and does not undo the order."""
+     try:
+         mailer.send(to, f"Receipt for order #{order['id']}", format_receipt(order))
+-    except OSError as error:
+-        log.warning("receipt for order %s not sent: %s", order["id"], error)
++    except Exception:
+         return False
+     return True
+diff --git a/shop/pricing.py b/shop/pricing.py
+index b1e62bd..3e6ea12 100644
+--- a/shop/pricing.py
++++ b/shop/pricing.py
+@@ -18,7 +18,7 @@ def bulk_discount(line_cents, qty):
+ 
+ def tax_cents(amount_cents):
+     """GST on an amount, rounded to the nearest cent."""
+-    return (amount_cents * TAX_RATE_BP + 5000) // 10000
++    return round(amount_cents * TAX_RATE_BP / 10000)
+ 
+ 
+ def order_total(lines):

@@ -1,0 +1,60 @@
+diff --git a/shop/api.py b/shop/api.py
+index 9825429..8c8a83d 100644
+--- a/shop/api.py
++++ b/shop/api.py
+@@ -1,9 +1,13 @@
+ """Request handlers. A request is a dict; a response is a dict with a status."""
++import logging
++
+ from . import orders
+ from .auth import require_admin, verify_token
+ from .db import connect
+ from .utils import fmt_money
+ 
++log = logging.getLogger(__name__)
++
+ 
+ def handle_get_order(request):
+     who = verify_token(request.get("token"))
+@@ -24,6 +28,7 @@ def handle_create_order(request):
+     try:
+         order_id = orders.create_order(conn, who["user_id"], request["lines"], request.get("notes", ""))
+     except orders.OrderError as error:
++        log.info("order for user %s refused: %s", who["user_id"], error)
+         return {"status": 409, "error": str(error)}
+     return {"status": 201, "order_id": order_id}
+ 
+diff --git a/shop/orders.py b/shop/orders.py
+index edb44cd..4280772 100644
+--- a/shop/orders.py
++++ b/shop/orders.py
+@@ -1,8 +1,13 @@
+ """Orders: create, read, pay, refund, search."""
++import logging
++
+ from .db import transaction
+ from .pricing import order_total
+ 
+ 
++log = logging.getLogger(__name__)
++
++
+ class OrderError(Exception):
+     pass
+ 
+@@ -25,6 +30,7 @@ def create_order(conn, user_id, lines, notes=""):
+                 "INSERT INTO order_lines (order_id, sku, unit_cents, qty) VALUES (?, ?, ?, ?)",
+                 (order_id, line["sku"], line["unit_cents"], line["qty"]),
+             )
++    log.info("created order %s for user %s: %s lines, %s cents", order_id, user_id, len(lines), totals["total"])
+     return order_id
+ 
+ 
+@@ -54,6 +60,7 @@ def refund_order(conn, order_id, amount_cents=None):
+         conn.execute("INSERT INTO refunds (order_id, amount_cents) VALUES (?, ?)", (order_id, amount_cents))
+         conn.execute("UPDATE orders SET status = 'refunded' WHERE id = ?", (order_id,))
+         restock(conn, order_id)
++    log.info("refunded %s cents on order %s", amount_cents, order_id)
+     return amount_cents
+ 
+ 

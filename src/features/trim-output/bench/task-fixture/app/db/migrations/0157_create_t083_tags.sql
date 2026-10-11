@@ -1,0 +1,1 @@
+CREATE TABLE t083_tags (id INTEGER PRIMARY KEY, created_at TEXT);

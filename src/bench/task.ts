@@ -63,6 +63,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       // a project under git, as a real one is: the session can diff its own changes
       const git = (...args: string[]) => run('git', ['-c', 'user.name=bench', '-c', 'user.email=bench@example.invalid', ...args], { cwd: work, timeoutMs: 30_000 })
       for (const args of [['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'fixture']]) await git(...args)
+      if (c.patch) await git('apply', `${o.repo}/${c.patch}`)
     }
     const tools = c.allowedTools ?? []
     // the shared session, built with every feature that changes what the model sees off
@@ -86,6 +87,9 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     for (const [k, arm] of o.arms.entries()) {
       const ledger = `${dir}/ledger-${k}`
       const overlay = `${dir}/overlay-${k}.json`
+      // an isolated case gives each arm a copy of the project (its own edits, its own session folder)
+      const here = c.isolate ? `${dir}/project-${k}` : work
+      if (c.isolate) await f.cp(work, here, { recursive: true })
       await f.mkdir(ledger, { recursive: true })
       await f.writeFile(overlay, JSON.stringify(overlayFor(o.adapter, arm, ledger)))
       const row: Row = { ...o.meta, backend: backendRef(arm), answered_model: null, settings: { ...o.meta.settings, ...arm.settings },
@@ -97,7 +101,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       if (setupFailed) { row.outcome = 'error'; row.error = `setup: ${setupFailed}` }
       for (const [s, step] of o.adapter.steps(c, arm).entries()) {
         if (row.outcome === 'error') break
-        const r = await claude(step.prompt, work, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
+        const r = await claude(step.prompt, here, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
         row.wall_ms! += r.ms
         row.claude_cost_usd! += r.cost
         for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
@@ -118,12 +122,12 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       row.context_tokens = context
       if (book.compaction) row.compaction = book.compaction
       if (row.outcome === 'ok') {
-        const checked = await o.adapter.check(c, final, work)
+        const checked = await o.adapter.check(c, final, here)
         row.success = checked.success
         row.score = checked.score
         if (checked.detail) row.detail = checked.detail
       }
-      done.push({ arm, row, run: { ledgerEntries: book.decisions, contextTokens: context, compaction: book.compaction } })
+      done.push({ arm, row, run: { ledgerEntries: book.decisions, ledgerFeatures: book.features, contextTokens: context, compaction: book.compaction } })
     }
     verifyArms(o.adapter, c, done)
     for (const { arm, row } of done) {

@@ -216,7 +216,13 @@ backend), or a note when the mod has no setting for it yet (`compact`'s drop bar
    prompts shared by every arm, an optional `setupUsd` estimate), each arm's steps (a step may
    refuse tools and carry its own price for the estimate), its overlay, a checker, a `verify`
    that says when an arm plainly did not do its job, and optionally `maxUsdPerCall` and an
-   `estimateNote` the plan prints under its estimate.
+   `estimateNote` the plan prints under its estimate. A case that edits files sets `isolate` (each arm works in a
+   copy of the project, which needs no `setup` prompts); a case that reviews a change sets `patch` (a diff applied
+   after the commit, left uncommitted). An adapter whose checker needs processes or files keeps it in a
+   `task-check.ts` beside `task.ts`: the mod's test environment cannot load `node.ts`, so `task.ts` stays pure and
+   its tests use `taskAdapter(check)` with a stub; a `check-fixtures.ts` script run with `bun` proves the checker on the real tools.
+   `ArmRun.ledgerFeatures` counts decision requests per feature, for a `verify` that must know its own feature asked
+   (protective features ask in every arm).
 
 Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <name> --fake`.
 
@@ -239,7 +245,11 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   patterns. A jev-mod arm sends `/compact [jev-mod compact: drop only what Jev marks drop]`, the
   compaction `/jev-mod compact` runs, in one step.
 - `trim-output`: the four test logs that were `evals/trim-tests/`, with "keep failures only" as a
-  baseline that needs no backend. `pipeline.test.ts` still holds the old benchmark's numbers.
+  baseline that needs no backend. `pipeline.test.ts` still holds the old benchmark's numbers. Its task level
+  (`trim-output/bench/task.ts`, ten tasks, `task-fixture/`): small projects whose `make test`, build,
+  migration dry run or trace replay prints 300 to 1,100 lines, which Claude Code is asked to fix or diagnose;
+  arms: plain Claude Code, jev-mod folding only (`localOnly`) and jev-mod with the decision model; the checker
+  puts the original tests back and runs them (`task-check.ts`, `check-fixtures.ts`).
 - `rules-gate`: eight edits against 23 written rules.
 - `screening`: 57 tool results (fetched pages, search snippets, MCP results, fetching Bash output),
   23 carrying instructions aimed at the model and the rest not, among them README install steps,
@@ -267,7 +277,7 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   (git's list and counts from a small fake git, `narrow`, `askAbout`, `rank`, `render`). The tool
   has no relevance bar, so the swept number is how many files it returns. Each row also keeps the
   local ranking's order, so the table shows what the decision model adds over the local step.
-- `review-triage`: 51 synthetic diffs (docs, renames, fixes with and without tests, auth, schema,
+- `review-triage` (task level, `review-triage/bench/task.ts`): ten uncommitted changes to a small shop service (`task-fixture/`; `patch` on a case applies one after the commit), three clean and seven with 12 real defects, reviewed by plain Claude Code and by Claude Code with the triage tool; the checker matches `FINDING: file:line` lines to gold lines and counts defects caught against false findings. Decision level: 51 synthetic diffs (docs, renames, fixes with and without tests, auth, schema,
   concurrency, rule breaks, scope creep) with a gold yes/no per question, run through
   `requestOf` and `questionsOf`; the case is quick when all its questions are confident noes.
   The follow-up that names files is not benched: it changes no verdict.

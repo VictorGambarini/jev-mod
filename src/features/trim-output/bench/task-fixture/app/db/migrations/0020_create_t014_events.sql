@@ -1,0 +1,1 @@
+CREATE TABLE t014_events (id INTEGER PRIMARY KEY, created_at TEXT);

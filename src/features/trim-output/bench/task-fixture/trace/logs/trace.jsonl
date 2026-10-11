@@ -1,0 +1,1081 @@
+{"t": "2026-10-09T03:00:05Z", "level": "INFO", "msg": "request start", "req": "r-4701", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:00:13Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4701", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:00:15Z", "level": "INFO", "msg": "request done", "req": "r-4701", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 11}
+{"t": "2026-10-09T03:00:20Z", "level": "INFO", "msg": "request start", "req": "r-4702", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:00:25Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4702", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:00:33Z", "level": "INFO", "msg": "request done", "req": "r-4702", "tenant": "t-0417", "handler": "get_invoice", "status": 200, "ms": 53}
+{"t": "2026-10-09T03:00:34Z", "level": "INFO", "msg": "request start", "req": "r-4703", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:00:37Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4703", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:00:45Z", "level": "INFO", "msg": "request done", "req": "r-4703", "tenant": "t-0688", "handler": "create_invoice", "status": 200, "ms": 72}
+{"t": "2026-10-09T03:00:50Z", "level": "INFO", "msg": "request start", "req": "r-4704", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:00:55Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4704", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:00:56Z", "level": "INFO", "msg": "request done", "req": "r-4704", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 8}
+{"t": "2026-10-09T03:00:57Z", "level": "INFO", "msg": "request start", "req": "r-4705", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:01:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4705", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:01:07Z", "level": "INFO", "msg": "request done", "req": "r-4705", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 43}
+{"t": "2026-10-09T03:01:09Z", "level": "INFO", "msg": "request start", "req": "r-4706", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:01:18Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4706", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:01:22Z", "level": "INFO", "msg": "request done", "req": "r-4706", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 32}
+{"t": "2026-10-09T03:01:27Z", "level": "INFO", "msg": "request start", "req": "r-4707", "tenant": "t-0520", "handler": "search"}
+{"t": "2026-10-09T03:01:28Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4707", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:01:32Z", "level": "INFO", "msg": "request done", "req": "r-4707", "tenant": "t-0520", "handler": "search", "status": 200, "ms": 64}
+{"t": "2026-10-09T03:01:34Z", "level": "INFO", "msg": "request start", "req": "r-4708", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:01:39Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4708", "tenant": "t-0742", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:01:42Z", "level": "INFO", "msg": "request done", "req": "r-4708", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 20}
+{"t": "2026-10-09T03:01:50Z", "level": "INFO", "msg": "request start", "req": "r-4709", "tenant": "t-0203", "handler": "get_invoice"}
+{"t": "2026-10-09T03:01:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4709", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:01:55Z", "level": "INFO", "msg": "request done", "req": "r-4709", "tenant": "t-0203", "handler": "get_invoice", "status": 200, "ms": 67}
+{"t": "2026-10-09T03:01:59Z", "level": "INFO", "msg": "request start", "req": "r-4710", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:02:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4710", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:02:07Z", "level": "INFO", "msg": "request done", "req": "r-4710", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 99}
+{"t": "2026-10-09T03:02:15Z", "level": "INFO", "msg": "request start", "req": "r-4711", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:02:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4711", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:02:28Z", "level": "INFO", "msg": "request done", "req": "r-4711", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 122}
+{"t": "2026-10-09T03:02:32Z", "level": "INFO", "msg": "request start", "req": "r-4712", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:02:40Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4712", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:02:48Z", "level": "INFO", "msg": "request done", "req": "r-4712", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 77}
+{"t": "2026-10-09T03:02:53Z", "level": "INFO", "msg": "request start", "req": "r-4713", "tenant": "t-0742", "handler": "search"}
+{"t": "2026-10-09T03:03:01Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4713", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:03:05Z", "level": "INFO", "msg": "request done", "req": "r-4713", "tenant": "t-0742", "handler": "search", "status": 200, "ms": 128}
+{"t": "2026-10-09T03:03:10Z", "level": "INFO", "msg": "request start", "req": "r-4714", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:03:18Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4714", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:03:21Z", "level": "INFO", "msg": "request done", "req": "r-4714", "tenant": "t-0520", "handler": "export", "status": 200, "ms": 134}
+{"t": "2026-10-09T03:03:30Z", "level": "INFO", "msg": "request start", "req": "r-4715", "tenant": "t-0311", "handler": "list_invoices"}
+{"t": "2026-10-09T03:03:33Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4715", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:03:34Z", "level": "INFO", "msg": "request done", "req": "r-4715", "tenant": "t-0311", "handler": "list_invoices", "status": 200, "ms": 78}
+{"t": "2026-10-09T03:03:40Z", "level": "INFO", "msg": "request start", "req": "r-4716", "tenant": "t-0520", "handler": "search"}
+{"t": "2026-10-09T03:03:43Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4716", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:03:48Z", "level": "INFO", "msg": "request done", "req": "r-4716", "tenant": "t-0520", "handler": "search", "status": 200, "ms": 88}
+{"t": "2026-10-09T03:03:50Z", "level": "INFO", "msg": "request start", "req": "r-4717", "tenant": "t-0311", "handler": "list_invoices"}
+{"t": "2026-10-09T03:03:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4717", "tenant": "t-0311", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:04:03Z", "level": "INFO", "msg": "request done", "req": "r-4717", "tenant": "t-0311", "handler": "list_invoices", "status": 200, "ms": 68}
+{"t": "2026-10-09T03:04:07Z", "level": "INFO", "msg": "request start", "req": "r-4718", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:04:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4718", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:04:20Z", "level": "INFO", "msg": "request done", "req": "r-4718", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 73}
+{"t": "2026-10-09T03:04:23Z", "level": "INFO", "msg": "request start", "req": "r-4719", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:04:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4719", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:04:30Z", "level": "INFO", "msg": "request done", "req": "r-4719", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 28}
+{"t": "2026-10-09T03:04:34Z", "level": "INFO", "msg": "request start", "req": "r-4720", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:04:40Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4720", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:04:49Z", "level": "INFO", "msg": "request done", "req": "r-4720", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 114}
+{"t": "2026-10-09T03:04:58Z", "level": "INFO", "msg": "request start", "req": "r-4721", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:05:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4721", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:05:14Z", "level": "INFO", "msg": "request done", "req": "r-4721", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 107}
+{"t": "2026-10-09T03:05:16Z", "level": "INFO", "msg": "request start", "req": "r-4722", "tenant": "t-0520", "handler": "get_customer"}
+{"t": "2026-10-09T03:05:25Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4722", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:05:27Z", "level": "WARN", "msg": "slow query", "req": "r-4722", "tenant": "t-0520", "ms": 1727}
+{"t": "2026-10-09T03:05:28Z", "level": "INFO", "msg": "request done", "req": "r-4722", "tenant": "t-0520", "handler": "get_customer", "status": 200, "ms": 38}
+{"t": "2026-10-09T03:05:37Z", "level": "INFO", "msg": "request start", "req": "r-4723", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:05:45Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4723", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:05:49Z", "level": "INFO", "msg": "request done", "req": "r-4723", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 32}
+{"t": "2026-10-09T03:05:53Z", "level": "INFO", "msg": "request start", "req": "r-4724", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:05:58Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4724", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:06:05Z", "level": "INFO", "msg": "request done", "req": "r-4724", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 14}
+{"t": "2026-10-09T03:06:12Z", "level": "INFO", "msg": "request start", "req": "r-4725", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:06:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4725", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:06:21Z", "level": "INFO", "msg": "request done", "req": "r-4725", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 82}
+{"t": "2026-10-09T03:06:27Z", "level": "INFO", "msg": "request start", "req": "r-4726", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:06:33Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4726", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:06:37Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4726", "tenant": "t-0417", "attempt": 2}
+{"t": "2026-10-09T03:06:43Z", "level": "INFO", "msg": "request done", "req": "r-4726", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 117}
+{"t": "2026-10-09T03:06:50Z", "level": "INFO", "msg": "request start", "req": "r-4727", "tenant": "t-0087", "handler": "list_invoices"}
+{"t": "2026-10-09T03:06:52Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4727", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:07:00Z", "level": "INFO", "msg": "request done", "req": "r-4727", "tenant": "t-0087", "handler": "list_invoices", "status": 200, "ms": 131}
+{"t": "2026-10-09T03:07:06Z", "level": "INFO", "msg": "request start", "req": "r-4728", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:07:09Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4728", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:07:15Z", "level": "INFO", "msg": "request done", "req": "r-4728", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 4}
+{"t": "2026-10-09T03:07:20Z", "level": "INFO", "msg": "request start", "req": "r-4729", "tenant": "t-0311", "handler": "get_invoice"}
+{"t": "2026-10-09T03:07:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4729", "tenant": "t-0311", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:07:34Z", "level": "INFO", "msg": "request done", "req": "r-4729", "tenant": "t-0311", "handler": "get_invoice", "status": 200, "ms": 131}
+{"t": "2026-10-09T03:07:38Z", "level": "INFO", "msg": "request start", "req": "r-4730", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:07:42Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4730", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:07:51Z", "level": "INFO", "msg": "request done", "req": "r-4730", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 129}
+{"t": "2026-10-09T03:07:58Z", "level": "INFO", "msg": "request start", "req": "r-4731", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:07:59Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4731", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:08:08Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4731", "tenant": "t-0742", "attempt": 2}
+{"t": "2026-10-09T03:08:13Z", "level": "INFO", "msg": "request done", "req": "r-4731", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 90}
+{"t": "2026-10-09T03:08:15Z", "level": "INFO", "msg": "request start", "req": "r-4732", "tenant": "t-0742", "handler": "search"}
+{"t": "2026-10-09T03:08:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4732", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:08:19Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4732", "tenant": "t-0742", "attempt": 2}
+{"t": "2026-10-09T03:08:25Z", "level": "INFO", "msg": "request done", "req": "r-4732", "tenant": "t-0742", "handler": "search", "status": 200, "ms": 19}
+{"t": "2026-10-09T03:08:26Z", "level": "INFO", "msg": "request start", "req": "r-4733", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:08:28Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4733", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:08:35Z", "level": "INFO", "msg": "request done", "req": "r-4733", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 28}
+{"t": "2026-10-09T03:08:36Z", "level": "INFO", "msg": "request start", "req": "r-4734", "tenant": "t-0012", "handler": "get_invoice"}
+{"t": "2026-10-09T03:08:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4734", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:08:40Z", "level": "INFO", "msg": "request done", "req": "r-4734", "tenant": "t-0012", "handler": "get_invoice", "status": 200, "ms": 105}
+{"t": "2026-10-09T03:08:45Z", "level": "INFO", "msg": "request start", "req": "r-4735", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:08:46Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4735", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:08:53Z", "level": "INFO", "msg": "request done", "req": "r-4735", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 68}
+{"t": "2026-10-09T03:08:59Z", "level": "INFO", "msg": "request start", "req": "r-4736", "tenant": "t-0203", "handler": "get_customer"}
+{"t": "2026-10-09T03:09:04Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4736", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:09:08Z", "level": "INFO", "msg": "request done", "req": "r-4736", "tenant": "t-0203", "handler": "get_customer", "status": 200, "ms": 32}
+{"t": "2026-10-09T03:09:14Z", "level": "INFO", "msg": "request start", "req": "r-4737", "tenant": "t-0311", "handler": "export"}
+{"t": "2026-10-09T03:09:23Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4737", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:09:31Z", "level": "INFO", "msg": "request done", "req": "r-4737", "tenant": "t-0311", "handler": "export", "status": 200, "ms": 117}
+{"t": "2026-10-09T03:09:40Z", "level": "INFO", "msg": "request start", "req": "r-4738", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:09:47Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4738", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:09:48Z", "level": "INFO", "msg": "request done", "req": "r-4738", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 89}
+{"t": "2026-10-09T03:09:53Z", "level": "INFO", "msg": "request start", "req": "r-4739", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:09:58Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4739", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:10:01Z", "level": "INFO", "msg": "request done", "req": "r-4739", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 66}
+{"t": "2026-10-09T03:10:02Z", "level": "INFO", "msg": "request start", "req": "r-4740", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:10:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4740", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:10:12Z", "level": "INFO", "msg": "request done", "req": "r-4740", "tenant": "t-0087", "handler": "create_invoice", "status": 200, "ms": 59}
+{"t": "2026-10-09T03:10:15Z", "level": "INFO", "msg": "request start", "req": "r-4741", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:10:19Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4741", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:10:26Z", "level": "INFO", "msg": "request done", "req": "r-4741", "tenant": "t-0520", "handler": "export", "status": 200, "ms": 57}
+{"t": "2026-10-09T03:10:27Z", "level": "INFO", "msg": "request start", "req": "r-4742", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:10:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4742", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:10:33Z", "level": "INFO", "msg": "request done", "req": "r-4742", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 120}
+{"t": "2026-10-09T03:10:37Z", "level": "INFO", "msg": "request start", "req": "r-4743", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:10:46Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4743", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:10:49Z", "level": "INFO", "msg": "request done", "req": "r-4743", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 37}
+{"t": "2026-10-09T03:10:58Z", "level": "INFO", "msg": "request start", "req": "r-4744", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:11:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4744", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:11:12Z", "level": "INFO", "msg": "request done", "req": "r-4744", "tenant": "t-0417", "handler": "get_invoice", "status": 200, "ms": 127}
+{"t": "2026-10-09T03:11:16Z", "level": "INFO", "msg": "request start", "req": "r-4745", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:11:18Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4745", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:11:22Z", "level": "INFO", "msg": "request done", "req": "r-4745", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 93}
+{"t": "2026-10-09T03:11:30Z", "level": "INFO", "msg": "request start", "req": "r-4746", "tenant": "t-0742", "handler": "get_customer"}
+{"t": "2026-10-09T03:11:36Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4746", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:11:43Z", "level": "INFO", "msg": "request done", "req": "r-4746", "tenant": "t-0742", "handler": "get_customer", "status": 200, "ms": 126}
+{"t": "2026-10-09T03:11:49Z", "level": "INFO", "msg": "request start", "req": "r-4747", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:11:55Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4747", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:11:56Z", "level": "INFO", "msg": "request done", "req": "r-4747", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 18}
+{"t": "2026-10-09T03:11:57Z", "level": "INFO", "msg": "request start", "req": "r-4748", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:12:03Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4748", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:12:06Z", "level": "INFO", "msg": "request done", "req": "r-4748", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 85}
+{"t": "2026-10-09T03:12:11Z", "level": "INFO", "msg": "request start", "req": "r-4749", "tenant": "t-0520", "handler": "get_invoice"}
+{"t": "2026-10-09T03:12:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4749", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:12:20Z", "level": "INFO", "msg": "request done", "req": "r-4749", "tenant": "t-0520", "handler": "get_invoice", "status": 200, "ms": 69}
+{"t": "2026-10-09T03:12:29Z", "level": "INFO", "msg": "request start", "req": "r-4750", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:12:32Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4750", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:12:39Z", "level": "INFO", "msg": "request done", "req": "r-4750", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 106}
+{"t": "2026-10-09T03:12:43Z", "level": "INFO", "msg": "request start", "req": "r-4751", "tenant": "t-0742", "handler": "get_customer"}
+{"t": "2026-10-09T03:12:50Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4751", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:12:53Z", "level": "INFO", "msg": "request done", "req": "r-4751", "tenant": "t-0742", "handler": "get_customer", "status": 200, "ms": 124}
+{"t": "2026-10-09T03:13:01Z", "level": "INFO", "msg": "request start", "req": "r-4752", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:13:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4752", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:13:07Z", "level": "INFO", "msg": "request done", "req": "r-4752", "tenant": "t-0417", "handler": "get_invoice", "status": 200, "ms": 22}
+{"t": "2026-10-09T03:13:10Z", "level": "INFO", "msg": "request start", "req": "r-4753", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:13:18Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4753", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:13:26Z", "level": "INFO", "msg": "request done", "req": "r-4753", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 15}
+{"t": "2026-10-09T03:13:27Z", "level": "INFO", "msg": "request start", "req": "r-4754", "tenant": "t-0012", "handler": "search"}
+{"t": "2026-10-09T03:13:31Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4754", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:13:32Z", "level": "INFO", "msg": "request done", "req": "r-4754", "tenant": "t-0012", "handler": "search", "status": 200, "ms": 82}
+{"t": "2026-10-09T03:13:40Z", "level": "INFO", "msg": "request start", "req": "r-4755", "tenant": "t-0520", "handler": "search"}
+{"t": "2026-10-09T03:13:49Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4755", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:13:54Z", "level": "INFO", "msg": "request done", "req": "r-4755", "tenant": "t-0520", "handler": "search", "status": 200, "ms": 132}
+{"t": "2026-10-09T03:13:59Z", "level": "INFO", "msg": "request start", "req": "r-4756", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:14:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4756", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:14:04Z", "level": "INFO", "msg": "request done", "req": "r-4756", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 12}
+{"t": "2026-10-09T03:14:09Z", "level": "INFO", "msg": "request start", "req": "r-4757", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:14:15Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4757", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:14:19Z", "level": "WARN", "msg": "slow query", "req": "r-4757", "tenant": "t-0012", "ms": 1082}
+{"t": "2026-10-09T03:14:22Z", "level": "INFO", "msg": "request done", "req": "r-4757", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 114}
+{"t": "2026-10-09T03:14:26Z", "level": "INFO", "msg": "request start", "req": "r-4758", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:14:34Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4758", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:14:41Z", "level": "INFO", "msg": "request done", "req": "r-4758", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 72}
+{"t": "2026-10-09T03:14:48Z", "level": "INFO", "msg": "request start", "req": "r-4759", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:14:50Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4759", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:14:51Z", "level": "INFO", "msg": "request done", "req": "r-4759", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 112}
+{"t": "2026-10-09T03:14:53Z", "level": "INFO", "msg": "request start", "req": "r-4760", "tenant": "t-0742", "handler": "search"}
+{"t": "2026-10-09T03:14:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4760", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:15:02Z", "level": "INFO", "msg": "request done", "req": "r-4760", "tenant": "t-0742", "handler": "search", "status": 200, "ms": 98}
+{"t": "2026-10-09T03:15:11Z", "level": "INFO", "msg": "request start", "req": "r-4761", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:15:19Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4761", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:15:24Z", "level": "INFO", "msg": "request done", "req": "r-4761", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 136}
+{"t": "2026-10-09T03:15:33Z", "level": "INFO", "msg": "request start", "req": "r-4762", "tenant": "t-0012", "handler": "get_invoice"}
+{"t": "2026-10-09T03:15:40Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4762", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:15:45Z", "level": "INFO", "msg": "request done", "req": "r-4762", "tenant": "t-0012", "handler": "get_invoice", "status": 200, "ms": 55}
+{"t": "2026-10-09T03:15:50Z", "level": "INFO", "msg": "request start", "req": "r-4763", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:15:55Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4763", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:15:57Z", "level": "INFO", "msg": "request done", "req": "r-4763", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 62}
+{"t": "2026-10-09T03:16:05Z", "level": "INFO", "msg": "request start", "req": "r-4764", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:16:11Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4764", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:16:18Z", "level": "INFO", "msg": "request done", "req": "r-4764", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 121}
+{"t": "2026-10-09T03:16:27Z", "level": "INFO", "msg": "request start", "req": "r-4765", "tenant": "t-0742", "handler": "get_customer"}
+{"t": "2026-10-09T03:16:32Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4765", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:16:37Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4765", "tenant": "t-0742", "attempt": 2}
+{"t": "2026-10-09T03:16:45Z", "level": "INFO", "msg": "request done", "req": "r-4765", "tenant": "t-0742", "handler": "get_customer", "status": 200, "ms": 40}
+{"t": "2026-10-09T03:16:50Z", "level": "INFO", "msg": "request start", "req": "r-4766", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:16:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4766", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:16:52Z", "level": "INFO", "msg": "request done", "req": "r-4766", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 11}
+{"t": "2026-10-09T03:17:00Z", "level": "INFO", "msg": "request start", "req": "r-4767", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:17:07Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4767", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:17:08Z", "level": "INFO", "msg": "request done", "req": "r-4767", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 99}
+{"t": "2026-10-09T03:17:14Z", "level": "INFO", "msg": "request start", "req": "r-4768", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:17:20Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4768", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:17:22Z", "level": "WARN", "msg": "slow query", "req": "r-4768", "tenant": "t-0203", "ms": 2027}
+{"t": "2026-10-09T03:17:30Z", "level": "INFO", "msg": "request done", "req": "r-4768", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 140}
+{"t": "2026-10-09T03:17:31Z", "level": "INFO", "msg": "request start", "req": "r-4769", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:17:32Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4769", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:17:35Z", "level": "INFO", "msg": "request done", "req": "r-4769", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 73}
+{"t": "2026-10-09T03:17:40Z", "level": "INFO", "msg": "request start", "req": "r-4770", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:17:41Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4770", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:17:43Z", "level": "INFO", "msg": "request done", "req": "r-4770", "tenant": "t-0087", "handler": "export", "status": 200, "ms": 16}
+{"t": "2026-10-09T03:17:46Z", "level": "INFO", "msg": "request start", "req": "r-4771", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:17:52Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4771", "tenant": "t-0203", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:17:58Z", "level": "INFO", "msg": "request done", "req": "r-4771", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 53}
+{"t": "2026-10-09T03:18:04Z", "level": "INFO", "msg": "request start", "req": "r-4772", "tenant": "t-0087", "handler": "list_invoices"}
+{"t": "2026-10-09T03:18:08Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4772", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:18:09Z", "level": "INFO", "msg": "request done", "req": "r-4772", "tenant": "t-0087", "handler": "list_invoices", "status": 200, "ms": 42}
+{"t": "2026-10-09T03:18:17Z", "level": "INFO", "msg": "request start", "req": "r-4773", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:18:26Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4773", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:18:28Z", "level": "INFO", "msg": "request done", "req": "r-4773", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 93}
+{"t": "2026-10-09T03:18:30Z", "level": "INFO", "msg": "request start", "req": "r-4774", "tenant": "t-0311", "handler": "create_invoice"}
+{"t": "2026-10-09T03:18:39Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4774", "tenant": "t-0311", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:18:46Z", "level": "INFO", "msg": "request done", "req": "r-4774", "tenant": "t-0311", "handler": "create_invoice", "status": 200, "ms": 133}
+{"t": "2026-10-09T03:18:47Z", "level": "INFO", "msg": "request start", "req": "r-4775", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:18:55Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4775", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:19:01Z", "level": "INFO", "msg": "request done", "req": "r-4775", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 111}
+{"t": "2026-10-09T03:19:05Z", "level": "INFO", "msg": "request start", "req": "r-4776", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:19:11Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4776", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:19:14Z", "level": "INFO", "msg": "request done", "req": "r-4776", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 138}
+{"t": "2026-10-09T03:19:18Z", "level": "INFO", "msg": "request start", "req": "r-4777", "tenant": "t-0012", "handler": "get_invoice"}
+{"t": "2026-10-09T03:19:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4777", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:19:23Z", "level": "INFO", "msg": "request done", "req": "r-4777", "tenant": "t-0012", "handler": "get_invoice", "status": 200, "ms": 29}
+{"t": "2026-10-09T03:19:29Z", "level": "INFO", "msg": "request start", "req": "r-4778", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:19:30Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4778", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:19:37Z", "level": "INFO", "msg": "request done", "req": "r-4778", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 135}
+{"t": "2026-10-09T03:19:44Z", "level": "INFO", "msg": "request start", "req": "r-4779", "tenant": "t-0520", "handler": "create_invoice"}
+{"t": "2026-10-09T03:19:49Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4779", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:19:56Z", "level": "WARN", "msg": "slow query", "req": "r-4779", "tenant": "t-0520", "ms": 2047}
+{"t": "2026-10-09T03:20:00Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4779", "tenant": "t-0520", "attempt": 2}
+{"t": "2026-10-09T03:20:04Z", "level": "INFO", "msg": "request done", "req": "r-4779", "tenant": "t-0520", "handler": "create_invoice", "status": 200, "ms": 36}
+{"t": "2026-10-09T03:20:09Z", "level": "INFO", "msg": "request start", "req": "r-4780", "tenant": "t-0311", "handler": "get_invoice"}
+{"t": "2026-10-09T03:20:18Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4780", "tenant": "t-0311", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:20:24Z", "level": "INFO", "msg": "request done", "req": "r-4780", "tenant": "t-0311", "handler": "get_invoice", "status": 200, "ms": 135}
+{"t": "2026-10-09T03:20:32Z", "level": "INFO", "msg": "request start", "req": "r-4781", "tenant": "t-0012", "handler": "search"}
+{"t": "2026-10-09T03:20:37Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4781", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:20:42Z", "level": "INFO", "msg": "request done", "req": "r-4781", "tenant": "t-0012", "handler": "search", "status": 200, "ms": 94}
+{"t": "2026-10-09T03:20:50Z", "level": "INFO", "msg": "request start", "req": "r-4782", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:20:57Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4782", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:21:01Z", "level": "INFO", "msg": "request done", "req": "r-4782", "tenant": "t-0087", "handler": "export", "status": 200, "ms": 48}
+{"t": "2026-10-09T03:21:04Z", "level": "INFO", "msg": "request start", "req": "r-4783", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:21:13Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4783", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:21:16Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4783", "tenant": "t-0417", "attempt": 2}
+{"t": "2026-10-09T03:21:22Z", "level": "INFO", "msg": "request done", "req": "r-4783", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 35}
+{"t": "2026-10-09T03:21:29Z", "level": "INFO", "msg": "request start", "req": "r-4784", "tenant": "t-0520", "handler": "create_invoice"}
+{"t": "2026-10-09T03:21:35Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4784", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:21:39Z", "level": "INFO", "msg": "request done", "req": "r-4784", "tenant": "t-0520", "handler": "create_invoice", "status": 200, "ms": 29}
+{"t": "2026-10-09T03:21:43Z", "level": "INFO", "msg": "request start", "req": "r-4785", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:21:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4785", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:21:53Z", "level": "INFO", "msg": "request done", "req": "r-4785", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 113}
+{"t": "2026-10-09T03:22:00Z", "level": "INFO", "msg": "request start", "req": "r-4786", "tenant": "t-0688", "handler": "search"}
+{"t": "2026-10-09T03:22:05Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4786", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:22:14Z", "level": "INFO", "msg": "request done", "req": "r-4786", "tenant": "t-0688", "handler": "search", "status": 200, "ms": 87}
+{"t": "2026-10-09T03:22:23Z", "level": "INFO", "msg": "request start", "req": "r-4787", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:22:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4787", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:22:33Z", "level": "INFO", "msg": "request done", "req": "r-4787", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 78}
+{"t": "2026-10-09T03:22:42Z", "level": "INFO", "msg": "request start", "req": "r-4788", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:22:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4788", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:22:59Z", "level": "INFO", "msg": "request done", "req": "r-4788", "tenant": "t-0087", "handler": "create_invoice", "status": 200, "ms": 54}
+{"t": "2026-10-09T03:23:02Z", "level": "INFO", "msg": "request start", "req": "r-4789", "tenant": "t-0520", "handler": "get_customer"}
+{"t": "2026-10-09T03:23:08Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4789", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:23:10Z", "level": "INFO", "msg": "request done", "req": "r-4789", "tenant": "t-0520", "handler": "get_customer", "status": 200, "ms": 75}
+{"t": "2026-10-09T03:23:15Z", "level": "INFO", "msg": "request start", "req": "r-4790", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:23:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4790", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:23:29Z", "level": "INFO", "msg": "request done", "req": "r-4790", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 128}
+{"t": "2026-10-09T03:23:30Z", "level": "INFO", "msg": "request start", "req": "r-4791", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:23:33Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4791", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:23:37Z", "level": "INFO", "msg": "request done", "req": "r-4791", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 115}
+{"t": "2026-10-09T03:23:42Z", "level": "INFO", "msg": "request start", "req": "r-4792", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:23:43Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4792", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:23:52Z", "level": "INFO", "msg": "request done", "req": "r-4792", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 126}
+{"t": "2026-10-09T03:23:55Z", "level": "INFO", "msg": "request start", "req": "r-4793", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:23:56Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4793", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:23:58Z", "level": "INFO", "msg": "request done", "req": "r-4793", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 96}
+{"t": "2026-10-09T03:24:01Z", "level": "INFO", "msg": "request start", "req": "r-4794", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:24:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4794", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:24:08Z", "level": "INFO", "msg": "request done", "req": "r-4794", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 16}
+{"t": "2026-10-09T03:24:16Z", "level": "INFO", "msg": "request start", "req": "r-4795", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:24:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4795", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:24:23Z", "level": "INFO", "msg": "request done", "req": "r-4795", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 79}
+{"t": "2026-10-09T03:24:30Z", "level": "INFO", "msg": "request start", "req": "r-4796", "tenant": "t-0311", "handler": "search"}
+{"t": "2026-10-09T03:24:36Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4796", "tenant": "t-0311", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:24:42Z", "level": "INFO", "msg": "request done", "req": "r-4796", "tenant": "t-0311", "handler": "search", "status": 200, "ms": 5}
+{"t": "2026-10-09T03:24:47Z", "level": "INFO", "msg": "request start", "req": "r-4797", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:24:48Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4797", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:24:51Z", "level": "INFO", "msg": "request done", "req": "r-4797", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 14}
+{"t": "2026-10-09T03:24:59Z", "level": "INFO", "msg": "request start", "req": "r-4798", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:25:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4798", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:25:11Z", "level": "INFO", "msg": "request done", "req": "r-4798", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 62}
+{"t": "2026-10-09T03:25:13Z", "level": "INFO", "msg": "request start", "req": "r-4799", "tenant": "t-0203", "handler": "list_invoices"}
+{"t": "2026-10-09T03:25:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4799", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:25:24Z", "level": "INFO", "msg": "request done", "req": "r-4799", "tenant": "t-0203", "handler": "list_invoices", "status": 200, "ms": 73}
+{"t": "2026-10-09T03:25:30Z", "level": "INFO", "msg": "request start", "req": "r-4800", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:25:31Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4800", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:25:34Z", "level": "INFO", "msg": "request done", "req": "r-4800", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 38}
+{"t": "2026-10-09T03:25:36Z", "level": "INFO", "msg": "request start", "req": "r-4801", "tenant": "t-0087", "handler": "get_customer"}
+{"t": "2026-10-09T03:25:44Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4801", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:25:46Z", "level": "INFO", "msg": "request done", "req": "r-4801", "tenant": "t-0087", "handler": "get_customer", "status": 200, "ms": 88}
+{"t": "2026-10-09T03:25:55Z", "level": "INFO", "msg": "request start", "req": "r-4802", "tenant": "t-0311", "handler": "create_invoice"}
+{"t": "2026-10-09T03:25:58Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4802", "tenant": "t-0311", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:26:04Z", "level": "INFO", "msg": "request done", "req": "r-4802", "tenant": "t-0311", "handler": "create_invoice", "status": 200, "ms": 137}
+{"t": "2026-10-09T03:26:13Z", "level": "INFO", "msg": "request start", "req": "r-4803", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:26:22Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4803", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:26:27Z", "level": "INFO", "msg": "request done", "req": "r-4803", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 58}
+{"t": "2026-10-09T03:26:33Z", "level": "INFO", "msg": "request start", "req": "r-4804", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:26:40Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4804", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:26:48Z", "level": "INFO", "msg": "request done", "req": "r-4804", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 39}
+{"t": "2026-10-09T03:26:55Z", "level": "INFO", "msg": "request start", "req": "r-4805", "tenant": "t-0311", "handler": "list_invoices"}
+{"t": "2026-10-09T03:27:04Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4805", "tenant": "t-0311", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:27:09Z", "level": "INFO", "msg": "request done", "req": "r-4805", "tenant": "t-0311", "handler": "list_invoices", "status": 200, "ms": 26}
+{"t": "2026-10-09T03:27:17Z", "level": "INFO", "msg": "request start", "req": "r-4806", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:27:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4806", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:27:29Z", "level": "INFO", "msg": "request done", "req": "r-4806", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 100}
+{"t": "2026-10-09T03:27:37Z", "level": "INFO", "msg": "request start", "req": "r-4807", "tenant": "t-0311", "handler": "list_invoices"}
+{"t": "2026-10-09T03:27:43Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4807", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:27:48Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4807", "tenant": "t-0311", "attempt": 2}
+{"t": "2026-10-09T03:27:56Z", "level": "INFO", "msg": "request done", "req": "r-4807", "tenant": "t-0311", "handler": "list_invoices", "status": 200, "ms": 11}
+{"t": "2026-10-09T03:28:02Z", "level": "INFO", "msg": "request start", "req": "r-4808", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:28:03Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4808", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:28:06Z", "level": "INFO", "msg": "request done", "req": "r-4808", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 77}
+{"t": "2026-10-09T03:28:13Z", "level": "INFO", "msg": "request start", "req": "r-4809", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:28:16Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4809", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:28:19Z", "level": "INFO", "msg": "request done", "req": "r-4809", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 43}
+{"t": "2026-10-09T03:28:28Z", "level": "INFO", "msg": "request start", "req": "r-4810", "tenant": "t-0012", "handler": "search"}
+{"t": "2026-10-09T03:28:35Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4810", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:28:40Z", "level": "INFO", "msg": "request done", "req": "r-4810", "tenant": "t-0012", "handler": "search", "status": 200, "ms": 16}
+{"t": "2026-10-09T03:28:44Z", "level": "INFO", "msg": "request start", "req": "r-4811", "tenant": "t-0417", "handler": "get_customer"}
+{"t": "2026-10-09T03:28:45Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4811", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:28:53Z", "level": "INFO", "msg": "request done", "req": "r-4811", "tenant": "t-0417", "handler": "get_customer", "status": 200, "ms": 125}
+{"t": "2026-10-09T03:29:01Z", "level": "INFO", "msg": "request start", "req": "r-4812", "tenant": "t-0311", "handler": "export"}
+{"t": "2026-10-09T03:29:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4812", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:29:08Z", "level": "INFO", "msg": "request done", "req": "r-4812", "tenant": "t-0311", "handler": "export", "status": 200, "ms": 31}
+{"t": "2026-10-09T03:29:11Z", "level": "INFO", "msg": "config reload", "tenant": "t-0417", "pool_size": 2, "was": 10, "source": "tenants.d/t-0417.yaml"}
+{"t": "2026-10-09T03:29:20Z", "level": "INFO", "msg": "request start", "req": "r-4813", "tenant": "t-0203", "handler": "list_invoices"}
+{"t": "2026-10-09T03:29:28Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4813", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:29:29Z", "level": "INFO", "msg": "request done", "req": "r-4813", "tenant": "t-0203", "handler": "list_invoices", "status": 200, "ms": 74}
+{"t": "2026-10-09T03:29:36Z", "level": "INFO", "msg": "request start", "req": "r-4814", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:29:45Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4814", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:29:52Z", "level": "INFO", "msg": "request done", "req": "r-4814", "tenant": "t-0417", "handler": "get_invoice", "status": 200, "ms": 50}
+{"t": "2026-10-09T03:29:56Z", "level": "INFO", "msg": "request start", "req": "r-4815", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:30:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4815", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:30:07Z", "level": "INFO", "msg": "request done", "req": "r-4815", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 87}
+{"t": "2026-10-09T03:30:14Z", "level": "INFO", "msg": "request start", "req": "r-4816", "tenant": "t-0087", "handler": "get_customer"}
+{"t": "2026-10-09T03:30:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4816", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:30:26Z", "level": "INFO", "msg": "request done", "req": "r-4816", "tenant": "t-0087", "handler": "get_customer", "status": 200, "ms": 9}
+{"t": "2026-10-09T03:30:27Z", "level": "INFO", "msg": "request start", "req": "r-4817", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:30:28Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4817", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:30:36Z", "level": "INFO", "msg": "request done", "req": "r-4817", "tenant": "t-0688", "handler": "create_invoice", "status": 200, "ms": 131}
+{"t": "2026-10-09T03:30:42Z", "level": "INFO", "msg": "request start", "req": "r-4818", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:30:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4818", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:31:00Z", "level": "INFO", "msg": "request done", "req": "r-4818", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 93}
+{"t": "2026-10-09T03:31:09Z", "level": "INFO", "msg": "request start", "req": "r-4819", "tenant": "t-0311", "handler": "export"}
+{"t": "2026-10-09T03:31:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4819", "tenant": "t-0311", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:31:23Z", "level": "INFO", "msg": "request done", "req": "r-4819", "tenant": "t-0311", "handler": "export", "status": 200, "ms": 44}
+{"t": "2026-10-09T03:31:28Z", "level": "INFO", "msg": "request start", "req": "r-4820", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:31:35Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4820", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:31:44Z", "level": "INFO", "msg": "request done", "req": "r-4820", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 27}
+{"t": "2026-10-09T03:31:46Z", "level": "INFO", "msg": "request start", "req": "r-4821", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:31:47Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4821", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:31:53Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4821", "tenant": "t-0742", "attempt": 2}
+{"t": "2026-10-09T03:32:01Z", "level": "INFO", "msg": "request done", "req": "r-4821", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 50}
+{"t": "2026-10-09T03:32:03Z", "level": "INFO", "msg": "request start", "req": "r-4822", "tenant": "t-0087", "handler": "list_invoices"}
+{"t": "2026-10-09T03:32:04Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4822", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:32:11Z", "level": "INFO", "msg": "request done", "req": "r-4822", "tenant": "t-0087", "handler": "list_invoices", "status": 200, "ms": 35}
+{"t": "2026-10-09T03:32:14Z", "level": "INFO", "msg": "request start", "req": "r-4823", "tenant": "t-0520", "handler": "get_customer"}
+{"t": "2026-10-09T03:32:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4823", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:32:24Z", "level": "INFO", "msg": "request done", "req": "r-4823", "tenant": "t-0520", "handler": "get_customer", "status": 200, "ms": 14}
+{"t": "2026-10-09T03:32:30Z", "level": "INFO", "msg": "request start", "req": "r-4824", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:32:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4824", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:32:46Z", "level": "INFO", "msg": "request done", "req": "r-4824", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 99}
+{"t": "2026-10-09T03:32:54Z", "level": "INFO", "msg": "request start", "req": "r-4825", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:32:57Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4825", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:33:06Z", "level": "INFO", "msg": "request done", "req": "r-4825", "tenant": "t-0520", "handler": "export", "status": 200, "ms": 60}
+{"t": "2026-10-09T03:33:11Z", "level": "INFO", "msg": "request start", "req": "r-4826", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:33:15Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4826", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:33:18Z", "level": "INFO", "msg": "request done", "req": "r-4826", "tenant": "t-0087", "handler": "create_invoice", "status": 200, "ms": 52}
+{"t": "2026-10-09T03:33:23Z", "level": "INFO", "msg": "request start", "req": "r-4827", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:33:32Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4827", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:33:41Z", "level": "WARN", "msg": "slow query", "req": "r-4827", "tenant": "t-0012", "ms": 1071}
+{"t": "2026-10-09T03:33:50Z", "level": "INFO", "msg": "request done", "req": "r-4827", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 18}
+{"t": "2026-10-09T03:33:53Z", "level": "INFO", "msg": "request start", "req": "r-4828", "tenant": "t-0688", "handler": "get_customer"}
+{"t": "2026-10-09T03:33:57Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4828", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:34:03Z", "level": "INFO", "msg": "request done", "req": "r-4828", "tenant": "t-0688", "handler": "get_customer", "status": 200, "ms": 30}
+{"t": "2026-10-09T03:34:08Z", "level": "INFO", "msg": "request start", "req": "r-4829", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:34:10Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4829", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:34:16Z", "level": "INFO", "msg": "request done", "req": "r-4829", "tenant": "t-0087", "handler": "create_invoice", "status": 200, "ms": 73}
+{"t": "2026-10-09T03:34:19Z", "level": "INFO", "msg": "request start", "req": "r-4830", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:34:27Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4830", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:34:36Z", "level": "INFO", "msg": "request done", "req": "r-4830", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 73}
+{"t": "2026-10-09T03:34:41Z", "level": "INFO", "msg": "request start", "req": "r-4831", "tenant": "t-0203", "handler": "get_customer"}
+{"t": "2026-10-09T03:34:47Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4831", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:34:53Z", "level": "INFO", "msg": "request done", "req": "r-4831", "tenant": "t-0203", "handler": "get_customer", "status": 200, "ms": 83}
+{"t": "2026-10-09T03:34:54Z", "level": "INFO", "msg": "request start", "req": "r-4832", "tenant": "t-0203", "handler": "get_customer"}
+{"t": "2026-10-09T03:35:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4832", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:35:07Z", "level": "INFO", "msg": "request done", "req": "r-4832", "tenant": "t-0203", "handler": "get_customer", "status": 200, "ms": 43}
+{"t": "2026-10-09T03:35:08Z", "level": "INFO", "msg": "request start", "req": "r-4833", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:35:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4833", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:35:22Z", "level": "INFO", "msg": "request done", "req": "r-4833", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 40}
+{"t": "2026-10-09T03:35:25Z", "level": "INFO", "msg": "request start", "req": "r-4834", "tenant": "t-0742", "handler": "search"}
+{"t": "2026-10-09T03:35:30Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4834", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:35:35Z", "level": "INFO", "msg": "request done", "req": "r-4834", "tenant": "t-0742", "handler": "search", "status": 200, "ms": 71}
+{"t": "2026-10-09T03:35:36Z", "level": "INFO", "msg": "request start", "req": "r-4835", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:35:42Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4835", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:35:44Z", "level": "INFO", "msg": "request done", "req": "r-4835", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 99}
+{"t": "2026-10-09T03:35:51Z", "level": "INFO", "msg": "request start", "req": "r-4836", "tenant": "t-0742", "handler": "create_invoice"}
+{"t": "2026-10-09T03:35:59Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4836", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:36:04Z", "level": "INFO", "msg": "request done", "req": "r-4836", "tenant": "t-0742", "handler": "create_invoice", "status": 200, "ms": 37}
+{"t": "2026-10-09T03:36:05Z", "level": "INFO", "msg": "request start", "req": "r-4837", "tenant": "t-0520", "handler": "get_invoice"}
+{"t": "2026-10-09T03:36:10Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4837", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:36:12Z", "level": "INFO", "msg": "request done", "req": "r-4837", "tenant": "t-0520", "handler": "get_invoice", "status": 200, "ms": 15}
+{"t": "2026-10-09T03:36:18Z", "level": "INFO", "msg": "request start", "req": "r-4838", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:36:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4838", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:36:25Z", "level": "INFO", "msg": "request done", "req": "r-4838", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 97}
+{"t": "2026-10-09T03:36:27Z", "level": "INFO", "msg": "request start", "req": "r-4839", "tenant": "t-0012", "handler": "get_invoice"}
+{"t": "2026-10-09T03:36:30Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4839", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:36:36Z", "level": "INFO", "msg": "request done", "req": "r-4839", "tenant": "t-0012", "handler": "get_invoice", "status": 200, "ms": 51}
+{"t": "2026-10-09T03:36:39Z", "level": "INFO", "msg": "request start", "req": "r-4840", "tenant": "t-0417", "handler": "search"}
+{"t": "2026-10-09T03:36:40Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4840", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:36:42Z", "level": "INFO", "msg": "request done", "req": "r-4840", "tenant": "t-0417", "handler": "search", "status": 200, "ms": 69}
+{"t": "2026-10-09T03:36:43Z", "level": "INFO", "msg": "request start", "req": "r-4841", "tenant": "t-0087", "handler": "get_customer"}
+{"t": "2026-10-09T03:36:48Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4841", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:36:50Z", "level": "INFO", "msg": "request done", "req": "r-4841", "tenant": "t-0087", "handler": "get_customer", "status": 200, "ms": 43}
+{"t": "2026-10-09T03:36:51Z", "level": "INFO", "msg": "request start", "req": "r-4842", "tenant": "t-0417", "handler": "search"}
+{"t": "2026-10-09T03:36:56Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4842", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:37:03Z", "level": "INFO", "msg": "request done", "req": "r-4842", "tenant": "t-0417", "handler": "search", "status": 200, "ms": 55}
+{"t": "2026-10-09T03:37:08Z", "level": "INFO", "msg": "request start", "req": "r-4843", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:37:13Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4843", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:37:20Z", "level": "INFO", "msg": "request done", "req": "r-4843", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 24}
+{"t": "2026-10-09T03:37:28Z", "level": "INFO", "msg": "request start", "req": "r-4844", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:37:36Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4844", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:37:39Z", "level": "INFO", "msg": "request done", "req": "r-4844", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 41}
+{"t": "2026-10-09T03:37:47Z", "level": "INFO", "msg": "request start", "req": "r-4845", "tenant": "t-0520", "handler": "create_invoice"}
+{"t": "2026-10-09T03:37:52Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4845", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:37:54Z", "level": "INFO", "msg": "request done", "req": "r-4845", "tenant": "t-0520", "handler": "create_invoice", "status": 200, "ms": 39}
+{"t": "2026-10-09T03:38:02Z", "level": "INFO", "msg": "request start", "req": "r-4846", "tenant": "t-0311", "handler": "list_invoices"}
+{"t": "2026-10-09T03:38:08Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4846", "tenant": "t-0311", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:38:09Z", "level": "INFO", "msg": "request done", "req": "r-4846", "tenant": "t-0311", "handler": "list_invoices", "status": 200, "ms": 62}
+{"t": "2026-10-09T03:38:10Z", "level": "INFO", "msg": "request start", "req": "r-4847", "tenant": "t-0087", "handler": "get_customer"}
+{"t": "2026-10-09T03:38:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4847", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:38:19Z", "level": "INFO", "msg": "request done", "req": "r-4847", "tenant": "t-0087", "handler": "get_customer", "status": 200, "ms": 37}
+{"t": "2026-10-09T03:38:25Z", "level": "INFO", "msg": "request start", "req": "r-4848", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:38:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4848", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:38:36Z", "level": "INFO", "msg": "request done", "req": "r-4848", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 131}
+{"t": "2026-10-09T03:38:41Z", "level": "INFO", "msg": "request start", "req": "r-4849", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:38:45Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4849", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:38:48Z", "level": "INFO", "msg": "request done", "req": "r-4849", "tenant": "t-0087", "handler": "export", "status": 200, "ms": 140}
+{"t": "2026-10-09T03:38:55Z", "level": "INFO", "msg": "request start", "req": "r-4850", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:39:01Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4850", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:39:06Z", "level": "INFO", "msg": "request done", "req": "r-4850", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 63}
+{"t": "2026-10-09T03:39:09Z", "level": "INFO", "msg": "request start", "req": "r-4851", "tenant": "t-0417", "handler": "export", "rows": 250000}
+{"t": "2026-10-09T03:39:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4851", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 2}
+{"t": "2026-10-09T03:39:21Z", "level": "INFO", "msg": "request start", "req": "r-4852", "tenant": "t-0520", "handler": "search"}
+{"t": "2026-10-09T03:39:26Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4852", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:39:27Z", "level": "INFO", "msg": "request done", "req": "r-4852", "tenant": "t-0520", "handler": "search", "status": 200, "ms": 82}
+{"t": "2026-10-09T03:39:28Z", "level": "INFO", "msg": "request start", "req": "r-4853", "tenant": "t-0311", "handler": "get_invoice"}
+{"t": "2026-10-09T03:39:31Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4853", "tenant": "t-0311", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:39:32Z", "level": "WARN", "msg": "slow query", "req": "r-4853", "tenant": "t-0311", "ms": 2020}
+{"t": "2026-10-09T03:39:38Z", "level": "INFO", "msg": "request done", "req": "r-4853", "tenant": "t-0311", "handler": "get_invoice", "status": 200, "ms": 40}
+{"t": "2026-10-09T03:39:42Z", "level": "INFO", "msg": "request start", "req": "r-4854", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:39:47Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4854", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:39:54Z", "level": "WARN", "msg": "slow query", "req": "r-4854", "tenant": "t-0742", "ms": 1935}
+{"t": "2026-10-09T03:40:02Z", "level": "INFO", "msg": "request done", "req": "r-4854", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 77}
+{"t": "2026-10-09T03:40:10Z", "level": "INFO", "msg": "request start", "req": "r-4855", "tenant": "t-0417", "handler": "export", "rows": 180000}
+{"t": "2026-10-09T03:40:15Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4855", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 2}
+{"t": "2026-10-09T03:40:23Z", "level": "INFO", "msg": "request start", "req": "r-4856", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:40:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4856", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:40:36Z", "level": "INFO", "msg": "request done", "req": "r-4856", "tenant": "t-0417", "handler": "get_invoice", "status": 200, "ms": 50}
+{"t": "2026-10-09T03:40:45Z", "level": "INFO", "msg": "request start", "req": "r-4857", "tenant": "t-0311", "handler": "search"}
+{"t": "2026-10-09T03:40:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4857", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:41:00Z", "level": "INFO", "msg": "request done", "req": "r-4857", "tenant": "t-0311", "handler": "search", "status": 200, "ms": 23}
+{"t": "2026-10-09T03:41:03Z", "level": "INFO", "msg": "request start", "req": "r-4858", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:41:09Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4858", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:41:12Z", "level": "INFO", "msg": "request done", "req": "r-4858", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 10}
+{"t": "2026-10-09T03:41:18Z", "level": "INFO", "msg": "request start", "req": "r-4859", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:41:25Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4859", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:41:34Z", "level": "INFO", "msg": "request done", "req": "r-4859", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:41:35Z", "level": "INFO", "msg": "request start", "req": "r-4860", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:41:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4860", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:41:44Z", "level": "INFO", "msg": "request done", "req": "r-4860", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 134}
+{"t": "2026-10-09T03:41:49Z", "level": "INFO", "msg": "request start", "req": "r-4861", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:41:55Z", "level": "WARN", "msg": "waiting for db connection", "req": "r-4861", "tenant": "t-0417", "waited_ms": 5000, "pool_in_use": 2, "pool_size": 2}
+{"t": "2026-10-09T03:41:57Z", "level": "ERROR", "msg": "request failed", "req": "r-4861", "tenant": "t-0417", "handler": "get_invoice", "status": 500, "error": "TimeoutError: pool exhausted"}
+{"t": "2026-10-09T03:42:02Z", "level": "INFO", "msg": "request start", "req": "r-4862", "tenant": "t-0742", "handler": "search"}
+{"t": "2026-10-09T03:42:04Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4862", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:42:09Z", "level": "INFO", "msg": "request done", "req": "r-4862", "tenant": "t-0742", "handler": "search", "status": 200, "ms": 49}
+{"t": "2026-10-09T03:42:18Z", "level": "INFO", "msg": "request start", "req": "r-4863", "tenant": "t-0520", "handler": "get_customer"}
+{"t": "2026-10-09T03:42:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4863", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:42:25Z", "level": "INFO", "msg": "request done", "req": "r-4863", "tenant": "t-0520", "handler": "get_customer", "status": 200, "ms": 139}
+{"t": "2026-10-09T03:42:33Z", "level": "INFO", "msg": "request start", "req": "r-4864", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:42:42Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4864", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:42:46Z", "level": "INFO", "msg": "request done", "req": "r-4864", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 74}
+{"t": "2026-10-09T03:42:52Z", "level": "INFO", "msg": "request start", "req": "r-4865", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:42:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4865", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:43:03Z", "level": "INFO", "msg": "request done", "req": "r-4865", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 81}
+{"t": "2026-10-09T03:43:04Z", "level": "INFO", "msg": "request start", "req": "r-4866", "tenant": "t-0012", "handler": "search"}
+{"t": "2026-10-09T03:43:09Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4866", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:43:14Z", "level": "INFO", "msg": "request done", "req": "r-4866", "tenant": "t-0012", "handler": "search", "status": 200, "ms": 22}
+{"t": "2026-10-09T03:43:15Z", "level": "INFO", "msg": "request start", "req": "r-4867", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:43:18Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4867", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:43:20Z", "level": "INFO", "msg": "request done", "req": "r-4867", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 127}
+{"t": "2026-10-09T03:43:24Z", "level": "INFO", "msg": "request start", "req": "r-4868", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:43:30Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4868", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:43:33Z", "level": "INFO", "msg": "request done", "req": "r-4868", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 140}
+{"t": "2026-10-09T03:43:41Z", "level": "INFO", "msg": "request start", "req": "r-4869", "tenant": "t-0417", "handler": "create_invoice"}
+{"t": "2026-10-09T03:43:46Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4869", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:43:51Z", "level": "INFO", "msg": "request done", "req": "r-4869", "tenant": "t-0417", "handler": "create_invoice", "status": 200, "ms": 108}
+{"t": "2026-10-09T03:44:00Z", "level": "INFO", "msg": "request start", "req": "r-4870", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:44:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4870", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:44:12Z", "level": "INFO", "msg": "request done", "req": "r-4870", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 128}
+{"t": "2026-10-09T03:44:18Z", "level": "INFO", "msg": "request start", "req": "r-4871", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:44:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4871", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:44:26Z", "level": "INFO", "msg": "request done", "req": "r-4871", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 89}
+{"t": "2026-10-09T03:44:27Z", "level": "INFO", "msg": "request start", "req": "r-4872", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:44:35Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4872", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:44:42Z", "level": "INFO", "msg": "request done", "req": "r-4872", "tenant": "t-0520", "handler": "export", "status": 200, "ms": 83}
+{"t": "2026-10-09T03:44:51Z", "level": "INFO", "msg": "request start", "req": "r-4873", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:44:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4873", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:44:58Z", "level": "INFO", "msg": "request done", "req": "r-4873", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 99}
+{"t": "2026-10-09T03:45:04Z", "level": "INFO", "msg": "request start", "req": "r-4874", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:45:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4874", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:45:19Z", "level": "INFO", "msg": "request done", "req": "r-4874", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 87}
+{"t": "2026-10-09T03:45:27Z", "level": "INFO", "msg": "request start", "req": "r-4875", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:45:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4875", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:45:30Z", "level": "INFO", "msg": "request done", "req": "r-4875", "tenant": "t-0417", "handler": "get_invoice", "status": 200, "ms": 76}
+{"t": "2026-10-09T03:45:34Z", "level": "INFO", "msg": "request start", "req": "r-4876", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:45:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4876", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:45:46Z", "level": "INFO", "msg": "request done", "req": "r-4876", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 54}
+{"t": "2026-10-09T03:45:47Z", "level": "INFO", "msg": "request start", "req": "r-4877", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:45:53Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4877", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:45:55Z", "level": "INFO", "msg": "request done", "req": "r-4877", "tenant": "t-0087", "handler": "export", "status": 200, "ms": 61}
+{"t": "2026-10-09T03:46:00Z", "level": "INFO", "msg": "request start", "req": "r-4878", "tenant": "t-0311", "handler": "create_invoice"}
+{"t": "2026-10-09T03:46:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4878", "tenant": "t-0311", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:46:04Z", "level": "INFO", "msg": "request done", "req": "r-4878", "tenant": "t-0311", "handler": "create_invoice", "status": 200, "ms": 88}
+{"t": "2026-10-09T03:46:13Z", "level": "INFO", "msg": "request start", "req": "r-4879", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:46:19Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4879", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:46:25Z", "level": "INFO", "msg": "request done", "req": "r-4879", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 61}
+{"t": "2026-10-09T03:46:27Z", "level": "INFO", "msg": "request start", "req": "r-4880", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:46:35Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4880", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:46:36Z", "level": "INFO", "msg": "request done", "req": "r-4880", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 24}
+{"t": "2026-10-09T03:46:44Z", "level": "INFO", "msg": "request start", "req": "r-4881", "tenant": "t-0688", "handler": "search"}
+{"t": "2026-10-09T03:46:53Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4881", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:47:01Z", "level": "INFO", "msg": "request done", "req": "r-4881", "tenant": "t-0688", "handler": "search", "status": 200, "ms": 106}
+{"t": "2026-10-09T03:47:05Z", "level": "INFO", "msg": "request start", "req": "r-4882", "tenant": "t-0417", "handler": "search"}
+{"t": "2026-10-09T03:47:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4882", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:47:21Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4882", "tenant": "t-0417", "attempt": 2}
+{"t": "2026-10-09T03:47:27Z", "level": "INFO", "msg": "request done", "req": "r-4882", "tenant": "t-0417", "handler": "search", "status": 200, "ms": 28}
+{"t": "2026-10-09T03:47:36Z", "level": "INFO", "msg": "request start", "req": "r-4883", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:47:40Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4883", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:47:48Z", "level": "WARN", "msg": "slow query", "req": "r-4883", "tenant": "t-0087", "ms": 1016}
+{"t": "2026-10-09T03:47:56Z", "level": "INFO", "msg": "request done", "req": "r-4883", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 85}
+{"t": "2026-10-09T03:48:05Z", "level": "INFO", "msg": "request start", "req": "r-4884", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:48:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4884", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:48:13Z", "level": "INFO", "msg": "request done", "req": "r-4884", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 24}
+{"t": "2026-10-09T03:48:14Z", "level": "INFO", "msg": "request start", "req": "r-4885", "tenant": "t-0203", "handler": "list_invoices"}
+{"t": "2026-10-09T03:48:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4885", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:48:23Z", "level": "INFO", "msg": "request done", "req": "r-4885", "tenant": "t-0203", "handler": "list_invoices", "status": 200, "ms": 11}
+{"t": "2026-10-09T03:48:29Z", "level": "INFO", "msg": "request start", "req": "r-4886", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:48:35Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4886", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:48:38Z", "level": "INFO", "msg": "request done", "req": "r-4886", "tenant": "t-0688", "handler": "create_invoice", "status": 200, "ms": 36}
+{"t": "2026-10-09T03:48:45Z", "level": "INFO", "msg": "request start", "req": "r-4887", "tenant": "t-0012", "handler": "get_invoice"}
+{"t": "2026-10-09T03:48:49Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4887", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:48:50Z", "level": "INFO", "msg": "request done", "req": "r-4887", "tenant": "t-0012", "handler": "get_invoice", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:48:51Z", "level": "INFO", "msg": "request start", "req": "r-4888", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:48:56Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4888", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:49:05Z", "level": "INFO", "msg": "request done", "req": "r-4888", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 27}
+{"t": "2026-10-09T03:49:06Z", "level": "INFO", "msg": "request start", "req": "r-4889", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:49:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4889", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:49:21Z", "level": "INFO", "msg": "request done", "req": "r-4889", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 13}
+{"t": "2026-10-09T03:49:26Z", "level": "INFO", "msg": "request start", "req": "r-4890", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:49:30Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4890", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:49:33Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4890", "tenant": "t-0203", "attempt": 2}
+{"t": "2026-10-09T03:49:42Z", "level": "INFO", "msg": "request done", "req": "r-4890", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 36}
+{"t": "2026-10-09T03:49:47Z", "level": "INFO", "msg": "request start", "req": "r-4891", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:49:53Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4891", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:49:59Z", "level": "INFO", "msg": "request done", "req": "r-4891", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 16}
+{"t": "2026-10-09T03:50:00Z", "level": "INFO", "msg": "request start", "req": "r-4892", "tenant": "t-0742", "handler": "search"}
+{"t": "2026-10-09T03:50:08Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4892", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:50:11Z", "level": "INFO", "msg": "request done", "req": "r-4892", "tenant": "t-0742", "handler": "search", "status": 200, "ms": 129}
+{"t": "2026-10-09T03:50:20Z", "level": "INFO", "msg": "request start", "req": "r-4893", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:50:25Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4893", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:50:34Z", "level": "INFO", "msg": "request done", "req": "r-4893", "tenant": "t-0520", "handler": "export", "status": 200, "ms": 10}
+{"t": "2026-10-09T03:50:37Z", "level": "INFO", "msg": "request start", "req": "r-4894", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:50:42Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4894", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:50:45Z", "level": "INFO", "msg": "request done", "req": "r-4894", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 80}
+{"t": "2026-10-09T03:50:54Z", "level": "INFO", "msg": "request start", "req": "r-4895", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:50:55Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4895", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:50:58Z", "level": "INFO", "msg": "request done", "req": "r-4895", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 75}
+{"t": "2026-10-09T03:51:07Z", "level": "INFO", "msg": "request start", "req": "r-4896", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:51:16Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4896", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:51:20Z", "level": "INFO", "msg": "request done", "req": "r-4896", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 131}
+{"t": "2026-10-09T03:51:24Z", "level": "INFO", "msg": "request start", "req": "r-4897", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:51:33Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4897", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:51:35Z", "level": "INFO", "msg": "request done", "req": "r-4897", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 70}
+{"t": "2026-10-09T03:51:38Z", "level": "INFO", "msg": "request start", "req": "r-4898", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:51:42Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4898", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:51:44Z", "level": "INFO", "msg": "request done", "req": "r-4898", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 116}
+{"t": "2026-10-09T03:51:52Z", "level": "INFO", "msg": "request start", "req": "r-4899", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:52:01Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4899", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:52:07Z", "level": "INFO", "msg": "request done", "req": "r-4899", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 138}
+{"t": "2026-10-09T03:52:08Z", "level": "INFO", "msg": "request start", "req": "r-4900", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:52:13Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4900", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:52:17Z", "level": "INFO", "msg": "request done", "req": "r-4900", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 127}
+{"t": "2026-10-09T03:52:23Z", "level": "INFO", "msg": "request start", "req": "r-4901", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:52:25Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4901", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:52:34Z", "level": "INFO", "msg": "request done", "req": "r-4901", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 92}
+{"t": "2026-10-09T03:52:37Z", "level": "INFO", "msg": "request start", "req": "r-4902", "tenant": "t-0520", "handler": "create_invoice"}
+{"t": "2026-10-09T03:52:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4902", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:52:41Z", "level": "INFO", "msg": "request done", "req": "r-4902", "tenant": "t-0520", "handler": "create_invoice", "status": 200, "ms": 59}
+{"t": "2026-10-09T03:52:46Z", "level": "INFO", "msg": "request start", "req": "r-4903", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:52:53Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4903", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:52:54Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4903", "tenant": "t-0203", "attempt": 2}
+{"t": "2026-10-09T03:52:55Z", "level": "INFO", "msg": "request done", "req": "r-4903", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 8}
+{"t": "2026-10-09T03:53:03Z", "level": "INFO", "msg": "request start", "req": "r-4904", "tenant": "t-0742", "handler": "search"}
+{"t": "2026-10-09T03:53:10Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4904", "tenant": "t-0742", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:53:19Z", "level": "INFO", "msg": "request done", "req": "r-4904", "tenant": "t-0742", "handler": "search", "status": 200, "ms": 88}
+{"t": "2026-10-09T03:53:20Z", "level": "INFO", "msg": "request start", "req": "r-4905", "tenant": "t-0520", "handler": "get_invoice"}
+{"t": "2026-10-09T03:53:27Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4905", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:53:33Z", "level": "INFO", "msg": "request done", "req": "r-4905", "tenant": "t-0520", "handler": "get_invoice", "status": 200, "ms": 63}
+{"t": "2026-10-09T03:53:35Z", "level": "INFO", "msg": "request start", "req": "r-4906", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:53:39Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4906", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:53:46Z", "level": "INFO", "msg": "request done", "req": "r-4906", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 105}
+{"t": "2026-10-09T03:53:49Z", "level": "INFO", "msg": "request start", "req": "r-4907", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:53:57Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4907", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:54:00Z", "level": "INFO", "msg": "request done", "req": "r-4907", "tenant": "t-0087", "handler": "create_invoice", "status": 200, "ms": 32}
+{"t": "2026-10-09T03:54:08Z", "level": "INFO", "msg": "request start", "req": "r-4908", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:54:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4908", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:54:15Z", "level": "INFO", "msg": "request done", "req": "r-4908", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 126}
+{"t": "2026-10-09T03:54:22Z", "level": "INFO", "msg": "request start", "req": "r-4909", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:54:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4909", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:54:36Z", "level": "INFO", "msg": "request done", "req": "r-4909", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:54:43Z", "level": "INFO", "msg": "request start", "req": "r-4910", "tenant": "t-0520", "handler": "get_invoice"}
+{"t": "2026-10-09T03:54:46Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4910", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:54:55Z", "level": "INFO", "msg": "request done", "req": "r-4910", "tenant": "t-0520", "handler": "get_invoice", "status": 200, "ms": 128}
+{"t": "2026-10-09T03:55:03Z", "level": "INFO", "msg": "request start", "req": "r-4911", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:55:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4911", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:55:20Z", "level": "INFO", "msg": "request done", "req": "r-4911", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 101}
+{"t": "2026-10-09T03:55:27Z", "level": "INFO", "msg": "request start", "req": "r-4912", "tenant": "t-0688", "handler": "get_customer"}
+{"t": "2026-10-09T03:55:31Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4912", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:55:33Z", "level": "INFO", "msg": "request done", "req": "r-4912", "tenant": "t-0688", "handler": "get_customer", "status": 200, "ms": 88}
+{"t": "2026-10-09T03:55:39Z", "level": "INFO", "msg": "request start", "req": "r-4913", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:55:47Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4913", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:55:50Z", "level": "INFO", "msg": "request done", "req": "r-4913", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 104}
+{"t": "2026-10-09T03:55:53Z", "level": "INFO", "msg": "request start", "req": "r-4914", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:55:59Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4914", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:56:04Z", "level": "INFO", "msg": "request done", "req": "r-4914", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 134}
+{"t": "2026-10-09T03:56:08Z", "level": "INFO", "msg": "request start", "req": "r-4915", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:56:15Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4915", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:56:20Z", "level": "INFO", "msg": "request done", "req": "r-4915", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 21}
+{"t": "2026-10-09T03:56:25Z", "level": "INFO", "msg": "request start", "req": "r-4916", "tenant": "t-0087", "handler": "get_customer"}
+{"t": "2026-10-09T03:56:31Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4916", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:56:37Z", "level": "INFO", "msg": "request done", "req": "r-4916", "tenant": "t-0087", "handler": "get_customer", "status": 200, "ms": 118}
+{"t": "2026-10-09T03:56:43Z", "level": "INFO", "msg": "request start", "req": "r-4917", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:56:50Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4917", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:56:55Z", "level": "INFO", "msg": "request done", "req": "r-4917", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 4}
+{"t": "2026-10-09T03:57:00Z", "level": "INFO", "msg": "request start", "req": "r-4918", "tenant": "t-0203", "handler": "get_customer"}
+{"t": "2026-10-09T03:57:07Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4918", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:57:11Z", "level": "INFO", "msg": "request done", "req": "r-4918", "tenant": "t-0203", "handler": "get_customer", "status": 200, "ms": 35}
+{"t": "2026-10-09T03:57:15Z", "level": "INFO", "msg": "request start", "req": "r-4919", "tenant": "t-0688", "handler": "get_invoice"}
+{"t": "2026-10-09T03:57:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4919", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:57:23Z", "level": "INFO", "msg": "request done", "req": "r-4919", "tenant": "t-0688", "handler": "get_invoice", "status": 200, "ms": 20}
+{"t": "2026-10-09T03:57:30Z", "level": "INFO", "msg": "request start", "req": "r-4920", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:57:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4920", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:57:47Z", "level": "INFO", "msg": "request done", "req": "r-4920", "tenant": "t-0688", "handler": "create_invoice", "status": 200, "ms": 19}
+{"t": "2026-10-09T03:57:56Z", "level": "INFO", "msg": "request start", "req": "r-4921", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:57:59Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4921", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:58:06Z", "level": "INFO", "msg": "request done", "req": "r-4921", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 80}
+{"t": "2026-10-09T03:58:13Z", "level": "INFO", "msg": "request start", "req": "r-4922", "tenant": "t-0311", "handler": "get_invoice"}
+{"t": "2026-10-09T03:58:20Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4922", "tenant": "t-0311", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:58:27Z", "level": "INFO", "msg": "request done", "req": "r-4922", "tenant": "t-0311", "handler": "get_invoice", "status": 200, "ms": 133}
+{"t": "2026-10-09T03:58:30Z", "level": "INFO", "msg": "request start", "req": "r-4923", "tenant": "t-0688", "handler": "get_invoice"}
+{"t": "2026-10-09T03:58:31Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4923", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:58:36Z", "level": "INFO", "msg": "request done", "req": "r-4923", "tenant": "t-0688", "handler": "get_invoice", "status": 200, "ms": 20}
+{"t": "2026-10-09T03:58:38Z", "level": "INFO", "msg": "request start", "req": "r-4924", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:58:46Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4924", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:58:49Z", "level": "INFO", "msg": "request done", "req": "r-4924", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 22}
+{"t": "2026-10-09T03:58:54Z", "level": "INFO", "msg": "request start", "req": "r-4925", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:58:59Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4925", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:59:00Z", "level": "INFO", "msg": "request done", "req": "r-4925", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 66}
+{"t": "2026-10-09T03:59:06Z", "level": "INFO", "msg": "request start", "req": "r-4926", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:59:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4926", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:59:20Z", "level": "INFO", "msg": "request done", "req": "r-4926", "tenant": "t-0087", "handler": "export", "status": 200, "ms": 49}
+{"t": "2026-10-09T03:59:21Z", "level": "INFO", "msg": "request start", "req": "r-4927", "tenant": "t-0688", "handler": "get_customer"}
+{"t": "2026-10-09T03:59:22Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4927", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:59:31Z", "level": "INFO", "msg": "request done", "req": "r-4927", "tenant": "t-0688", "handler": "get_customer", "status": 200, "ms": 27}
+{"t": "2026-10-09T03:59:33Z", "level": "INFO", "msg": "request start", "req": "r-4928", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:59:41Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4928", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:59:43Z", "level": "INFO", "msg": "request done", "req": "r-4928", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 137}
+{"t": "2026-10-09T03:59:47Z", "level": "INFO", "msg": "request start", "req": "r-4929", "tenant": "t-0520", "handler": "search"}
+{"t": "2026-10-09T03:59:52Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4929", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:00:01Z", "level": "INFO", "msg": "request done", "req": "r-4929", "tenant": "t-0520", "handler": "search", "status": 200, "ms": 81}
+{"t": "2026-10-09T03:00:02Z", "level": "INFO", "msg": "request start", "req": "r-4930", "tenant": "t-0311", "handler": "list_invoices"}
+{"t": "2026-10-09T03:00:05Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4930", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:00:08Z", "level": "INFO", "msg": "request done", "req": "r-4930", "tenant": "t-0311", "handler": "list_invoices", "status": 200, "ms": 110}
+{"t": "2026-10-09T03:00:15Z", "level": "INFO", "msg": "request start", "req": "r-4931", "tenant": "t-0417", "handler": "search"}
+{"t": "2026-10-09T03:00:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4931", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:00:20Z", "level": "INFO", "msg": "request done", "req": "r-4931", "tenant": "t-0417", "handler": "search", "status": 200, "ms": 15}
+{"t": "2026-10-09T03:00:21Z", "level": "INFO", "msg": "request start", "req": "r-4932", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:00:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4932", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:00:30Z", "level": "WARN", "msg": "slow query", "req": "r-4932", "tenant": "t-0688", "ms": 1453}
+{"t": "2026-10-09T03:00:39Z", "level": "INFO", "msg": "request done", "req": "r-4932", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 14}
+{"t": "2026-10-09T03:00:44Z", "level": "INFO", "msg": "request start", "req": "r-4933", "tenant": "t-0417", "handler": "search"}
+{"t": "2026-10-09T03:00:53Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4933", "tenant": "t-0417", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:01:01Z", "level": "INFO", "msg": "request done", "req": "r-4933", "tenant": "t-0417", "handler": "search", "status": 200, "ms": 101}
+{"t": "2026-10-09T03:01:05Z", "level": "INFO", "msg": "request start", "req": "r-4934", "tenant": "t-0203", "handler": "get_invoice"}
+{"t": "2026-10-09T03:01:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4934", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:01:20Z", "level": "INFO", "msg": "request done", "req": "r-4934", "tenant": "t-0203", "handler": "get_invoice", "status": 200, "ms": 126}
+{"t": "2026-10-09T03:01:21Z", "level": "INFO", "msg": "request start", "req": "r-4935", "tenant": "t-0012", "handler": "search"}
+{"t": "2026-10-09T03:01:22Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4935", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:01:29Z", "level": "INFO", "msg": "request done", "req": "r-4935", "tenant": "t-0012", "handler": "search", "status": 200, "ms": 42}
+{"t": "2026-10-09T03:01:32Z", "level": "INFO", "msg": "request start", "req": "r-4936", "tenant": "t-0203", "handler": "list_invoices"}
+{"t": "2026-10-09T03:01:39Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4936", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:01:42Z", "level": "INFO", "msg": "request done", "req": "r-4936", "tenant": "t-0203", "handler": "list_invoices", "status": 200, "ms": 43}
+{"t": "2026-10-09T03:01:51Z", "level": "INFO", "msg": "request start", "req": "r-4937", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:01:58Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4937", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:01:59Z", "level": "INFO", "msg": "request done", "req": "r-4937", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 126}
+{"t": "2026-10-09T03:02:00Z", "level": "INFO", "msg": "request start", "req": "r-4938", "tenant": "t-0203", "handler": "get_customer"}
+{"t": "2026-10-09T03:02:03Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4938", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:02:06Z", "level": "INFO", "msg": "request done", "req": "r-4938", "tenant": "t-0203", "handler": "get_customer", "status": 200, "ms": 18}
+{"t": "2026-10-09T03:02:14Z", "level": "INFO", "msg": "request start", "req": "r-4939", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:02:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4939", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:02:18Z", "level": "WARN", "msg": "slow query", "req": "r-4939", "tenant": "t-0012", "ms": 1984}
+{"t": "2026-10-09T03:02:25Z", "level": "INFO", "msg": "request done", "req": "r-4939", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 10}
+{"t": "2026-10-09T03:02:26Z", "level": "INFO", "msg": "request start", "req": "r-4940", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:02:28Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4940", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:02:30Z", "level": "INFO", "msg": "request done", "req": "r-4940", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 94}
+{"t": "2026-10-09T03:02:32Z", "level": "INFO", "msg": "request start", "req": "r-4941", "tenant": "t-0520", "handler": "get_customer"}
+{"t": "2026-10-09T03:02:41Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4941", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:02:46Z", "level": "WARN", "msg": "slow query", "req": "r-4941", "tenant": "t-0520", "ms": 2169}
+{"t": "2026-10-09T03:02:55Z", "level": "INFO", "msg": "request done", "req": "r-4941", "tenant": "t-0520", "handler": "get_customer", "status": 200, "ms": 45}
+{"t": "2026-10-09T03:02:56Z", "level": "INFO", "msg": "request start", "req": "r-4942", "tenant": "t-0203", "handler": "get_invoice"}
+{"t": "2026-10-09T03:03:05Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4942", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:03:11Z", "level": "INFO", "msg": "request done", "req": "r-4942", "tenant": "t-0203", "handler": "get_invoice", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:03:19Z", "level": "INFO", "msg": "request start", "req": "r-4943", "tenant": "t-0417", "handler": "get_customer"}
+{"t": "2026-10-09T03:03:26Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4943", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:03:31Z", "level": "INFO", "msg": "request done", "req": "r-4943", "tenant": "t-0417", "handler": "get_customer", "status": 200, "ms": 63}
+{"t": "2026-10-09T03:03:38Z", "level": "INFO", "msg": "request start", "req": "r-4944", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:03:46Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4944", "tenant": "t-0203", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:03:53Z", "level": "INFO", "msg": "request done", "req": "r-4944", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 122}
+{"t": "2026-10-09T03:03:59Z", "level": "INFO", "msg": "request start", "req": "r-4945", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:04:00Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4945", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:04:03Z", "level": "INFO", "msg": "request done", "req": "r-4945", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 8}
+{"t": "2026-10-09T03:04:09Z", "level": "INFO", "msg": "request start", "req": "r-4946", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:04:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4946", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:04:17Z", "level": "INFO", "msg": "request done", "req": "r-4946", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:04:26Z", "level": "INFO", "msg": "request start", "req": "r-4947", "tenant": "t-0742", "handler": "get_customer"}
+{"t": "2026-10-09T03:04:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4947", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:04:36Z", "level": "WARN", "msg": "slow query", "req": "r-4947", "tenant": "t-0742", "ms": 1228}
+{"t": "2026-10-09T03:04:45Z", "level": "INFO", "msg": "request done", "req": "r-4947", "tenant": "t-0742", "handler": "get_customer", "status": 200, "ms": 52}
+{"t": "2026-10-09T03:04:51Z", "level": "INFO", "msg": "request start", "req": "r-4948", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:04:59Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4948", "tenant": "t-0417", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:05:03Z", "level": "INFO", "msg": "request done", "req": "r-4948", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 114}
+{"t": "2026-10-09T03:05:11Z", "level": "INFO", "msg": "request start", "req": "r-4949", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:05:16Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4949", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:05:24Z", "level": "INFO", "msg": "request done", "req": "r-4949", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 46}
+{"t": "2026-10-09T03:05:31Z", "level": "INFO", "msg": "request start", "req": "r-4950", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:05:39Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4950", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:05:45Z", "level": "INFO", "msg": "request done", "req": "r-4950", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 93}
+{"t": "2026-10-09T03:05:47Z", "level": "INFO", "msg": "request start", "req": "r-4951", "tenant": "t-0203", "handler": "search"}
+{"t": "2026-10-09T03:05:49Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4951", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:05:56Z", "level": "INFO", "msg": "request done", "req": "r-4951", "tenant": "t-0203", "handler": "search", "status": 200, "ms": 109}
+{"t": "2026-10-09T03:06:03Z", "level": "INFO", "msg": "request start", "req": "r-4952", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:06:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4952", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:06:13Z", "level": "WARN", "msg": "slow query", "req": "r-4952", "tenant": "t-0012", "ms": 921}
+{"t": "2026-10-09T03:06:22Z", "level": "INFO", "msg": "request done", "req": "r-4952", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 80}
+{"t": "2026-10-09T03:06:25Z", "level": "INFO", "msg": "request start", "req": "r-4953", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:06:32Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4953", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:06:33Z", "level": "INFO", "msg": "request done", "req": "r-4953", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:06:36Z", "level": "INFO", "msg": "request start", "req": "r-4954", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:06:45Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4954", "tenant": "t-0203", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:06:49Z", "level": "INFO", "msg": "request done", "req": "r-4954", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 89}
+{"t": "2026-10-09T03:06:56Z", "level": "INFO", "msg": "request start", "req": "r-4955", "tenant": "t-0688", "handler": "get_customer"}
+{"t": "2026-10-09T03:07:03Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4955", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:07:12Z", "level": "INFO", "msg": "request done", "req": "r-4955", "tenant": "t-0688", "handler": "get_customer", "status": 200, "ms": 98}
+{"t": "2026-10-09T03:07:16Z", "level": "INFO", "msg": "request start", "req": "r-4956", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:07:23Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4956", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:07:30Z", "level": "INFO", "msg": "request done", "req": "r-4956", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 133}
+{"t": "2026-10-09T03:07:33Z", "level": "INFO", "msg": "request start", "req": "r-4957", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:07:34Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4957", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:07:39Z", "level": "INFO", "msg": "request done", "req": "r-4957", "tenant": "t-0688", "handler": "create_invoice", "status": 200, "ms": 57}
+{"t": "2026-10-09T03:07:45Z", "level": "INFO", "msg": "request start", "req": "r-4958", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:07:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4958", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:08:01Z", "level": "INFO", "msg": "request done", "req": "r-4958", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 130}
+{"t": "2026-10-09T03:08:08Z", "level": "INFO", "msg": "request start", "req": "r-4959", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:08:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4959", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:08:24Z", "level": "INFO", "msg": "request done", "req": "r-4959", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 16}
+{"t": "2026-10-09T03:08:27Z", "level": "INFO", "msg": "request start", "req": "r-4960", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:08:29Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4960", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:08:33Z", "level": "INFO", "msg": "request done", "req": "r-4960", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 112}
+{"t": "2026-10-09T03:08:35Z", "level": "INFO", "msg": "request start", "req": "r-4961", "tenant": "t-0311", "handler": "get_customer"}
+{"t": "2026-10-09T03:08:43Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4961", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:08:51Z", "level": "INFO", "msg": "request done", "req": "r-4961", "tenant": "t-0311", "handler": "get_customer", "status": 200, "ms": 131}
+{"t": "2026-10-09T03:08:59Z", "level": "INFO", "msg": "request start", "req": "r-4962", "tenant": "t-0087", "handler": "get_customer"}
+{"t": "2026-10-09T03:09:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4962", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:09:09Z", "level": "INFO", "msg": "request done", "req": "r-4962", "tenant": "t-0087", "handler": "get_customer", "status": 200, "ms": 73}
+{"t": "2026-10-09T03:09:12Z", "level": "INFO", "msg": "request start", "req": "r-4963", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:09:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4963", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:09:30Z", "level": "INFO", "msg": "request done", "req": "r-4963", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 84}
+{"t": "2026-10-09T03:09:36Z", "level": "INFO", "msg": "request start", "req": "r-4964", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:09:45Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4964", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:09:52Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4964", "tenant": "t-0742", "attempt": 2}
+{"t": "2026-10-09T03:09:58Z", "level": "INFO", "msg": "request done", "req": "r-4964", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 95}
+{"t": "2026-10-09T03:10:07Z", "level": "INFO", "msg": "request start", "req": "r-4965", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:10:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4965", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:10:17Z", "level": "INFO", "msg": "request done", "req": "r-4965", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 27}
+{"t": "2026-10-09T03:10:21Z", "level": "INFO", "msg": "request start", "req": "r-4966", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:10:22Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4966", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:10:24Z", "level": "INFO", "msg": "request done", "req": "r-4966", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 72}
+{"t": "2026-10-09T03:10:30Z", "level": "INFO", "msg": "request start", "req": "r-4967", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:10:36Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4967", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:10:41Z", "level": "INFO", "msg": "request done", "req": "r-4967", "tenant": "t-0087", "handler": "export", "status": 200, "ms": 34}
+{"t": "2026-10-09T03:10:48Z", "level": "INFO", "msg": "request start", "req": "r-4968", "tenant": "t-0311", "handler": "get_customer"}
+{"t": "2026-10-09T03:10:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4968", "tenant": "t-0311", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:10:57Z", "level": "INFO", "msg": "request done", "req": "r-4968", "tenant": "t-0311", "handler": "get_customer", "status": 200, "ms": 27}
+{"t": "2026-10-09T03:11:02Z", "level": "INFO", "msg": "request start", "req": "r-4969", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:11:11Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4969", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:11:19Z", "level": "INFO", "msg": "request done", "req": "r-4969", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:11:21Z", "level": "INFO", "msg": "request start", "req": "r-4970", "tenant": "t-0742", "handler": "create_invoice"}
+{"t": "2026-10-09T03:11:26Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4970", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:11:30Z", "level": "INFO", "msg": "request done", "req": "r-4970", "tenant": "t-0742", "handler": "create_invoice", "status": 200, "ms": 19}
+{"t": "2026-10-09T03:11:32Z", "level": "INFO", "msg": "request start", "req": "r-4971", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:11:33Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4971", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:11:38Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4971", "tenant": "t-0742", "attempt": 2}
+{"t": "2026-10-09T03:11:40Z", "level": "INFO", "msg": "request done", "req": "r-4971", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 109}
+{"t": "2026-10-09T03:11:43Z", "level": "INFO", "msg": "request start", "req": "r-4972", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:11:47Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4972", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:11:55Z", "level": "INFO", "msg": "request done", "req": "r-4972", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 100}
+{"t": "2026-10-09T03:11:57Z", "level": "INFO", "msg": "request start", "req": "r-4973", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:12:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4973", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:12:10Z", "level": "INFO", "msg": "request done", "req": "r-4973", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 96}
+{"t": "2026-10-09T03:12:16Z", "level": "INFO", "msg": "request start", "req": "r-4974", "tenant": "t-0688", "handler": "search"}
+{"t": "2026-10-09T03:12:20Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4974", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:12:22Z", "level": "INFO", "msg": "request done", "req": "r-4974", "tenant": "t-0688", "handler": "search", "status": 200, "ms": 139}
+{"t": "2026-10-09T03:12:28Z", "level": "INFO", "msg": "request start", "req": "r-4975", "tenant": "t-0203", "handler": "get_invoice"}
+{"t": "2026-10-09T03:12:37Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4975", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:12:40Z", "level": "INFO", "msg": "request done", "req": "r-4975", "tenant": "t-0203", "handler": "get_invoice", "status": 200, "ms": 8}
+{"t": "2026-10-09T03:12:47Z", "level": "INFO", "msg": "request start", "req": "r-4976", "tenant": "t-0311", "handler": "list_invoices"}
+{"t": "2026-10-09T03:12:55Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4976", "tenant": "t-0311", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:13:03Z", "level": "INFO", "msg": "request done", "req": "r-4976", "tenant": "t-0311", "handler": "list_invoices", "status": 200, "ms": 124}
+{"t": "2026-10-09T03:13:11Z", "level": "INFO", "msg": "request start", "req": "r-4977", "tenant": "t-0087", "handler": "get_customer"}
+{"t": "2026-10-09T03:13:14Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4977", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:13:19Z", "level": "INFO", "msg": "request done", "req": "r-4977", "tenant": "t-0087", "handler": "get_customer", "status": 200, "ms": 78}
+{"t": "2026-10-09T03:13:28Z", "level": "INFO", "msg": "request start", "req": "r-4978", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:13:30Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4978", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:13:34Z", "level": "INFO", "msg": "request done", "req": "r-4978", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 92}
+{"t": "2026-10-09T03:13:37Z", "level": "INFO", "msg": "request start", "req": "r-4979", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:13:42Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4979", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:13:44Z", "level": "INFO", "msg": "request done", "req": "r-4979", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 62}
+{"t": "2026-10-09T03:13:46Z", "level": "INFO", "msg": "request start", "req": "r-4980", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:13:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4980", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:13:59Z", "level": "INFO", "msg": "request done", "req": "r-4980", "tenant": "t-0087", "handler": "export", "status": 200, "ms": 100}
+{"t": "2026-10-09T03:14:04Z", "level": "INFO", "msg": "request start", "req": "r-4981", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:14:10Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4981", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:14:11Z", "level": "INFO", "msg": "request done", "req": "r-4981", "tenant": "t-0087", "handler": "create_invoice", "status": 200, "ms": 30}
+{"t": "2026-10-09T03:14:17Z", "level": "INFO", "msg": "request start", "req": "r-4982", "tenant": "t-0012", "handler": "list_invoices"}
+{"t": "2026-10-09T03:14:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4982", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:14:26Z", "level": "INFO", "msg": "request done", "req": "r-4982", "tenant": "t-0012", "handler": "list_invoices", "status": 200, "ms": 41}
+{"t": "2026-10-09T03:14:30Z", "level": "INFO", "msg": "request start", "req": "r-4983", "tenant": "t-0742", "handler": "create_invoice"}
+{"t": "2026-10-09T03:14:35Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4983", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:14:43Z", "level": "INFO", "msg": "request done", "req": "r-4983", "tenant": "t-0742", "handler": "create_invoice", "status": 200, "ms": 93}
+{"t": "2026-10-09T03:14:49Z", "level": "INFO", "msg": "request start", "req": "r-4984", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:14:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4984", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:14:54Z", "level": "INFO", "msg": "request done", "req": "r-4984", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 131}
+{"t": "2026-10-09T03:15:00Z", "level": "INFO", "msg": "request start", "req": "r-4985", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:15:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4985", "tenant": "t-0087", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:15:10Z", "level": "WARN", "msg": "slow query", "req": "r-4985", "tenant": "t-0087", "ms": 1084}
+{"t": "2026-10-09T03:15:15Z", "level": "INFO", "msg": "request done", "req": "r-4985", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 96}
+{"t": "2026-10-09T03:15:24Z", "level": "INFO", "msg": "request start", "req": "r-4986", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:15:27Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4986", "tenant": "t-0087", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:15:28Z", "level": "INFO", "msg": "request done", "req": "r-4986", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 38}
+{"t": "2026-10-09T03:15:31Z", "level": "INFO", "msg": "request start", "req": "r-4987", "tenant": "t-0520", "handler": "create_invoice"}
+{"t": "2026-10-09T03:15:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4987", "tenant": "t-0520", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:15:42Z", "level": "INFO", "msg": "request done", "req": "r-4987", "tenant": "t-0520", "handler": "create_invoice", "status": 200, "ms": 121}
+{"t": "2026-10-09T03:15:49Z", "level": "INFO", "msg": "request start", "req": "r-4988", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:15:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4988", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:16:00Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4988", "tenant": "t-0688", "attempt": 2}
+{"t": "2026-10-09T03:16:02Z", "level": "INFO", "msg": "request done", "req": "r-4988", "tenant": "t-0688", "handler": "create_invoice", "status": 200, "ms": 120}
+{"t": "2026-10-09T03:16:07Z", "level": "INFO", "msg": "request start", "req": "r-4989", "tenant": "t-0311", "handler": "create_invoice"}
+{"t": "2026-10-09T03:16:15Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4989", "tenant": "t-0311", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:16:17Z", "level": "INFO", "msg": "request done", "req": "r-4989", "tenant": "t-0311", "handler": "create_invoice", "status": 200, "ms": 122}
+{"t": "2026-10-09T03:16:26Z", "level": "INFO", "msg": "request start", "req": "r-4990", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:16:34Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4990", "tenant": "t-0203", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:16:38Z", "level": "INFO", "msg": "request done", "req": "r-4990", "tenant": "t-0203", "handler": "create_invoice", "status": 200, "ms": 112}
+{"t": "2026-10-09T03:16:45Z", "level": "INFO", "msg": "request start", "req": "r-4991", "tenant": "t-0417", "handler": "list_invoices"}
+{"t": "2026-10-09T03:16:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4991", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:16:56Z", "level": "INFO", "msg": "request done", "req": "r-4991", "tenant": "t-0417", "handler": "list_invoices", "status": 200, "ms": 86}
+{"t": "2026-10-09T03:16:58Z", "level": "INFO", "msg": "request start", "req": "r-4992", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:17:01Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4992", "tenant": "t-0012", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:17:10Z", "level": "INFO", "msg": "request done", "req": "r-4992", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 101}
+{"t": "2026-10-09T03:17:18Z", "level": "INFO", "msg": "request start", "req": "r-4993", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:17:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4993", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:17:24Z", "level": "INFO", "msg": "request done", "req": "r-4993", "tenant": "t-0742", "handler": "get_invoice", "status": 200, "ms": 22}
+{"t": "2026-10-09T03:17:28Z", "level": "INFO", "msg": "request start", "req": "r-4994", "tenant": "t-0742", "handler": "get_customer"}
+{"t": "2026-10-09T03:17:37Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4994", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:17:45Z", "level": "INFO", "msg": "request done", "req": "r-4994", "tenant": "t-0742", "handler": "get_customer", "status": 200, "ms": 83}
+{"t": "2026-10-09T03:17:49Z", "level": "INFO", "msg": "request start", "req": "r-4995", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:17:52Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4995", "tenant": "t-0520", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:17:53Z", "level": "INFO", "msg": "request done", "req": "r-4995", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 110}
+{"t": "2026-10-09T03:18:01Z", "level": "INFO", "msg": "request start", "req": "r-4996", "tenant": "t-0087", "handler": "get_invoice"}
+{"t": "2026-10-09T03:18:03Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4996", "tenant": "t-0087", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:18:11Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-4996", "tenant": "t-0087", "attempt": 2}
+{"t": "2026-10-09T03:18:12Z", "level": "INFO", "msg": "request done", "req": "r-4996", "tenant": "t-0087", "handler": "get_invoice", "status": 200, "ms": 25}
+{"t": "2026-10-09T03:18:18Z", "level": "INFO", "msg": "request start", "req": "r-4997", "tenant": "t-0742", "handler": "create_invoice"}
+{"t": "2026-10-09T03:18:24Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4997", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:18:31Z", "level": "INFO", "msg": "request done", "req": "r-4997", "tenant": "t-0742", "handler": "create_invoice", "status": 200, "ms": 8}
+{"t": "2026-10-09T03:18:33Z", "level": "INFO", "msg": "request start", "req": "r-4998", "tenant": "t-0311", "handler": "search"}
+{"t": "2026-10-09T03:18:40Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4998", "tenant": "t-0311", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:18:46Z", "level": "INFO", "msg": "request done", "req": "r-4998", "tenant": "t-0311", "handler": "search", "status": 200, "ms": 140}
+{"t": "2026-10-09T03:18:54Z", "level": "INFO", "msg": "request start", "req": "r-4999", "tenant": "t-0688", "handler": "export"}
+{"t": "2026-10-09T03:19:03Z", "level": "INFO", "msg": "db connection acquired", "req": "r-4999", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:19:04Z", "level": "INFO", "msg": "request done", "req": "r-4999", "tenant": "t-0688", "handler": "export", "status": 200, "ms": 104}
+{"t": "2026-10-09T03:19:11Z", "level": "INFO", "msg": "request start", "req": "r-5000", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:19:12Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5000", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:19:21Z", "level": "INFO", "msg": "request done", "req": "r-5000", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 88}
+{"t": "2026-10-09T03:19:22Z", "level": "INFO", "msg": "request start", "req": "r-5001", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:19:25Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5001", "tenant": "t-0688", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:19:28Z", "level": "INFO", "msg": "request done", "req": "r-5001", "tenant": "t-0688", "handler": "create_invoice", "status": 200, "ms": 94}
+{"t": "2026-10-09T03:19:29Z", "level": "INFO", "msg": "request start", "req": "r-5002", "tenant": "t-0742", "handler": "get_customer"}
+{"t": "2026-10-09T03:19:32Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5002", "tenant": "t-0742", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:19:41Z", "level": "INFO", "msg": "request done", "req": "r-5002", "tenant": "t-0742", "handler": "get_customer", "status": 200, "ms": 72}
+{"t": "2026-10-09T03:19:50Z", "level": "INFO", "msg": "request start", "req": "r-5003", "tenant": "t-0520", "handler": "create_invoice"}
+{"t": "2026-10-09T03:19:54Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5003", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:19:58Z", "level": "INFO", "msg": "request done", "req": "r-5003", "tenant": "t-0520", "handler": "create_invoice", "status": 200, "ms": 103}
+{"t": "2026-10-09T03:20:07Z", "level": "INFO", "msg": "request start", "req": "r-5004", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:20:13Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5004", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:20:16Z", "level": "INFO", "msg": "request done", "req": "r-5004", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 16}
+{"t": "2026-10-09T03:20:21Z", "level": "INFO", "msg": "request start", "req": "r-5005", "tenant": "t-0688", "handler": "get_invoice"}
+{"t": "2026-10-09T03:20:22Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5005", "tenant": "t-0688", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:20:26Z", "level": "INFO", "msg": "request done", "req": "r-5005", "tenant": "t-0688", "handler": "get_invoice", "status": 200, "ms": 95}
+{"t": "2026-10-09T03:20:28Z", "level": "INFO", "msg": "request start", "req": "r-5006", "tenant": "t-0012", "handler": "export"}
+{"t": "2026-10-09T03:20:34Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5006", "tenant": "t-0012", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:20:40Z", "level": "INFO", "msg": "request done", "req": "r-5006", "tenant": "t-0012", "handler": "export", "status": 200, "ms": 93}
+{"t": "2026-10-09T03:20:47Z", "level": "INFO", "msg": "request start", "req": "r-5007", "tenant": "t-0203", "handler": "list_invoices"}
+{"t": "2026-10-09T03:20:51Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5007", "tenant": "t-0203", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:20:53Z", "level": "INFO", "msg": "request done", "req": "r-5007", "tenant": "t-0203", "handler": "list_invoices", "status": 200, "ms": 79}
+{"t": "2026-10-09T03:21:00Z", "level": "INFO", "msg": "request start", "req": "r-5008", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:21:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5008", "tenant": "t-0520", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:21:07Z", "level": "INFO", "msg": "request done", "req": "r-5008", "tenant": "t-0520", "handler": "list_invoices", "status": 200, "ms": 64}
+{"t": "2026-10-09T03:21:14Z", "level": "INFO", "msg": "request start", "req": "r-5009", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:21:23Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5009", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:21:29Z", "level": "INFO", "msg": "request done", "req": "r-5009", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 120}
+{"t": "2026-10-09T03:21:33Z", "level": "INFO", "msg": "request start", "req": "r-5010", "tenant": "t-0311", "handler": "export"}
+{"t": "2026-10-09T03:21:38Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5010", "tenant": "t-0311", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:21:39Z", "level": "INFO", "msg": "request done", "req": "r-5010", "tenant": "t-0311", "handler": "export", "status": 200, "ms": 17}
+{"t": "2026-10-09T03:21:44Z", "level": "INFO", "msg": "request start", "req": "r-5011", "tenant": "t-0087", "handler": "search"}
+{"t": "2026-10-09T03:21:52Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5011", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:21:54Z", "level": "INFO", "msg": "request done", "req": "r-5011", "tenant": "t-0087", "handler": "search", "status": 200, "ms": 133}
+{"t": "2026-10-09T03:21:55Z", "level": "INFO", "msg": "request start", "req": "r-5012", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:22:04Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5012", "tenant": "t-0688", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:22:08Z", "level": "INFO", "msg": "request done", "req": "r-5012", "tenant": "t-0688", "handler": "list_invoices", "status": 200, "ms": 45}
+{"t": "2026-10-09T03:22:16Z", "level": "INFO", "msg": "request start", "req": "r-5013", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:22:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5013", "tenant": "t-0742", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:22:23Z", "level": "INFO", "msg": "request done", "req": "r-5013", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 50}
+{"t": "2026-10-09T03:22:25Z", "level": "INFO", "msg": "request start", "req": "r-5014", "tenant": "t-0742", "handler": "get_customer"}
+{"t": "2026-10-09T03:22:33Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5014", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:22:35Z", "level": "INFO", "msg": "request done", "req": "r-5014", "tenant": "t-0742", "handler": "get_customer", "status": 200, "ms": 80}
+{"t": "2026-10-09T03:22:43Z", "level": "INFO", "msg": "request start", "req": "r-5015", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:22:49Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5015", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:22:51Z", "level": "INFO", "msg": "request done", "req": "r-5015", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 97}
+{"t": "2026-10-09T03:22:52Z", "level": "INFO", "msg": "request start", "req": "r-5016", "tenant": "t-0203", "handler": "list_invoices"}
+{"t": "2026-10-09T03:22:58Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5016", "tenant": "t-0203", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:23:05Z", "level": "INFO", "msg": "request done", "req": "r-5016", "tenant": "t-0203", "handler": "list_invoices", "status": 200, "ms": 19}
+{"t": "2026-10-09T03:23:09Z", "level": "INFO", "msg": "request start", "req": "r-5017", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:23:17Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5017", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:23:23Z", "level": "INFO", "msg": "request done", "req": "r-5017", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 109}
+{"t": "2026-10-09T03:23:26Z", "level": "INFO", "msg": "request start", "req": "r-5018", "tenant": "t-0688", "handler": "get_customer"}
+{"t": "2026-10-09T03:23:32Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5018", "tenant": "t-0688", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:23:35Z", "level": "INFO", "msg": "request done", "req": "r-5018", "tenant": "t-0688", "handler": "get_customer", "status": 200, "ms": 30}
+{"t": "2026-10-09T03:23:39Z", "level": "INFO", "msg": "request start", "req": "r-5019", "tenant": "t-0087", "handler": "list_invoices"}
+{"t": "2026-10-09T03:23:46Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5019", "tenant": "t-0087", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:23:53Z", "level": "INFO", "msg": "request done", "req": "r-5019", "tenant": "t-0087", "handler": "list_invoices", "status": 200, "ms": 95}
+{"t": "2026-10-09T03:23:54Z", "level": "INFO", "msg": "request start", "req": "r-5020", "tenant": "t-0742", "handler": "export"}
+{"t": "2026-10-09T03:24:01Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5020", "tenant": "t-0742", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:24:03Z", "level": "INFO", "msg": "request done", "req": "r-5020", "tenant": "t-0742", "handler": "export", "status": 200, "ms": 120}
+{"t": "2026-10-09T03:24:07Z", "level": "INFO", "msg": "request start", "req": "r-5021", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:24:09Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5021", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:24:13Z", "level": "INFO", "msg": "request done", "req": "r-5021", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 109}
+{"t": "2026-10-09T03:24:19Z", "level": "INFO", "msg": "request start", "req": "r-5022", "tenant": "t-0203", "handler": "list_invoices"}
+{"t": "2026-10-09T03:24:27Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5022", "tenant": "t-0203", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:24:35Z", "level": "INFO", "msg": "request done", "req": "r-5022", "tenant": "t-0203", "handler": "list_invoices", "status": 200, "ms": 77}
+{"t": "2026-10-09T03:24:38Z", "level": "INFO", "msg": "request start", "req": "r-5023", "tenant": "t-0311", "handler": "export"}
+{"t": "2026-10-09T03:24:42Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5023", "tenant": "t-0311", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:24:48Z", "level": "INFO", "msg": "request done", "req": "r-5023", "tenant": "t-0311", "handler": "export", "status": 200, "ms": 112}
+{"t": "2026-10-09T03:24:49Z", "level": "INFO", "msg": "request start", "req": "r-5024", "tenant": "t-0203", "handler": "export"}
+{"t": "2026-10-09T03:24:52Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5024", "tenant": "t-0203", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:24:55Z", "level": "INFO", "msg": "request done", "req": "r-5024", "tenant": "t-0203", "handler": "export", "status": 200, "ms": 20}
+{"t": "2026-10-09T03:25:01Z", "level": "INFO", "msg": "request start", "req": "r-5025", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:25:02Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5025", "tenant": "t-0012", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:25:09Z", "level": "INFO", "msg": "request done", "req": "r-5025", "tenant": "t-0012", "handler": "get_customer", "status": 200, "ms": 30}
+{"t": "2026-10-09T03:25:10Z", "level": "INFO", "msg": "request start", "req": "r-5026", "tenant": "t-0417", "handler": "search"}
+{"t": "2026-10-09T03:25:19Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5026", "tenant": "t-0417", "pool_in_use": 4, "pool_size": 10}
+{"t": "2026-10-09T03:25:25Z", "level": "INFO", "msg": "request done", "req": "r-5026", "tenant": "t-0417", "handler": "search", "status": 200, "ms": 115}
+{"t": "2026-10-09T03:25:32Z", "level": "INFO", "msg": "request start", "req": "r-5027", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:25:34Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5027", "tenant": "t-0417", "pool_in_use": 2, "pool_size": 10}
+{"t": "2026-10-09T03:25:39Z", "level": "INFO", "msg": "request done", "req": "r-5027", "tenant": "t-0417", "handler": "export", "status": 200, "ms": 81}
+{"t": "2026-10-09T03:25:46Z", "level": "INFO", "msg": "request start", "req": "r-5028", "tenant": "t-0742", "handler": "list_invoices"}
+{"t": "2026-10-09T03:25:48Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5028", "tenant": "t-0742", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:25:57Z", "level": "INFO", "msg": "request done", "req": "r-5028", "tenant": "t-0742", "handler": "list_invoices", "status": 200, "ms": 72}
+{"t": "2026-10-09T03:26:05Z", "level": "INFO", "msg": "request start", "req": "r-5029", "tenant": "t-0520", "handler": "get_invoice"}
+{"t": "2026-10-09T03:26:06Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5029", "tenant": "t-0520", "pool_in_use": 3, "pool_size": 10}
+{"t": "2026-10-09T03:26:09Z", "level": "INFO", "msg": "request done", "req": "r-5029", "tenant": "t-0520", "handler": "get_invoice", "status": 200, "ms": 92}
+{"t": "2026-10-09T03:26:16Z", "level": "INFO", "msg": "request start", "req": "r-5030", "tenant": "t-0012", "handler": "create_invoice"}
+{"t": "2026-10-09T03:26:21Z", "level": "INFO", "msg": "db connection acquired", "req": "r-5030", "tenant": "t-0012", "pool_in_use": 1, "pool_size": 10}
+{"t": "2026-10-09T03:26:30Z", "level": "WARN", "msg": "retrying upstream call", "req": "r-5030", "tenant": "t-0012", "attempt": 2}
+{"t": "2026-10-09T03:26:32Z", "level": "INFO", "msg": "request done", "req": "r-5030", "tenant": "t-0012", "handler": "create_invoice", "status": 200, "ms": 65}
+{"t": "2026-10-09T03:26:36Z", "level": "INFO", "msg": "request start", "req": "r-5031", "tenant": "t-0688", "handler": "search"}
+{"t": "2026-10-09T03:26:41Z", "level": "ERROR", "msg": "request failed", "req": "r-5031", "tenant": "t-0688", "handler": "search", "status": 500, "error": "ValueError: bad cursor"}
+{"t": "2026-10-09T03:26:44Z", "level": "INFO", "msg": "request start", "req": "r-5032", "tenant": "t-0203", "handler": "get_customer"}
+{"t": "2026-10-09T03:26:49Z", "level": "INFO", "msg": "request done", "req": "r-5032", "tenant": "t-0203", "status": 200, "ms": 30}
+{"t": "2026-10-09T03:26:58Z", "level": "INFO", "msg": "request start", "req": "r-5033", "tenant": "t-0520", "handler": "create_invoice"}
+{"t": "2026-10-09T03:27:03Z", "level": "INFO", "msg": "request done", "req": "r-5033", "tenant": "t-0520", "status": 200, "ms": 127}
+{"t": "2026-10-09T03:27:04Z", "level": "INFO", "msg": "request start", "req": "r-5034", "tenant": "t-0087", "handler": "list_invoices"}
+{"t": "2026-10-09T03:27:09Z", "level": "INFO", "msg": "request done", "req": "r-5034", "tenant": "t-0087", "status": 200, "ms": 26}
+{"t": "2026-10-09T03:27:16Z", "level": "INFO", "msg": "request start", "req": "r-5035", "tenant": "t-0417", "handler": "export"}
+{"t": "2026-10-09T03:27:19Z", "level": "INFO", "msg": "request done", "req": "r-5035", "tenant": "t-0417", "status": 200, "ms": 93}
+{"t": "2026-10-09T03:27:26Z", "level": "INFO", "msg": "request start", "req": "r-5036", "tenant": "t-0012", "handler": "get_customer"}
+{"t": "2026-10-09T03:27:29Z", "level": "INFO", "msg": "request done", "req": "r-5036", "tenant": "t-0012", "status": 200, "ms": 7}
+{"t": "2026-10-09T03:27:30Z", "level": "INFO", "msg": "request start", "req": "r-5037", "tenant": "t-0311", "handler": "search"}
+{"t": "2026-10-09T03:27:37Z", "level": "INFO", "msg": "request done", "req": "r-5037", "tenant": "t-0311", "status": 200, "ms": 79}
+{"t": "2026-10-09T03:27:46Z", "level": "INFO", "msg": "request start", "req": "r-5038", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:27:48Z", "level": "INFO", "msg": "request done", "req": "r-5038", "tenant": "t-0087", "status": 200, "ms": 37}
+{"t": "2026-10-09T03:27:51Z", "level": "INFO", "msg": "request start", "req": "r-5039", "tenant": "t-0688", "handler": "search"}
+{"t": "2026-10-09T03:27:53Z", "level": "INFO", "msg": "request done", "req": "r-5039", "tenant": "t-0688", "status": 200, "ms": 38}
+{"t": "2026-10-09T03:27:59Z", "level": "INFO", "msg": "request start", "req": "r-5040", "tenant": "t-0520", "handler": "get_customer"}
+{"t": "2026-10-09T03:28:02Z", "level": "INFO", "msg": "request done", "req": "r-5040", "tenant": "t-0520", "status": 200, "ms": 94}
+{"t": "2026-10-09T03:28:09Z", "level": "INFO", "msg": "request start", "req": "r-5041", "tenant": "t-0012", "handler": "get_invoice"}
+{"t": "2026-10-09T03:28:14Z", "level": "INFO", "msg": "request done", "req": "r-5041", "tenant": "t-0012", "status": 200, "ms": 47}
+{"t": "2026-10-09T03:28:21Z", "level": "INFO", "msg": "request start", "req": "r-5042", "tenant": "t-0203", "handler": "create_invoice"}
+{"t": "2026-10-09T03:28:26Z", "level": "INFO", "msg": "request done", "req": "r-5042", "tenant": "t-0203", "status": 200, "ms": 98}
+{"t": "2026-10-09T03:28:31Z", "level": "INFO", "msg": "request start", "req": "r-5043", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:28:35Z", "level": "INFO", "msg": "request done", "req": "r-5043", "tenant": "t-0742", "status": 200, "ms": 83}
+{"t": "2026-10-09T03:28:42Z", "level": "INFO", "msg": "request start", "req": "r-5044", "tenant": "t-0417", "handler": "get_invoice"}
+{"t": "2026-10-09T03:28:46Z", "level": "INFO", "msg": "request done", "req": "r-5044", "tenant": "t-0417", "status": 200, "ms": 46}
+{"t": "2026-10-09T03:28:51Z", "level": "INFO", "msg": "request start", "req": "r-5045", "tenant": "t-0520", "handler": "get_customer"}
+{"t": "2026-10-09T03:28:58Z", "level": "INFO", "msg": "request done", "req": "r-5045", "tenant": "t-0520", "status": 200, "ms": 84}
+{"t": "2026-10-09T03:29:00Z", "level": "INFO", "msg": "request start", "req": "r-5046", "tenant": "t-0688", "handler": "search"}
+{"t": "2026-10-09T03:29:06Z", "level": "INFO", "msg": "request done", "req": "r-5046", "tenant": "t-0688", "status": 200, "ms": 24}
+{"t": "2026-10-09T03:29:10Z", "level": "INFO", "msg": "request start", "req": "r-5047", "tenant": "t-0087", "handler": "export"}
+{"t": "2026-10-09T03:29:16Z", "level": "INFO", "msg": "request done", "req": "r-5047", "tenant": "t-0087", "status": 200, "ms": 139}
+{"t": "2026-10-09T03:29:18Z", "level": "INFO", "msg": "request start", "req": "r-5048", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:29:19Z", "level": "INFO", "msg": "request done", "req": "r-5048", "tenant": "t-0520", "status": 200, "ms": 133}
+{"t": "2026-10-09T03:29:26Z", "level": "INFO", "msg": "request start", "req": "r-5049", "tenant": "t-0688", "handler": "list_invoices"}
+{"t": "2026-10-09T03:29:31Z", "level": "INFO", "msg": "request done", "req": "r-5049", "tenant": "t-0688", "status": 200, "ms": 11}
+{"t": "2026-10-09T03:29:36Z", "level": "INFO", "msg": "request start", "req": "r-5050", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:29:40Z", "level": "INFO", "msg": "request done", "req": "r-5050", "tenant": "t-0520", "status": 200, "ms": 47}
+{"t": "2026-10-09T03:29:47Z", "level": "INFO", "msg": "request start", "req": "r-5051", "tenant": "t-0520", "handler": "list_invoices"}
+{"t": "2026-10-09T03:29:55Z", "level": "INFO", "msg": "request done", "req": "r-5051", "tenant": "t-0520", "status": 200, "ms": 111}
+{"t": "2026-10-09T03:30:03Z", "level": "INFO", "msg": "request start", "req": "r-5052", "tenant": "t-0417", "handler": "search"}
+{"t": "2026-10-09T03:30:09Z", "level": "INFO", "msg": "request done", "req": "r-5052", "tenant": "t-0417", "status": 200, "ms": 138}
+{"t": "2026-10-09T03:30:14Z", "level": "INFO", "msg": "request start", "req": "r-5053", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:30:19Z", "level": "INFO", "msg": "request done", "req": "r-5053", "tenant": "t-0520", "status": 200, "ms": 16}
+{"t": "2026-10-09T03:30:26Z", "level": "INFO", "msg": "request start", "req": "r-5054", "tenant": "t-0688", "handler": "get_customer"}
+{"t": "2026-10-09T03:30:35Z", "level": "INFO", "msg": "request done", "req": "r-5054", "tenant": "t-0688", "status": 200, "ms": 40}
+{"t": "2026-10-09T03:30:36Z", "level": "INFO", "msg": "request start", "req": "r-5055", "tenant": "t-0087", "handler": "list_invoices"}
+{"t": "2026-10-09T03:30:37Z", "level": "INFO", "msg": "request done", "req": "r-5055", "tenant": "t-0087", "status": 200, "ms": 46}
+{"t": "2026-10-09T03:30:39Z", "level": "INFO", "msg": "request start", "req": "r-5056", "tenant": "t-0520", "handler": "get_invoice"}
+{"t": "2026-10-09T03:30:45Z", "level": "INFO", "msg": "request done", "req": "r-5056", "tenant": "t-0520", "status": 200, "ms": 8}
+{"t": "2026-10-09T03:30:53Z", "level": "INFO", "msg": "request start", "req": "r-5057", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:30:59Z", "level": "INFO", "msg": "request done", "req": "r-5057", "tenant": "t-0688", "status": 200, "ms": 99}
+{"t": "2026-10-09T03:31:00Z", "level": "INFO", "msg": "request start", "req": "r-5058", "tenant": "t-0520", "handler": "export"}
+{"t": "2026-10-09T03:31:03Z", "level": "INFO", "msg": "request done", "req": "r-5058", "tenant": "t-0520", "status": 200, "ms": 137}
+{"t": "2026-10-09T03:31:08Z", "level": "INFO", "msg": "request start", "req": "r-5059", "tenant": "t-0688", "handler": "create_invoice"}
+{"t": "2026-10-09T03:31:10Z", "level": "INFO", "msg": "request done", "req": "r-5059", "tenant": "t-0688", "status": 200, "ms": 38}
+{"t": "2026-10-09T03:31:13Z", "level": "INFO", "msg": "request start", "req": "r-5060", "tenant": "t-0742", "handler": "get_invoice"}
+{"t": "2026-10-09T03:31:15Z", "level": "INFO", "msg": "request done", "req": "r-5060", "tenant": "t-0742", "status": 200, "ms": 74}
+{"t": "2026-10-09T03:31:20Z", "level": "INFO", "msg": "request start", "req": "r-5061", "tenant": "t-0087", "handler": "create_invoice"}
+{"t": "2026-10-09T03:31:23Z", "level": "INFO", "msg": "request done", "req": "r-5061", "tenant": "t-0087", "status": 200, "ms": 108}

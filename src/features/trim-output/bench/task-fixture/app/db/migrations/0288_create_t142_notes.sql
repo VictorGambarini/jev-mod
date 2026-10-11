@@ -1,0 +1,1 @@
+CREATE TABLE t142_notes (id INTEGER PRIMARY KEY, created_at TEXT);

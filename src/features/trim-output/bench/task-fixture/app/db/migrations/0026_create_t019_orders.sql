@@ -1,0 +1,1 @@
+CREATE TABLE t019_orders (id INTEGER PRIMARY KEY, created_at TEXT);

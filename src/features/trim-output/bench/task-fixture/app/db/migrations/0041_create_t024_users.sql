@@ -1,0 +1,1 @@
+CREATE TABLE t024_users (id INTEGER PRIMARY KEY, created_at TEXT);

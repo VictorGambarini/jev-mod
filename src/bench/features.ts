@@ -3,7 +3,10 @@
 
 import { adapter as compact } from '../features/compact/bench/adapter'
 import { task as compactTask } from '../features/compact/bench/task'
+import { adapter as findFiles } from '../features/find-files/bench/adapter'
+import { adapter as routing } from '../features/routing/bench/adapter'
 import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
+import { adapter as skills } from '../features/skills/bench/adapter'
 import { adapter as trimOutput } from '../features/trim-output/bench/adapter'
 import type { DecisionAdapter, TaskAdapter } from './types'
 
@@ -13,6 +16,9 @@ export const BENCHES: Record<string, Bench> = {
   compact: { decision: compact, task: compactTask },
   'trim-output': { decision: trimOutput },
   'rules-gate': { decision: rulesGate },
+  routing: { decision: routing },
+  skills: { decision: skills },
+  'find-files': { decision: findFiles },
 }
 
 /** The feature's bench folder, relative to the repo root. */

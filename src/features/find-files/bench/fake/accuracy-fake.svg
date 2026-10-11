@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="find-files: accuracy against limit (FAKE)">
+<title>find-files: accuracy against limit (FAKE)</title>
+<style>
+text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
+.g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+</style>
+<rect width="720" height="380" rx="8" class="bg"/>
+<text class="t" x="64" y="26">find-files: accuracy against limit (FAKE)</text>
+<text class="st" x="64" y="44">ringed: recommended per backend (peak F2 (recall counts double); ties go lower)</text>
+<text class="fake" x="64" y="62">FAKE BACKEND: example numbers, not a measurement</text>
+<line class="g" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="56" y="298" text-anchor="end">0%</text>
+<line class="g" x1="64" x2="684" y1="250.8" y2="250.8"/>
+<text class="ax" x="56" y="254.8" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="207.6" y2="207.6"/>
+<text class="ax" x="56" y="211.6" text-anchor="end">40%</text>
+<line class="g" x1="64" x2="684" y1="164.4" y2="164.4"/>
+<text class="ax" x="56" y="168.4" text-anchor="end">60%</text>
+<line class="g" x1="64" x2="684" y1="121.2" y2="121.2"/>
+<text class="ax" x="56" y="125.2" text-anchor="end">80%</text>
+<line class="g" x1="64" x2="684" y1="78" y2="78"/>
+<text class="ax" x="56" y="82" text-anchor="end">100%</text>
+<text class="ax" x="64" y="312" text-anchor="middle">1</text>
+<text class="ax" x="129.26" y="312" text-anchor="middle">3</text>
+<text class="ax" x="194.53" y="312" text-anchor="middle">5</text>
+<text class="ax" x="259.79" y="312" text-anchor="middle">7</text>
+<text class="ax" x="325.05" y="312" text-anchor="middle">9</text>
+<text class="ax" x="390.32" y="312" text-anchor="middle">11</text>
+<text class="ax" x="455.58" y="312" text-anchor="middle">13</text>
+<text class="ax" x="520.84" y="312" text-anchor="middle">15</text>
+<text class="ax" x="586.11" y="312" text-anchor="middle">17</text>
+<text class="ax" x="651.37" y="312" text-anchor="middle">19</text>
+<line class="a" x1="64" x2="684" y1="294" y2="294"/>
+<text class="ax" x="374" y="330" text-anchor="middle">limit threshold</text>
+<text class="ax" transform="translate(16 186) rotate(-90)" text-anchor="middle">accuracy</text>
+<line class="guide" x1="357.68" x2="357.68" y1="78" y2="294"/>
+<text class="ax" x="361.68" y="88">today 10</text>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,87.29 96.63,110.52 129.26,123.87 161.89,132.58 194.53,139.55 227.16,145.94 259.79,151.74 292.42,155.81 325.05,156.97 357.68,156.97 390.32,157.55 422.95,158.13 455.58,158.71 488.21,158.71 520.84,158.71 553.47,158.71 586.11,158.71 618.74,158.71 651.37,158.71 684,158.71"/>
+<circle class="d1 dot" cx="64" cy="87.29" r="4" stroke-width="2"><title>fake · fake-jev: 1 → 96%</title></circle>
+<circle class="d1 dot" cx="96.63" cy="110.52" r="4" stroke-width="2"><title>fake · fake-jev: 2 → 85%</title></circle>
+<circle class="d1 dot" cx="129.26" cy="123.87" r="4" stroke-width="2"><title>fake · fake-jev: 3 → 79%</title></circle>
+<circle class="d1 dot" cx="161.89" cy="132.58" r="4" stroke-width="2"><title>fake · fake-jev: 4 → 75%</title></circle>
+<circle class="d1 dot" cx="194.53" cy="139.55" r="4" stroke-width="2"><title>fake · fake-jev: 5 → 72%</title></circle>
+<circle class="d1 dot" cx="227.16" cy="145.94" r="4" stroke-width="2"><title>fake · fake-jev: 6 → 69%</title></circle>
+<circle class="d1 dot" cx="259.79" cy="151.74" r="4" stroke-width="2"><title>fake · fake-jev: 7 → 66%</title></circle>
+<circle class="d1 dot" cx="292.42" cy="155.81" r="4" stroke-width="2"><title>fake · fake-jev: 8 → 64%</title></circle>
+<circle class="d1 dot" cx="325.05" cy="156.97" r="4" stroke-width="2"><title>fake · fake-jev: 9 → 63%</title></circle>
+<circle class="d1 dot" cx="357.68" cy="156.97" r="4" stroke-width="2"><title>fake · fake-jev: 10 → 63%</title></circle>
+<circle class="d1 dot" cx="390.32" cy="157.55" r="4" stroke-width="2"><title>fake · fake-jev: 11 → 63%</title></circle>
+<circle class="d1 dot" cx="422.95" cy="158.13" r="4" stroke-width="2"><title>fake · fake-jev: 12 → 63%</title></circle>
+<circle class="d1 dot" cx="455.58" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 13 → 63%</title></circle>
+<circle class="d1 dot" cx="488.21" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 14 → 63%</title></circle>
+<circle class="d1 dot" cx="520.84" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 15 → 63%</title></circle>
+<circle class="d1 dot" cx="553.47" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 16 → 63%</title></circle>
+<circle class="d1 dot" cx="586.11" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 17 → 63%</title></circle>
+<circle class="d1 dot" cx="618.74" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 18 → 63%</title></circle>
+<circle class="d1 dot" cx="651.37" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 19 → 63%</title></circle>
+<circle class="d1 dot" cx="684" cy="158.71" r="4" stroke-width="2"><title>fake · fake-jev: 20 → 63%</title></circle>
+<circle class="l1" cx="64" cy="87.29" r="8" fill="none" stroke-width="2"><title>fake · fake-jev: recommended 1</title></circle>
+<line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
+<text class="lab" x="88" y="350">fake · fake-jev</text>
+</svg>

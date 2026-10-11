@@ -32,7 +32,8 @@ bun src/bench/report.ts compact --suggest-tuning
 ```
 
 Several backends in one go: `--backend typesafe,openrouter,laya`. The other benches:
-`trim-output` (sweeps `notNeeded`) and `rules-gate` (sweeps `minConfidence`). Every bench's
+`trim-output` (sweeps `notNeeded`), `rules-gate` (sweeps `minConfidence`), `routing` (sweeps
+`smallConfidence`), `skills` (sweeps `match`) and `find-files` (sweeps `limit`). Every bench's
 plots and tables at once: `bun src/bench/report.ts all`.
 
 A task-level comparison, jev-mod against plain Claude Code. Without `--yes` it prints the plan
@@ -57,6 +58,7 @@ this checkout where jev-mod is not installed).
 |---|---|---|
 | Decision level, `compact`, one backend | 10 requests, about 15k input tokens | about $0.0006 at Jev's list price; $0 on a free tier or your own server |
 | Decision level, `trim-output` / `rules-gate` | 4 / 8 requests, about 13k / 5k tokens | under $0.001 each |
+| Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 48 headless Claude calls (15 shared setup, then 11 per case), about 24 decision calls | Claude: about $5-10 at $0.10-0.20 a call (the plan prints the estimate); decisions: about $0.01 |
 
 ## Backends and keys
@@ -115,6 +117,9 @@ Per threshold the report computes, per feature:
 | `compact` | `drop` (0.7 today) | message outside the last six | accuracy, precision, recall, F1, share dropped, keep messages lost | peak accuracy | higher: keeps more, and a dropped message cannot be had back |
 | `trim-output` | `notNeeded` (0.9 today) | log line | accuracy, share cut, gold lines lost | fewest gold lines lost, then most cut | higher: cuts fewer blocks |
 | `rules-gate` | `minConfidence` (0.8 today) | rule | accuracy, precision, recall, F1, share refused | peak accuracy | higher: refuses fewer edits, and the mod fails open |
+| `routing` | `smallConfidence` (0.7 today) | prompt | exact lane accuracy, small-lane precision, recall and F1, share routed to small, under-routed, over-routed, not routed, effort right | peak accuracy | higher: fewer prompts on the cheapest model, and a miss is a small model on work that needed more |
+| `skills` | `match` (0.5 today; `need` held at 0.5) | prompt | accuracy, precision, recall, F1, share given a suggestion, right skill first, wrong skill suggested, unneeded suggestion | peak accuracy | higher: suggests less often, and a wrong suggestion costs a detour |
+| `find-files` | `limit` (10 today) | candidate file | accuracy, precision, recall, F1, share returned, queries with a hit, F1 of the local ranking alone, gold the local step missed | peak F2 (recall counts double) | lower: fewer files for the model to open |
 
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
@@ -177,6 +182,11 @@ backend), or a note when the mod has no setting for it yet (`compact`'s drop bar
    - `evaluate(rows, threshold)`: the metrics at one threshold, from the rows alone
      (`itemMetrics` in `metrics.ts` when items are judged one by one);
    - `truth(case, state, question)`: the right answer, for the fake backend.
+   A feature that picks among several options (a lane, a skill, a ranked list) still fits: each
+   judgement is an item for the generic code, and `evaluate` computes the real metric from the
+   row's `detail` (`routing`, `skills` and `find-files` do), so a sweep can re-apply the feature's
+   own rules to recorded answers. The fake backend answers a choice question when `truth` returns
+   an option's name.
 3. A test beside it that runs it on the fake backend (`fakeHostFor` in `decision.ts`).
 4. One line in `src/bench/features.ts`.
 5. For a task level, a `TaskAdapter` (`compact/bench/task.ts` is the example): task cases (a
@@ -196,6 +206,21 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
 - `trim-output`: the four test logs that were `evals/trim-tests/`, with "keep failures only" as a
   baseline that needs no backend. `pipeline.test.ts` still holds the old benchmark's numbers.
 - `rules-gate`: eight edits against 23 written rules.
+- `routing`: 81 prompts labelled with the lane they belong in (small, medium, high, escalate, or
+  keep the current model), classified by `engine/lanes.ts` with the shipped lane policy. The
+  sweep lays the policy's own rules (`policy.ts` `apply`) over the recorded readings with the
+  small-lane bar moved. It picks one of five answers, so the headline accuracy is exact lane
+  accuracy and the extra columns say which way the misses go (under-routed: a lane below the
+  gold one; over-routed: above it). The session rules (follow-ups, corrections) are code, not
+  decisions, and are not in it.
+- `skills`: 72 prompts against a catalog of 38 synthetic skills, ranked by `engine/skills.ts`
+  `pick` (topK 1, both stages). Gold is the list of right skills (empty when none fits). An item
+  is positive when a skill is suggested and right when the top skill is a gold one, so a wrong
+  suggestion counts against precision.
+- `find-files`: 48 queries over a synthetic project of 77 files, run through the tool's own steps
+  (git's list and counts from a small fake git, `narrow`, `askAbout`, `rank`, `render`). The tool
+  has no relevance bar, so the swept number is how many files it returns. Each row also keeps the
+  local ranking's order, so the table shows what the decision model adds over the local step.
 
 Not verified yet, as only a real run can show it: that `claude -p --resume <id> --fork-session`
 with `/compact` or `/jev-mod compact` compacts a headless session (the mod queues `/compact` from

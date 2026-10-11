@@ -1,0 +1,1 @@
+ALTER TABLE payments ADD COLUMN currency char(3) NOT NULL DEFAULT 'NZD';

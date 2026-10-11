@@ -6,6 +6,7 @@ import { adapter as browser } from '../features/browser/bench/adapter'
 import { adapter as compact } from '../features/compact/bench/adapter'
 import { task as compactTask } from '../features/compact/bench/task'
 import { adapter as findFiles } from '../features/find-files/bench/adapter'
+import { task as findFilesTask } from '../features/find-files/bench/task'
 import { adapter as reviewTriage } from '../features/review-triage/bench/adapter'
 import { adapter as routing } from '../features/routing/bench/adapter'
 import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
@@ -30,7 +31,7 @@ export const BENCHES: Record<string, Bench> = {
   'stop-gate': { decision: stopGate },
   routing: { decision: routing },
   skills: { decision: skills },
-  'find-files': { decision: findFiles },
+  'find-files': { decision: findFiles, task: findFilesTask },
   browser: { decision: browser },
   'review-triage': { decision: reviewTriage },
 }

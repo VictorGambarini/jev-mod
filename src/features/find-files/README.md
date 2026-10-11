@@ -37,6 +37,19 @@ It always answers. With no key, private mode, the daily budget, a backend cool-o
 
 ## Benchmarks
 
+**Task level: against plain Claude Code.** One task is a question a person asks about a codebase ("which file defines the retry schedule for webhook deliveries?", "what calls refundPayment?", "find every place that reads TAX_RATE", "which migrations change the invoices table?"), asked once with `claude -p` in a fresh copy of a project: tillbox, a TypeScript billing and orders API of 320 files (`bench/task-fixture/`, made by `bench/task-fixture-gen.py`), with near-misses that share the words of each answer (a retry policy for payment calls, a rounding helper, `TAX_RATE_OVERRIDE`, `refundPaymentLater`, the signing side of the webhooks, a table named like `invoices`). Ten tasks in `bench/task.ts`.
+
+- **Plain Claude Code** (find-files off) searches with its own tools: Glob, Grep, Read, Explore agents, whatever it picks.
+- **Claude Code with find-files on** is also offered `find_files`. The prompt is the same and never mentions the tool, so whether the model reaches for it is part of the result (the row's decision calls say how often it did).
+- **Answer and checker:** the reply ends with an `ANSWERS` block, one `path` (or `path:line`) per line. The checker, in code, compares it with the gold: precision and recall of the files (of file:line, within two lines, for the questions that ask for lines). Score is F1; success is every gold item found and nothing else listed.
+- **Measured:** accuracy, wall time, Claude's cost, the decision model's cost, and the total.
+
+```bash
+bun src/features/find-files/bench/task-check.ts                                   # the fixture against the gold, and a free fake run
+bun src/bench/run.ts find-files --level task --backend openrouter --claude-arg --plugin-dir --claude-arg "$PWD"          # the plan
+bun src/bench/run.ts find-files --level task --backend openrouter --claude-arg --plugin-dir --claude-arg "$PWD" --yes   # spends money
+```
+
 <!-- bench:start -->
 **Bench** (`bun src/bench/report.ts find-files`; 0.11.0@14f7f68). Threshold swept: `limit` (today 10). Recommended = peak F2 (recall counts double); a tie goes to the lower value: a lower limit returns fewer files for the model to open and read; the cost is a miss when the right file ranks below it.
 

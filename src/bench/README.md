@@ -63,6 +63,7 @@ this checkout where jev-mod is not installed).
 | Decision level, `screening` / `web-filter` / `tool-gate` / `stop-gate` / `access-gate` | about 45 / 19 / 62 / 42 / 0 requests (stop-gate's carry up to about 6k characters of evidence each) | pennies at most at Jev's list price; not yet measured |
 | Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
 | Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
+| Task level, `find-files`, one backend | 20 headless Claude calls (no setup: one per task and arm), about 30 decision calls | Claude: about $5 (smoke: four calls, $0.21 to $0.30 each, about 30 s each); decisions: about $0.01. One task: about $0.50 |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 69 headless Claude calls (36 shared setup, then 11 per case), about 48 decision calls | Claude: about $105 (setup about $12.80 a case: twelve prompts building ~105k tokens of conversation; per case, a question on the full context about $2.50, `/compact` about $2.90 then its question about $0.70, the mod's compaction about $2.50 then its question about $1.55; the plan prints how it priced them); decisions: about $0.02. One case (`--cases proration-fix`): about $35 |
 
 ## Backends and keys
@@ -267,6 +268,13 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   (git's list and counts from a small fake git, `narrow`, `askAbout`, `rank`, `render`). The tool
   has no relevance bar, so the swept number is how many files it returns. Each row also keeps the
   local ranking's order, so the table shows what the decision model adds over the local step.
+- `find-files` task level (`find-files/bench/task.ts`, ten tasks on `task-fixture/`): tillbox, a 320-file TypeScript billing API
+  (made by `task-fixture-gen.py`, with near-misses for every answer). Each task is one question a person asks of a codebase (which
+  file defines something, what calls a function, every read of an env var, which migrations touch a table), asked once with no setup,
+  edits refused, in a fresh copy. Plain Claude Code searches with its own tools; the jev-mod arm is also offered `find_files`, and the
+  prompt never names it. The reply ends with an `ANSWERS` block of `path` or `path:line`; the checker gives precision, recall and F1
+  against the gold (lines within two). `bun src/features/find-files/bench/task-check.ts` checks the fixture against the gold and runs the
+  whole runner with a stand-in `claude`, for free.
 - `review-triage`: 51 synthetic diffs (docs, renames, fixes with and without tests, auth, schema,
   concurrency, rule breaks, scope creep) with a gold yes/no per question, run through
   `requestOf` and `questionsOf`; the case is quick when all its questions are confident noes.

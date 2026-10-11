@@ -48,8 +48,9 @@ export function fakeAnswer(q: Q, right: boolean | string | undefined, key: strin
     const probabilities: Record<string, number> = { [target]: Math.round(lean * 1e4) / 1e4 }
     const share = (1 - probabilities[target]!) / rest.length
     rest.forEach(o => { probabilities[o] = Math.round(share * 1e4) / 1e4 })
+    // The rounding residual goes to the target, the largest: with many options the others are small enough for it to push one below 0.
     const fix = 1 - Object.values(probabilities).reduce((a, b) => a + b, 0)
-    probabilities[rest[0] ?? target] = Math.round((probabilities[rest[0] ?? target]! + fix) * 1e4) / 1e4
+    probabilities[target] = Math.round((probabilities[target]! + fix) * 1e4) / 1e4
     const choice = Object.entries(probabilities).sort((a, b) => b[1] - a[1])[0]![0]
     return { type: 'choice', choice, probabilities }
   }

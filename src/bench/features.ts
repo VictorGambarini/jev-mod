@@ -8,6 +8,10 @@ import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
 import { adapter as screening } from '../features/screening/bench/adapter'
 import { adapter as stopGate } from '../features/stop-gate/bench/adapter'
 import { adapter as toolGate } from '../features/tool-gate/bench/adapter'
+import { adapter as findFiles } from '../features/find-files/bench/adapter'
+import { adapter as routing } from '../features/routing/bench/adapter'
+import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
+import { adapter as skills } from '../features/skills/bench/adapter'
 import { adapter as trimOutput } from '../features/trim-output/bench/adapter'
 import { adapter as webFilter } from '../features/web-filter/bench/adapter'
 import type { DecisionAdapter, TaskAdapter } from './types'
@@ -23,6 +27,9 @@ export const BENCHES: Record<string, Bench> = {
   'tool-gate': { decision: toolGate },
   'access-gate': { decision: accessGate },
   'stop-gate': { decision: stopGate },
+  routing: { decision: routing },
+  skills: { decision: skills },
+  'find-files': { decision: findFiles },
 }
 
 /** The feature's bench folder, relative to the repo root. */

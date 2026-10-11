@@ -5,7 +5,8 @@ import type { IO } from '../../core/io'
 import { coolingOff, recordCalls } from '../../core/jev'
 import { limitsOf } from '../../core/limits'
 import { isPrivate, jevDir } from '../../core/settings'
-import { ask, costOf, JevError, type Answer, type Asked } from '../../engine/client'
+import { ask, costOf, JevError, type Answer, type Asked, type Host } from '../../engine/client'
+import type { Limits } from '../../engine/lanes'
 import { isSensitive } from '../../engine/privacy'
 import {
   bodyScore, byScore, cardOf, cardText, headOf, headScore, inside, pack, pathScore, rank, render, request,
@@ -102,7 +103,7 @@ async function walk(io: IO, folder: string): Promise<string[]> {
  * How many lines of each file mention a term, from `git grep -c` (tracked and untracked files,
  * .gitignore honoured); null when git could not say, so the heads are read as a walk's are.
  */
-async function grepCounts(io: IO, folder: string, terms: readonly string[]): Promise<Map<string, number> | null> {
+export async function grepCounts(io: IO, folder: string, terms: readonly string[]): Promise<Map<string, number> | null> {
   const counts = new Map<string, number>()
   try {
     const ran = await io.run(['git', '-C', folder, 'grep', '--untracked', '-I', '-i', '-c', '-F',
@@ -146,13 +147,19 @@ export async function narrow(io: IO, folder: string, files: readonly string[], t
 
 type Judged = { answers: Map<number, Answer>; note?: string; batches: number; failed: number }
 
-/** The decision model's verdicts on the candidates it may see; a failure keeps what it had. */
-async function judge(io: IO, query: string, candidates: readonly Candidate[], terms: readonly string[], timeoutMs: number): Promise<Judged> {
+/** What the decision model said about the candidates it may see, and every request it took. */
+export type Asking = { answers: Map<number, Answer>; calls: Asked[]; errors: string[]; refused?: string; batches: number; failed: number; allSensitive?: true }
+
+/**
+ * Ask the decision model about the candidates, a batch at a time: a candidate that looks like it
+ * holds a secret is never sent. `limits` is the daily budget, when there is one. A failed batch
+ * leaves its candidates unanswered. The bench (bench/adapter.ts) asks through this too.
+ */
+export async function askAbout(host: Host, limits: Limits | undefined, query: string, candidates: readonly Candidate[],
+  terms: readonly string[], timeoutMs: number): Promise<Asking> {
   const sendable = candidates.map((c, id) => ({ c, id })).filter(({ c }) => !isSensitive(cardText(c.path, c.head, terms)))
-  if (!sendable.length) return { answers: new Map(), note: 'every candidate looked like it held a secret', batches: 0, failed: 0 }
+  if (!sendable.length) return { answers: new Map(), calls: [], errors: [], batches: 0, failed: 0, allSensitive: true }
   const cards = sendable.map(({ c }) => cardOf(c.path, c.head, terms))
-  const host = hostOf(io)
-  const limits = await limitsOf(io)
   const deadline = Date.now() + timeoutMs
   const calls: Asked[] = []
   const errors: string[] = []
@@ -180,12 +187,20 @@ async function judge(io: IO, query: string, candidates: readonly Candidate[], te
       failed++
     }
   }))
-  await recordCalls(io, calls, errors, ID)
+  return { answers, calls, errors, ...(refused ? { refused } : {}), batches: batches.length, failed }
+}
+
+/** The decision model's verdicts on the candidates it may see; a failure keeps what it had. */
+async function judge(io: IO, query: string, candidates: readonly Candidate[], terms: readonly string[], timeoutMs: number): Promise<Judged> {
+  const asked = await askAbout(hostOf(io), await limitsOf(io), query, candidates, terms, timeoutMs)
+  if (asked.allSensitive) return { answers: new Map(), note: 'every candidate looked like it held a secret', batches: 0, failed: 0 }
+  await recordCalls(io, asked.calls, asked.errors, ID)
+  const { answers, errors, refused } = asked
   const note = answers.size ? undefined
     : errors.includes('no_key') ? 'no decision backend key'
       : refused ? `limits: ${refused}`
         : errors.length ? `the decision backend failed: ${errors[0]}` : undefined
-  return { answers, note, batches: batches.length, failed }
+  return { answers, note, batches: asked.batches, failed: asked.failed }
 }
 
 // ── the tool ─────────────────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ over plain Claude Code. Two levels:
 - **Task level** (end to end, expensive): real Claude Code, headless (`claude -p ...
   --output-format json`), on task cases. Arm A is plain Claude Code (the feature off); arm B is
   the feature on, for each backend and setting. A checker scores each run; wall time, Claude's
-  cost and tokens, and the decision model's cost are recorded.
+  cost and tokens, and the decision model's cost are recorded, and so is the shared setup's cost.
 
 It runs with `bun` from the repository root, outside the mod. Nothing here is loaded by the mod.
 
@@ -39,7 +39,7 @@ Several backends in one go: `--backend typesafe,openrouter,laya`. The other benc
 plots and tables at once: `bun src/bench/report.ts all`.
 
 A task-level comparison, jev-mod against plain Claude Code. Without `--yes` it prints the plan
-(the arms, how many Claude calls, an estimate) and runs nothing:
+(the arms, how many Claude calls, an estimate with the shared setup in it) and runs nothing:
 
 ```bash
 bun src/bench/run.ts compact --level task --backend typesafe --sweep drop=0.6:0.9:0.1
@@ -49,8 +49,8 @@ bun src/bench/report.ts compact
 
 Options: `--cases id,id` (a subset), `--set name=value` (a setting the adapter reads, recorded
 with each row), `--timeout ms` (per decision request, default 20000). Task level only:
-`--usd-per-call n` (the estimate), `--max-usd-per-call n` (passed to each `claude -p` as
-`--max-budget-usd`, default 1), `--claude-arg <arg>` (repeatable, passed on to `claude`, such as
+`--usd-per-call n` (prices every Claude call alike in the estimate; without it, each step has its
+own price), `--max-usd-per-call n` (passed to each `claude -p` as `--max-budget-usd`, default 2), `--claude-arg <arg>` (repeatable, passed on to `claude`, such as
 `--claude-arg --model --claude-arg sonnet`, or `--claude-arg --plugin-dir --claude-arg .` to run
 this checkout where jev-mod is not installed).
 
@@ -63,7 +63,7 @@ this checkout where jev-mod is not installed).
 | Decision level, `screening` / `web-filter` / `tool-gate` / `stop-gate` / `access-gate` | about 45 / 19 / 62 / 42 / 0 requests (stop-gate's carry up to about 6k characters of evidence each) | pennies at most at Jev's list price; not yet measured |
 | Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
 | Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
-| Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 48 headless Claude calls (15 shared setup, then 11 per case), about 24 decision calls | Claude: about $5-10 at $0.10-0.20 a call (the plan prints the estimate); decisions: about $0.01 |
+| Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 52 headless Claude calls (19 shared setup, then 11 per case), about 24 decision calls | Claude: about $19 (setup about $7.60 at $0.40 a call; a question about $0.50, a `/compact` about $0.70, the mod's compaction about $0.02; the plan prints it); decisions: about $0.01 |
 
 ## Backends and keys
 
@@ -135,7 +135,12 @@ Per threshold the report computes, per feature:
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
 Task level, per arm: the checker's success and score, wall time, Claude's cost and tokens (from
-`claude -p`'s JSON), and the decision model's cost and calls (from the ledger).
+`claude -p`'s JSON), and the decision model's cost and calls (from the ledger). An arm that did
+not do its job is an error with the adapter's code (its `verify`), never a score: for `compact`,
+`not_compacted` is a jev-mod arm whose ledger is empty (the decision model was never asked) or a
+`/compact` arm whose question read at least 90% of the no-compaction arm's context. The table
+shows each arm's failures by code. Each case's shared setup is a row of its own (`setup: true`,
+arm `setup`), never scored; the summary's "Spend in all" line adds it to every arm's spend.
 
 ## Results
 
@@ -202,7 +207,8 @@ backend), or a note when the mod has no setting for it yet (`compact`'s drop bar
 4. One line in `src/bench/features.ts`.
 5. For a task level, a `TaskAdapter` (`compact/bench/task.ts` is the example): task cases (a
    fixture folder copied to a scratch project, setup prompts shared by every arm), each arm's
-   steps, its overlay, and a checker.
+   steps (a step may refuse tools and carry its own price for the estimate), its overlay, a
+   checker, and a `verify` that says when an arm plainly did not do its job.
 
 Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <name> --fake`.
 
@@ -210,10 +216,13 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
 
 - `compact`: ten synthetic sessions (213 messages) labelled keep or drop, run through
   `keep.ts`'s units and `engine/compact.ts`'s requests; the drop bar swept. Its task level
-  (`compact/bench/task.ts`, three cases on `task-fixture/`) is scaffolded and not yet run: a
-  session is built from setup prompts, each arm compacts its own fork (`/compact`,
-  `/jev-mod compact` at each drop bar, or no compaction), then answers questions whose answers
-  were given early.
+  (`compact/bench/task.ts`, three cases on `task-fixture/`, eight questions each): a session is
+  built from six or seven setup prompts (details stated once in passing, values in files read
+  once for another question, a decision changed with its reason, then unrelated work); each arm
+  compacts its own fork (`/compact`, the mod's compaction at each drop bar, or none) and answers
+  with every tool refused, so only what it kept counts. A jev-mod arm sends
+  `/compact [jev-mod compact: drop only what Jev marks drop]`, the compaction
+  `/jev-mod compact` runs, in one step.
 - `trim-output`: the four test logs that were `evals/trim-tests/`, with "keep failures only" as a
   baseline that needs no backend. `pipeline.test.ts` still holds the old benchmark's numbers.
 - `rules-gate`: eight edits against 23 written rules.
@@ -253,10 +262,12 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   the goal asks for it. `confirmConfidence` is swept over the confirm and page-check answers;
   the other three are scored beside it as extra columns. The page-screening request is not made.
 
-Not verified yet, as only a real run can show it: that `claude -p --resume <id> --fork-session`
-with `/compact` or `/jev-mod compact` compacts a headless session (the mod queues `/compact` from
-a timer, which a `-p` process may exit before). An arm whose compaction did nothing shows it:
-its tokens and answers match the no-compaction arm's.
+Seen in the first real run: `claude -p "/jev-mod compact"` compacts nothing, because the command
+queues `/compact` from a timer and the `-p` process ends first (the host refuses a compaction
+from a command's own hook). So the jev-mod arms send `/compact` with the mod's marker, which the
+mod answers itself in the same process (`src/compact-command.test.ts` raises that event through
+the engine). Not verified yet, as only a real run can show it: that this compacts a forked
+headless session end to end; a run where it did not reads `not_compacted`, never a score.
 
 ## Tests
 

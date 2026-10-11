@@ -2,7 +2,7 @@
 
 A compaction with no summary: the decision model marks what to keep, and everything else is dropped.
 
-There is no mode setting: it runs when you type it. `/compact` is left as Claude Code has it.
+There is no mode setting: it runs when you type it. `/compact` is left as Claude Code has it, unless its instructions are this compaction's marker (below).
 
 ## What it decides
 
@@ -11,6 +11,14 @@ For each message's text, and for each tool call together with its result, *keep*
 ## When it runs
 
 When you type `/jev-mod compact`. (A command's own hook may not compact, so it queues the built-in `/compact` from a timer and answers that one compaction instead of the summariser.)
+
+Headless (`claude -p`), the process ends when the command returns, before that timer fires, so `/jev-mod compact` says so and nothing is compacted. There, send the same compaction in one step:
+
+```bash
+claude -p --resume <session> "/compact [jev-mod compact: drop only what Jev marks drop]"
+```
+
+A `/compact` typed with that marker as its instructions is answered the same way in any session. An automatic compaction, a subagent's, or a `/compact` with other instructions goes to Claude Code's summariser as usual.
 
 ## How it decides
 

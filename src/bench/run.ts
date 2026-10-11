@@ -27,7 +27,7 @@ backends: fake, default, typesafe, openrouter, venice, zen, or a name from backe
 
 export function parseArgs(argv: string[]): Args {
   const a: Args = { feature: '', level: 'decision', backends: [], sweep: null, settings: {}, cases: null, timeoutMs: 20_000,
-    yes: false, usdPerCall: null, maxUsdPerCall: 1, claudeArgs: [] }
+    yes: false, usdPerCall: null, maxUsdPerCall: 2, claudeArgs: [] }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
     const value = () => {
@@ -119,7 +119,7 @@ async function main(): Promise<number> {
   if (a.backends.includes('fake')) { warn('the fake backend is decision level only: a headless Claude Code run cannot reach it'); return 2 }
   const swept = a.sweep ? { name: a.sweep.name, values: thresholds(a.sweep) } : null
   const arms = armsFor(adapter, a.backends, swept, a.settings)
-  const p = plan(adapter, cases, arms, a.usdPerCall ?? adapter.usdPerCall)
+  const p = plan(adapter, cases, arms, a.usdPerCall)
   const refused = guard(p, a.yes)
   if (refused) { say(refused); return a.yes ? 1 : 0 }
   say(p.text)
@@ -127,7 +127,13 @@ async function main(): Promise<number> {
   await f.mkdir(dir, { recursive: true })
   const out = `${dir}/${fileName(date, 'task', a.backends.join('+'), false)}`
   say(`writing ${out}`)
-  await runTasks({ adapter, arms, cases, meta, repo, out, claudeArgs: a.claudeArgs, maxUsdPerCall: a.maxUsdPerCall, timeoutMs: 15 * 60_000 })
+  const rows = await runTasks({ adapter, arms, cases, meta, repo, out, claudeArgs: a.claudeArgs, maxUsdPerCall: a.maxUsdPerCall, timeoutMs: 15 * 60_000 })
+  const sum = (mine: readonly Row[], f: (r: Row) => number) => mine.reduce((n, r) => n + f(r), 0)
+  const setup = rows.filter(r => r.setup)
+  const failed = rows.filter(r => !r.setup && r.outcome === 'error')
+  say(`spent: $${sum(rows, r => r.claude_cost_usd ?? 0).toFixed(2)} Claude (setup $${sum(setup, r => r.claude_cost_usd ?? 0).toFixed(2)}), ` +
+    `$${sum(rows, r => r.cost_usd).toFixed(4)} decisions; ${failed.length} arm run(s) failed` +
+    `${failed.length ? ` (${[...new Set(failed.map(r => r.error))].join(', ')})` : ''}`)
   say(`done. Plots and the table: bun src/bench/report.ts ${a.feature}`)
   return 0
 }

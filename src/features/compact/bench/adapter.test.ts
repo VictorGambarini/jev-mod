@@ -75,13 +75,30 @@ test('the fake is told the gold label of each unit it is asked about', () => {
   })
 })
 
-test('task level: the question prompt numbers each question, and the checker scores numbered answers', () => {
-  const t = TASKS[0]!
-  expect(questionPrompt(t)).toContain(`${t.questions.length}. ${t.questions[t.questions.length - 1]!.q}`)
-  const right = checkAnswers(t, '1. config.json\n2. cents\n3. 7 warnings\n4. legacy_tax')
-  expect(right).toEqual({ success: true, score: 1, detail: { right: [true, true, true, true] } })
-  const half = checkAnswers(t, 'Here you go:\n1. config.json\n2. dollars\n3. unknown\n**4.** legacy_tax')
-  expect(half.success).toBe(false)
-  expect(half.score).toBe(0.5)
+// What a model that kept everything would answer, per case: each must score 1.
+const GOLD: Record<string, string[]> = {
+  briefing: ['Mereana Tait', '14 March', 'HP-4471-Z', '$250', 'Priya', 'Release 2.3', 'nightly-reprice', 'Tomasz'],
+  'file-values': ['8157', '1800 ms', 'growth', '5', 'Aroha Ngata', '312', '600 ms', 'Sione Fifita'],
+  'decisions-and-rules': ['SQLite', 'We deploy to a single host', 'config.json', 'cents', '7', 'legacy_tax', 'm8', '100 cents'],
+}
+
+test('task level: every case has its gold answers, and they score 1', () => {
+  expect(TASKS.map(t => t.id).sort()).toEqual(Object.keys(GOLD).sort())
+  for (const t of TASKS) {
+    expect(questionPrompt(t)).toContain(`${t.questions.length}. ${t.questions[t.questions.length - 1]!.q}`)
+    const gold = GOLD[t.id]!
+    expect(gold.length).toBe(t.questions.length)
+    expect(checkAnswers(t, gold.map((a, i) => `${i + 1}. ${a}`).join('\n'))).toEqual({ success: true, score: 1, detail: { right: gold.map(() => true) } })
+  }
+})
+
+test('task level: the checker scores numbered answers, never the number itself, and a lossy answer scores below 1', () => {
+  const t = TASKS.find(c => c.id === 'decisions-and-rules')!
+  // a summary that kept the gist: the old plan, no reason, no counts
+  const lossy = checkAnswers(t, 'Here you go:\n1. Redis, then SQLite\n2. unknown\n**3.** config.json\n4. cents\n5. unknown\n6. legacy_tax\n7. unknown\n8. 100')
+  expect(lossy.success).toBe(false)
+  expect(lossy.score).toBe(0.5)
+  // "5." is the line's number, not the answer: the warnings count is 7
+  expect(checkAnswers(t, '5. unknown').detail).toEqual({ right: [false, false, false, false, false, false, false, false] })
   expect(checkAnswers(t, '').score).toBe(0)
 })

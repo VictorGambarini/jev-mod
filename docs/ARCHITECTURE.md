@@ -76,8 +76,10 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
 - **Environment variables are named by literal** (`$.env.get('HOME')`), so the variables a mod
   reads can be listed. The IO's `env(name)` is a switch over those literals in `register.tsx`; any other
   name is read by running printenv.
-- **A command's own hook may not compact.** `/jev-mod compact` queues the built-in `/compact` with a
-  marker from a timer, and answers that compaction itself.
+- **A command's own hook may not compact** (the host refuses `$.session.compact` there).
+  `/jev-mod compact` queues the built-in `/compact` with a marker from a timer, and answers that
+  compaction itself. A `claude -p` process ends before the timer fires, so headless the way is
+  `/compact` with the marker as its instructions, which the mod answers the same way.
 - **The kit cannot raise `turn.step`, and does not route a mod's `$.process.run` to a test's
   stub.** It does stub `http.fetch`, `fs.read` and `env.get` (a stub answers `{ value: ... }`).
   So decisions live in pure files with kit tests, the engine reaches the network through

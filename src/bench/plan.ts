@@ -18,28 +18,43 @@ export function armsFor(adapter: TaskAdapter, backends: readonly string[], swept
   return arms
 }
 
-export type Plan = { cases: number; arms: number; claudeCalls: number; decisionCalls: number; usd: number; text: string }
+export type Plan = { cases: number; arms: number; claudeCalls: number; setupCalls: number; decisionCalls: number
+  setupUsd: number; armsUsd: number; usd: number; text: string }
 
-export function plan(adapter: TaskAdapter, cases: readonly TaskCase[], arms: readonly Arm[], usdPerCall = adapter.usdPerCall,
+/**
+ * The calls and their estimated cost. `usdPerCall`, when given (--usd-per-call), prices every
+ * Claude call alike; otherwise each step's own `usd`, the adapter's setup price, or its usdPerCall.
+ */
+export function plan(adapter: TaskAdapter, cases: readonly TaskCase[], arms: readonly Arm[], usdPerCall: number | null = null,
   decisionUsdPerCall = 0.0005): Plan {
-  let claudeCalls = 0
+  let setupCalls = 0
+  let armCalls = 0
   let decisionCalls = 0
+  let setupUsd = 0
+  let armsUsd = 0
   for (const c of cases) {
-    claudeCalls += c.setup.length
+    setupCalls += c.setup.length
+    setupUsd += c.setup.length * (usdPerCall ?? adapter.setupUsdPerCall ?? adapter.usdPerCall)
     for (const arm of arms) {
-      claudeCalls += adapter.steps(c, arm).length
+      for (const step of adapter.steps(c, arm)) {
+        armCalls++
+        armsUsd += usdPerCall ?? step.usd ?? adapter.usdPerCall
+      }
       if (arm.kind === 'jev-mod') decisionCalls += adapter.decisionCallsPerArm
     }
   }
-  const usd = claudeCalls * usdPerCall + decisionCalls * decisionUsdPerCall
+  const claudeCalls = setupCalls + armCalls
+  const usd = setupUsd + armsUsd + decisionCalls * decisionUsdPerCall
+  const priced = usdPerCall === null ? 'per step' : `~$${usdPerCall.toFixed(2)} a call`
   const text = [
     `${adapter.feature}, task level: ${cases.length} case(s) × ${arms.length} arm(s)`,
     ...arms.map(a => `  arm: ${a.id}`),
-    `  ${claudeCalls} headless Claude calls (shared setup once per case, then each arm's steps)`,
+    `  ${claudeCalls} headless Claude calls: ${setupCalls} for the shared setup (once per case), ${armCalls} for the arms' steps`,
     `  about ${decisionCalls} decision-model calls`,
-    `  estimate: about $${usd.toFixed(2)} (Claude at ~$${usdPerCall.toFixed(2)} a call; set --usd-per-call to change it)`,
+    `  estimate: about $${usd.toFixed(2)} in all: setup $${setupUsd.toFixed(2)}, arms $${armsUsd.toFixed(2)}, ` +
+      `decisions $${(decisionCalls * decisionUsdPerCall).toFixed(2)} (Claude priced ${priced}; set --usd-per-call to change it)`,
   ].join('\n')
-  return { cases: cases.length, arms: arms.length, claudeCalls, decisionCalls, usd, text }
+  return { cases: cases.length, arms: arms.length, claudeCalls, setupCalls, decisionCalls, setupUsd, armsUsd, usd, text }
 }
 
 /** Why the run may not start, or null: a task-level run spends real money, so it needs --yes. */

@@ -39,6 +39,8 @@ export type ArmSummary = {
   arm: string
   backend: string | null
   runs: number
+  /** Runs that failed, by error code (`not_compacted`: the arm did not do its job). */
+  errors: Record<string, number>
   success: number | null
   score: number | null
   wallMs: number | null
@@ -54,6 +56,10 @@ export type Summary = {
   backends: BackendSummary[]
   baselines: { name: string; metrics: Metrics }[]
   arms: ArmSummary[]
+  /** The task level's shared setup, summed over its cases: never scored, always paid. */
+  setup: { cases: number; claudeCost: number; wallMs: number } | null
+  /** The task level's whole spend: every arm run (failed ones too) and the setup. */
+  spend: { claude: number; decisions: number } | null
   versions: string[]
 }
 
@@ -124,20 +130,27 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
   const baselines = [...groupBy(decision.filter(r => r.backend.kind === 'baseline'), r => r.backend.name)]
     .map(([name, mine]) => ({ name, metrics: adapter.evaluate(mine, adapter.threshold.default) }))
   const task = rows.filter(r => r.level === 'task' && r.feature === adapter.feature)
+  const setupRows = task.filter(r => r.setup)
   // an arm's id already names its backend and settings
-  const arms: ArmSummary[] = [...groupBy(task, r => r.arm ?? '?')]
+  const arms: ArmSummary[] = [...groupBy(task.filter(r => !r.setup), r => r.arm ?? '?')]
     .map(([key, mine]) => {
       const ok = mine.filter(r => r.outcome === 'ok')
       const num = (f: (r: Row) => number | undefined) => mean(ok.map(f).filter((n): n is number => typeof n === 'number'))
+      const errors: Record<string, number> = {}
+      for (const r of mine) if (r.outcome === 'error') errors[r.error ?? 'error'] = (errors[r.error ?? 'error'] ?? 0) + 1
       return {
-        key, arm: mine[0]!.arm ?? '?', backend: mine[0]!.backend.kind === 'baseline' ? null : mine[0]!.backend.name, runs: mine.length,
+        key, arm: mine[0]!.arm ?? '?', backend: mine[0]!.backend.kind === 'baseline' ? null : mine[0]!.backend.name, runs: mine.length, errors,
         success: num(r => (r.success === undefined ? undefined : r.success ? 1 : 0)), score: num(r => r.score),
         wallMs: num(r => r.wall_ms), claudeCost: num(r => r.claude_cost_usd), decisionCost: num(r => r.cost_usd),
         tokens: num(r => (r.claude_tokens ? r.claude_tokens.input + r.claude_tokens.output + r.claude_tokens.cache_read + r.claude_tokens.cache_write : undefined)),
       }
     })
+  const total = (mine: readonly Row[], f: (r: Row) => number | undefined) => mine.reduce((n, r) => n + (f(r) ?? 0), 0)
+  const setup = setupRows.length
+    ? { cases: setupRows.length, claudeCost: total(setupRows, r => r.claude_cost_usd), wallMs: total(setupRows, r => r.wall_ms) } : null
+  const spend = task.length ? { claude: total(task, r => r.claude_cost_usd), decisions: total(task, r => r.cost_usd) } : null
   const versions = [...new Set(rows.map(r => `${r.jevmod}@${r.git.slice(0, 7)}`))]
-  return { feature: adapter.feature, fake, sweep, backends, baselines, arms, versions }
+  return { feature: adapter.feature, fake, sweep, backends, baselines, arms, setup, spend, versions }
 }
 
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? '–' : `${(n * 100).toFixed(1)}%`)
@@ -222,8 +235,14 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
   }
   if (s.arms.length) {
     lines.push('| arm | runs | success | score | wall time | Claude cost | decision cost | Claude tokens |', '|---|---|---|---|---|---|---|---|')
-    for (const a of s.arms) lines.push(`| ${a.key} | ${a.runs} | ${pct(a.success)} | ${pct(a.score)} | ${ms(a.wallMs)} | ${usd(a.claudeCost)} | ${usd(a.decisionCost)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
+    const failed = (a: ArmSummary) => Object.entries(a.errors).map(([code, n]) => `${n} ${code}`).join(', ')
+    for (const a of s.arms) lines.push(`| ${a.key} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${ms(a.wallMs)} | ${usd(a.claudeCost)} | ${usd(a.decisionCost)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
     lines.push('')
+  }
+  if (s.spend) {
+    const setup = s.setup ? `, of which the shared setup ${usd(s.setup.claudeCost)} (${s.setup.cases} case(s), ${ms(s.setup.wallMs)})` : ''
+    lines.push(`Spend in all: ${usd(s.spend.claude)} Claude${setup}; ${usd(s.spend.decisions)} decisions. ` +
+      'A failed run is never scored, but its spend counts here.', '')
   }
   return lines.join('\n')
 }

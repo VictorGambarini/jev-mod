@@ -26,7 +26,7 @@ export async function run(io: IO, args: string, origin?: accessGate.Origin): Pro
     case 'access-show':
     case 'access-set': return accessGate.command(io, action, origin)
     case 'status': return status.run(io)
-    case 'compact': return compact.run(io)
+    case 'compact': return compact.run(io, origin)
     case 'dashboard': return dashboard.run(io, action.stop ? 'stop' : 'open')
     case 'help': return { text: usage() }
     case 'browser-install': return installBrowser(io)

@@ -36,7 +36,7 @@ One command manages the mod; the typeahead offers each word after it:
 |---|---|
 | `/jev-mod` (or `/jev-mod list`) | Every feature: its mode and where that came from, its settings, then anything in the config files that was passed over. |
 | `/jev-mod status` | The backend (and whether it is on this machine), where its key came from (never the key), a live check naming the backend and model that answered, any warning about its answers, each feature's mode, today's spend. |
-| `/jev-mod compact` | The compaction above. |
+| `/jev-mod compact` | The compaction above. Headless (`claude -p`), send `/compact [jev-mod compact: drop only what Jev marks drop]` instead. |
 | `/jev-mod dashboard` | A page in your browser to see and set every feature (below); `/jev-mod dashboard stop` ends it. |
 | `/jev-mod <feature>` | Its help, its modes, and each setting with its range, default and value now. |
 | `/jev-mod <feature> on\|off\|shadow` | Sets its mode in your config file (`--project`: the project's). |

@@ -1,6 +1,6 @@
 import { test, expect } from 'claude-code/testing'
 import type { FetchInit, IO } from '../../core/io'
-import { compact } from './index'
+import { compact, isOurs, MARK } from './index'
 
 // /jev-mod compact end to end with a fake IO: a fake decision backend answers each question by
 // what the unit it asks about says, and records every request. No real key, no real config.
@@ -103,4 +103,13 @@ test('the request holds the redacted tool summary and never a secret from a tool
   expect(sent).not.toContain(SECRET)
   expect(sent).not.toContain('bob@example.com')
   expect(sent).not.toContain('tail 0') // the tail is kept without asking
+})
+
+test('a /compact with the marker is ours when typed or sent headless; never a subagent\'s or an automatic one', () => {
+  expect(isOurs({ trigger: 'manual', instructions: MARK })).toBe(true)
+  expect(isOurs({ trigger: 'manual', instructions: `${MARK} and more` })).toBe(true)
+  expect(isOurs({ trigger: 'manual', instructions: 'keep the plan' })).toBe(false)
+  expect(isOurs({ trigger: 'manual' })).toBe(false)
+  expect(isOurs({ trigger: 'auto', instructions: MARK })).toBe(false)
+  expect(isOurs({ trigger: 'manual', instructions: MARK, agentId: 'a1' })).toBe(false)
 })

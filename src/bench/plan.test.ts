@@ -22,6 +22,19 @@ test('the plan counts every Claude call: shared setup once per case, then each a
   expect(p.text).toContain(`${p.claudeCalls} headless Claude calls`)
 })
 
+test('without --usd-per-call each step is priced on its own, and the estimate includes the shared setup', () => {
+  const arms = armsFor(compactTask, ['openrouter'], { name: 'drop', values: [0.6, 0.7, 0.8, 0.9] }, {})
+  const p = plan(compactTask, TASKS, arms)
+  const setupCalls = TASKS.reduce((n, t) => n + t.setup.length, 0)
+  expect(p.setupCalls).toBe(setupCalls)
+  expect(Math.round(p.setupUsd * 1e6)).toBe(Math.round(setupCalls * compactTask.setupUsdPerCall! * 1e6))
+  // per case: /compact then the question; the question alone; each jev-mod arm's own compaction then the question
+  expect(Math.round(p.armsUsd * 1e6)).toBe(Math.round(TASKS.length * ((0.7 + 0.5) + 0.5 + 4 * (0.02 + 0.5)) * 1e6))
+  expect(Math.round(p.usd * 1e6)).toBe(Math.round((p.setupUsd + p.armsUsd + p.decisionCalls * 0.0005) * 1e6))
+  expect(p.text).toContain(`setup $${p.setupUsd.toFixed(2)}`)
+  expect(p.text).toContain('priced per step')
+})
+
 test('without --yes nothing runs: the guard returns the plan and says how to start it', () => {
   const p = plan(compactTask, TASKS, armsFor(compactTask, ['typesafe'], null, {}))
   const refused = guard(p, false)

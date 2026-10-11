@@ -94,6 +94,27 @@ test('task-level rows become one bar per arm', () => {
   expect(plots(gate, s).task).toContain('wall time')
 })
 
+test('task level: the setup is no arm, a failed run is never scored, and the spend holds both', () => {
+  const task = (arm: string, over: Partial<Row>): Row => ({
+    ...row('typesafe', 'jev-1.13', []), level: 'task', arm, wall_ms: 30_000, claude_cost_usd: 0.5, cost_usd: 0.001, ...over,
+  })
+  const rows = [
+    task('setup', { setup: true, claude_cost_usd: 2, cost_usd: 0, wall_ms: 60_000 }),
+    task('no compaction', { success: true, score: 1 }),
+    task('jev-mod typesafe drop=0.7', { success: true, score: 1 }),
+    task('jev-mod typesafe drop=0.7', { outcome: 'error', error: 'not_compacted', claude_cost_usd: 0.4 }),
+  ]
+  const s = summarise(gate, rows, false)
+  expect(s.arms.map(a => a.key)).toEqual(['no compaction', 'jev-mod typesafe drop=0.7'])
+  const jev = s.arms[1]!
+  expect([jev.runs, jev.errors, jev.score]).toEqual([2, { not_compacted: 1 }, 1])
+  expect(s.setup).toEqual({ cases: 1, claudeCost: 2, wallMs: 60_000 })
+  expect(Math.round(s.spend!.claude * 1000)).toBe(3400)
+  const md = markdown(gate, s, {})
+  expect(md).toContain('| jev-mod typesafe drop=0.7 | 2 (failed: 1 not_compacted) |')
+  expect(md).toContain('Spend in all: $3.400 Claude, of which the shared setup $2.000 (1 case(s), 60.0 s)')
+})
+
 test('a case settled without a request counts with its backend, not as a backend of its own', () => {
   const local = row('openrouter', 'jev-latest', [[true, 1]], { answered_model: null, calls: 0, latencies_ms: [], cost_usd: 0 })
   const asked = row('openrouter', 'jev-latest', [[false, 0.2]], { answered_model: 'jev-1.13' })

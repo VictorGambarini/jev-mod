@@ -16,24 +16,34 @@ import { keepOnly, unitsOf } from './keep'
 // not judge (Jev down, a partial answer, a turn or pair too sensitive to send) keeps its message.
 // `/compact` itself is untouched.
 //
-// A command's own hook may not compact (the turn it holds would be compacted under it), so the
-// command queues the built-in /compact with a marker from a timer, and `compact` below answers
-// that one compaction instead of the summariser.
+// A command's own hook may not compact (the turn it holds would be compacted under it; the host
+// refuses it), so the command queues the built-in /compact with a marker from a timer, and
+// `compact` below answers that one compaction instead of the summariser. `/compact` with the
+// marker as its instructions runs the same compaction in one step, which is how a headless run
+// (`claude -p`) does it: that process ends when the command returns, before any timer fires.
 
 export const MARK = '[jev-mod compact: drop only what Jev marks drop]'
 let pending = false
 
-export function run(io: IO): { text: string } {
+/** `origin`: where the command came from (command.run's); `sdk` is a headless run or an SDK host. */
+export function run(io: IO, origin?: { kind: string }): { text: string } {
   pending = true
   io.after(0, () => {
     io.runCommand('compact', MARK).catch(() => { pending = false })
   })
-  return { text: 'jev-mod compact: asking Jev which turns to drop; nothing will be summarised.' }
+  const text = 'jev-mod compact: asking Jev which turns to drop; nothing will be summarised.'
+  if (origin?.kind !== 'sdk') return { text }
+  return { text: `${text} A \`claude -p\` run ends before that starts: there, run \`/compact ${MARK}\` instead, ` +
+    'the same compaction in one step.' }
 }
 
-/** Is this compaction the one /jev-mod compact queued? */
-export function isOurs(e: { instructions?: string; agentId?: string }): boolean {
-  return pending && !e.agentId && (e.instructions ?? '').includes(MARK)
+/**
+ * Is this compaction /jev-mod compact's: the one the command queued, or a `/compact` typed (or
+ * sent headless) with the marker as its instructions? Never a subagent's, nor an automatic one.
+ */
+export function isOurs(e: { instructions?: string; agentId?: string; trigger?: string }): boolean {
+  if (e.agentId || !(e.instructions ?? '').includes(MARK)) return false
+  return pending || e.trigger === 'manual'
 }
 
 /** The kept messages, or a reason nothing was cut. Never runs the summariser. */

@@ -62,6 +62,8 @@ export type Row = {
   claude_cost_usd?: number
   claude_tokens?: { input: number; output: number; cache_read: number; cache_write: number }
   decision_calls?: number
+  /** Set on a case's shared-setup row: what building the session cost, once per case, before any arm. */
+  setup?: true
 }
 
 /** What every row of one run shares. */
@@ -140,7 +142,15 @@ export interface DecisionAdapter<C = unknown> {
 }
 
 /** One step of a task-level run: a prompt (or a slash command) sent with `claude -p`. */
-export type Step = { prompt: string; /** Its output is what the checker reads. */ final?: true }
+export type Step = {
+  prompt: string
+  /** Its output is what the checker reads. */
+  final?: true
+  /** Tools refused for this step (`--disallowedTools`): a question answered from the context alone. */
+  disallowedTools?: string[]
+  /** About what this call costs, in dollars, for the estimate (else the adapter's usdPerCall). */
+  usd?: number
+}
 
 export type TaskCase = {
   id: string
@@ -162,6 +172,14 @@ export type Arm = {
 
 export type Checked = { success: boolean; score: number; detail?: Record<string, unknown> }
 
+/** What one arm of one case did, for the adapter's verify: what the runner can see from outside. */
+export type ArmRun = {
+  /** Entries the mod wrote to the arm's ledger: one per decision request it made. */
+  ledgerEntries: number
+  /** The final step's input tokens, cached or not: the context its model call read. null: no usage reported. */
+  contextTokens: number | null
+}
+
 /** A feature's task-level bench: cases run end to end with `claude -p`, per arm. */
 export interface TaskAdapter<C extends TaskCase = TaskCase> {
   feature: string
@@ -173,8 +191,16 @@ export interface TaskAdapter<C extends TaskCase = TaskCase> {
   /** The bench overlay's feature sections for this arm (core/bench-overlay.ts); the runner adds the rest. */
   overlay(arm: Arm): { features: Record<string, Record<string, unknown>>; compact?: { dropConfidence: number } }
   check(c: C, finalText: string, workdir: string): Checked | Promise<Checked>
-  /** About what one Claude call of this bench costs, in dollars, for the estimate. */
+  /**
+   * Did the arm do what it is meant to (compact, say)? A short error code when it plainly did
+   * not, and the row is an error instead of a score; null when it did or cannot be told. `all`
+   * holds every arm of the case, by id, so an arm can be compared with another.
+   */
+  verify?(c: C, arm: Arm, run: ArmRun, all: ReadonlyMap<string, ArmRun>): string | null
+  /** About what one Claude call of this bench costs, in dollars, for the estimate (a step's own `usd` wins). */
   usdPerCall: number
+  /** About what one shared-setup call costs, when it differs from usdPerCall. */
+  setupUsdPerCall?: number
   /** About how many decision calls one jev-mod arm's steps make. */
   decisionCallsPerArm: number
 }

@@ -79,9 +79,12 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       session = r.session
     }
     const setup = setupRow(o.meta, c.id, setupCalls, setupFailed)
-    rows.push(setup)
-    await f.appendFile(o.out, toLine(setup) + '\n')
-    say(`${c.id}: setup ${setupFailed ? `failed (${setupFailed})` : `done (session ${session ?? 'none'})`}, $${setup.claude_cost_usd!.toFixed(3)} Claude`)
+    // a case with no setup prompts has no setup row (nothing was spent)
+    if (c.setup.length) {
+      rows.push(setup)
+      await f.appendFile(o.out, toLine(setup) + '\n')
+      say(`${c.id}: setup ${setupFailed ? `failed (${setupFailed})` : `done (session ${session ?? 'none'})`}, $${setup.claude_cost_usd!.toFixed(3)} Claude`)
+    }
     const done: { arm: Arm; row: Row; run: ArmRun }[] = []
     for (const [k, arm] of o.arms.entries()) {
       const ledger = `${dir}/ledger-${k}`
@@ -91,13 +94,16 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       const row: Row = { ...o.meta, backend: backendRef(arm), answered_model: null, settings: { ...o.meta.settings, ...arm.settings },
         case: c.id, arm: arm.id, outcome: 'ok', items: [], calls: 0, latencies_ms: [], input_tokens: null, cost_usd: 0,
         wall_ms: 0, claude_cost_usd: 0, claude_tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 } }
+      // an isolating case: this arm edits its own copy of the project, taken before any arm ran
+      let where = work
+      if (c.isolate) { where = `${dir}/project-${k}`; await f.cp(work, where, { recursive: true }) }
       let mine = session
       let final = ''
       let context: number | null = null
       if (setupFailed) { row.outcome = 'error'; row.error = `setup: ${setupFailed}` }
       for (const [s, step] of o.adapter.steps(c, arm).entries()) {
         if (row.outcome === 'error') break
-        const r = await claude(step.prompt, work, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
+        const r = await claude(step.prompt, where, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
         row.wall_ms! += r.ms
         row.claude_cost_usd! += r.cost
         for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
@@ -118,7 +124,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       row.context_tokens = context
       if (book.compaction) row.compaction = book.compaction
       if (row.outcome === 'ok') {
-        const checked = await o.adapter.check(c, final, work)
+        const checked = await o.adapter.check(c, final, where)
         row.success = checked.success
         row.score = checked.score
         if (checked.detail) row.detail = checked.detail

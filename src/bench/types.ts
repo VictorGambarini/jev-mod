@@ -169,6 +169,8 @@ export type TaskCase = {
   allowedTools?: string[]
   /** The scratch project is made a git repository with one commit first, as a real project is. */
   git?: boolean
+  /** Each arm works in its own copy of the scratch project, for cases whose arms change files (the checker reads that copy). */
+  isolate?: true
   /** About what the shared setup costs, in dollars, for the estimate (else its prompts at the adapter's setup price). */
   setupUsd?: number
 }

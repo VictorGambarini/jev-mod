@@ -284,7 +284,10 @@ test('the cache key reads the whole input redacted, and only full answers are re
   expect(a).not.toBe(cacheText('s2', 'Bash', { command: `${long} a` }, false, mine))
   expect(a).not.toBe(cacheText('s1', 'Bash', { command: `${long} a` }, false, { prompts: ['fix it'], constraints: ["don't push"] }))
   expect(a).not.toBe(cacheText('s1', 'Bash', { command: `${long} a` }, false, { prompts: ['fix it'], request: 'fix it' }))
-  expect(cacheText('s1', 'mcp__m__send', { to: 'alice@example.com' }, false, mine)).not.toContain('alice@example.com')
+  // contact details are kept by default, so a send to another person is never answered from the cache
+  expect(cacheText('s1', 'mcp__m__send', { to: 'alice@example.com' }, false, mine))
+    .not.toBe(cacheText('s1', 'mcp__m__send', { to: 'bob@example.com' }, false, mine))
+  expect(cacheText('s1', 'mcp__m__send', { to: 'alice@example.com', key: 'sk-abcdefghijklmnop1234' }, false, mine)).not.toContain('sk-abcdefghijklmnop1234')
   const n = (v: number): Answer => ({ type: 'noul', noul: v })
   const questions = questionsFor(mine)
   expect(answeredAll({ asked: n(0.5), irreversible: n(0.5), offMachine: n(0.5) }, questions)).toBe(true)

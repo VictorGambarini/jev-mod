@@ -36,6 +36,9 @@ test('a row naming a key or a header, or holding a secret-shaped value, is never
   expect(unsafe(sampleRow({ detail: { note: 'sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789' } }))).not.toBe(null)
   // counts and a case id that only mentions a key are fine; the git sha is a stamp, not text
   expect(unsafe(sampleRow({ case: 'logs-api-key-reference' }))).toBe(null)
+  // an email or a phone is refused too, though redact keeps them by default: rows are files in the repo
+  expect(unsafe(sampleRow({ detail: { note: 'mail ana@example.com' } }))).not.toBe(null)
+  expect(unsafe(sampleRow({ detail: { note: 'call 021 123 4567' } }))).not.toBe(null)
 })
 
 test('file names carry level, backend and date, and "fake" for the fake backend', () => {

@@ -2,13 +2,16 @@ import { test, expect } from 'claude-code/testing'
 import cases from '../../test/parity/fixtures/privacy'
 import unicode from '../../test/parity/fixtures/privacy_unicode'
 import { DIVERGENCES } from '../../test/parity/divergences'
-import { foldConfusables, isSensitive, maskSecretValues, normalize, redact, redactSecretValues } from './privacy'
+import { foldConfusables, isSensitive, maskSecretValues, normalize, redact, redactSecretValues, redactsContacts, setRedactContacts } from './privacy'
 
 // Every input jev-skills' privacy.py was captured on (docs/PORTING.md) must give the same
 // four answers here: its test corpus, and a Unicode set aimed at where Python's regex and
 // JavaScript's differ (digits and word characters beyond ASCII, astral characters, the caps).
 // The exceptions are leaks fixed in the port, listed with their reasons in divergences.ts. A mismatch names the case, so a failure points at the rule that drifted.
 type Case = { text: string; normalize: string; redact: string; redact_80: string; is_sensitive: boolean }
+
+// privacy.py masks contact details, so the parity runs ask for that (the redact_contacts setting on).
+const ON = { contacts: true }
 
 const captured = [...(cases as Case[]), ...(unicode as Case[])]
 const all = captured.map(c => ({ ...c, ...(DIVERGENCES[c.text] ?? {}) }))
@@ -19,8 +22,8 @@ test('the fixtures are all there', () => {
 
 for (const [name, run] of [
   ['normalize', (c: Case) => [normalize(c.text), c.normalize]],
-  ['redact', (c: Case) => [redact(c.text), c.redact]],
-  ['redact at 80 characters', (c: Case) => [redact(c.text, 80), c.redact_80]],
+  ['redact', (c: Case) => [redact(c.text, 4000, ON), c.redact]],
+  ['redact at 80 characters', (c: Case) => [redact(c.text, 80, ON), c.redact_80]],
   ['isSensitive', (c: Case) => [isSensitive(c.text), c.is_sensitive]],
 ] as const) {
   test(`${name} matches privacy.py on every fixture`, () => {
@@ -50,9 +53,9 @@ test('a secret glued to an accented word is still masked and refused', () => {
   expect(redact('útoken sk-abcdefghijklmnop1234')).toBe('útoken [secret]')
 })
 
-test('emails with letters beyond ASCII are masked', () => {
-  expect(redact('write to björn.ångström@uni.se')).toBe('write to [email]')
-  expect(redact('名前 taro.山田@example.jp')).toBe('名前 [email]')
+test('emails with letters beyond ASCII are masked with redact_contacts on', () => {
+  expect(redact('write to björn.ångström@uni.se', 4000, ON)).toBe('write to [email]')
+  expect(redact('名前 taro.山田@example.jp', 4000, ON)).toBe('名前 [email]')
 })
 
 test('a card in another script is masked when it passes Luhn, kept when it does not', () => {
@@ -76,21 +79,51 @@ test('look-alike disguises fold to Latin; ordinary Russian and Greek text does n
 
 // Phone redaction left identifiers whole, and still masks phones (divergence from privacy.py).
 test('digits inside a DOI, an ISBN or a URL are not a phone', () => {
-  expect(redact('see 10.1186/s13568-017-0448-4 for the method')).toBe('see 10.1186/s13568-017-0448-4 for the method')
-  expect(redact('https://doi.org/10.1007/s00253-017-8505-5')).toBe('https://doi.org/10.1007/s00253-017-8505-5')
-  expect(redact('doi:10.1000/8505550134')).toBe('doi:10.1000/8505550134')
-  expect(redact('ISBN 9780306406157 and 978-0-306-40615-7')).toBe('ISBN 9780306406157 and 978-0-306-40615-7')
-  expect(redact('https://v2.plasticdb.org/records/8505550134/view')).toBe('https://v2.plasticdb.org/records/8505550134/view')
-  expect(redact('PMID 28585118, accession MN-415-555-0134-2')).toBe('PMID 28585118, accession MN-415-555-0134-2')
+  expect(redact('see 10.1186/s13568-017-0448-4 for the method', 4000, ON)).toBe('see 10.1186/s13568-017-0448-4 for the method')
+  expect(redact('https://doi.org/10.1007/s00253-017-8505-5', 4000, ON)).toBe('https://doi.org/10.1007/s00253-017-8505-5')
+  expect(redact('doi:10.1000/8505550134', 4000, ON)).toBe('doi:10.1000/8505550134')
+  expect(redact('ISBN 9780306406157 and 978-0-306-40615-7', 4000, ON)).toBe('ISBN 9780306406157 and 978-0-306-40615-7')
+  expect(redact('https://v2.plasticdb.org/records/8505550134/view', 4000, ON)).toBe('https://v2.plasticdb.org/records/8505550134/view')
+  expect(redact('PMID 28585118, accession MN-415-555-0134-2', 4000, ON)).toBe('PMID 28585118, accession MN-415-555-0134-2')
 })
 
-test('real phone numbers are still masked', () => {
-  expect(redact('call +64 21 123 4567 today')).toBe('call [phone] today')
-  expect(redact('office (09) 373 7599 ext')).toBe('office [phone] ext')
-  expect(redact('or 555-123-4567.')).toBe('or [phone].')
-  expect(redact('ring 021 123 4567')).toBe('ring [phone]')
-  expect(redact('x8505550134 and Tel:8505550134')).toBe('x[phone] and Tel:[phone]')
-  expect(redact('18505550134')).toBe('[phone]')
+test('real phone numbers are masked with redact_contacts on', () => {
+  expect(redact('call +64 21 123 4567 today', 4000, ON)).toBe('call [phone] today')
+  expect(redact('office (09) 373 7599 ext', 4000, ON)).toBe('office [phone] ext')
+  expect(redact('or 555-123-4567.', 4000, ON)).toBe('or [phone].')
+  expect(redact('ring 021 123 4567', 4000, ON)).toBe('ring [phone]')
+  expect(redact('x8505550134 and Tel:8505550134', 4000, ON)).toBe('x[phone] and Tel:[phone]')
+  expect(redact('18505550134', 4000, ON)).toBe('[phone]')
+})
+
+// Contact details: kept unless the person asks for them masked; secrets masked either way.
+test('contact details are kept by default, and masked with redact_contacts on', () => {
+  expect(redactsContacts()).toBe(false)
+  const text = 'mail ana@example.com or call +64 21 123 4567'
+  expect(redact(text)).toBe(text)
+  expect(redact(text, 4000, ON)).toBe('mail [email] or call [phone]')
+  setRedactContacts(true)
+  try {
+    expect(redact(text)).toBe('mail [email] or call [phone]')
+    expect(redactSecretValues(`${text} password=hunter2`)).toBe('mail [email] or call [phone] password=[secret]')
+    expect(redact(text, 4000, { contacts: false })).toBe(text)
+  } finally {
+    setRedactContacts(false)
+  }
+})
+
+test('with contact details kept, every secret is still masked: tokens, keys, assignments, credentials, cards, private keys', () => {
+  expect(redact('ana@example.com sk-abcdefghijklmnop1234')).toBe('ana@example.com [secret]')
+  expect(redact('call 555-123-4567, AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI')).toBe('call 555-123-4567, AWS_SECRET_ACCESS_KEY=[secret]')
+  expect(redact('token ghp_abcdefghijklmnopqrstuvwx and AKIAABCDEFGHIJKLMNOP')).toBe('token [secret] and [secret]')
+  expect(redact('key wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY1')).toBe('key [secret]')
+  expect(redact('card 4111 1111 1111 1111, mail ana@example.com')).toBe('card [card], mail ana@example.com')
+  expect(redactSecretValues('-----BEGIN RSA PRIVATE KEY-----\nMIIEabc\n-----END RSA PRIVATE KEY----- to ana@example.com'))
+    .toBe('[private key] to ana@example.com')
+  expect(redactSecretValues('password = "hunter2", phone 021 123 4567')).toBe('password = "[secret]", phone 021 123 4567')
+  // the skip is unchanged: a secret's mention still stops the text being sent at all
+  expect(isSensitive('my password is hunter2, mail ana@example.com')).toBe(true)
+  expect(isSensitive('mail ana@example.com or call 021 123 4567')).toBe(false)
 })
 
 test('maskSecretValues masks the value a secret name is given, keeps the name and mere mentions', () => {

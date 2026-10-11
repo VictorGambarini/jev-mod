@@ -1,6 +1,7 @@
 // Result rows to and from JSONL, and the check that nothing secret is ever written: no field
 // named like a key or a header, and no text value the privacy rules would mask (a token, a bearer
-// credential, a key's shape). The run's own stamps (git sha, run id, date) are not text. Pure; results.test.ts.
+// credential, a key's shape, and an email or phone number, whatever the person's redact_contacts
+// says: rows are files in the repo). The run's own stamps (git sha, run id, date) are not text. Pure; results.test.ts.
 
 import { redactSecretValues } from '../engine/privacy'
 import type { Row } from './types'
@@ -12,7 +13,7 @@ const STAMPS = new Set(['git', 'run', 'date'])
 /** Why a row may not be written, or null when it may. */
 export function unsafe(row: unknown): string | null {
   const walk = (value: unknown, path: string, depth: number): string | null => {
-    if (typeof value === 'string') return redactSecretValues(value, Number.POSITIVE_INFINITY) !== value ? `${path.slice(0, -1)} looks like a secret` : null
+    if (typeof value === 'string') return redactSecretValues(value, Number.POSITIVE_INFINITY, { contacts: true }) !== value ? `${path.slice(0, -1)} looks like a secret` : null
     if (depth > 12 || value === null || typeof value !== 'object') return null
     for (const [name, inner] of Object.entries(value as Record<string, unknown>)) {
       if (SECRET_FIELD.test(name)) return `field ${path}${name} is named like a secret`

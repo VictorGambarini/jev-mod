@@ -6,6 +6,12 @@ import web from '../../test/parity/fixtures/webscreen'
 import webUnicode from '../../test/parity/fixtures/webscreen_unicode'
 import { chunks, localScreen, PATTERN_SOURCES, units, withhold } from './screen'
 import { dumps, floatRepr, loads } from './pyjson'
+import { setRedactContacts } from './privacy'
+
+// The captured requests come from jev-skills, which masks contact details: these runs ask for that
+// (the redact_contacts setting on). Each test file runs in its own process, so this stays here.
+setRedactContacts(true)
+
 
 // jev-skills' rerank.local_screen and webscreen.py, captured (docs/PORTING.md), must give the
 // same answers here: on its test corpus, and on a Unicode set aimed at code-point windows,

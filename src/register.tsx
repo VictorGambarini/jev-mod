@@ -3,9 +3,10 @@ import type { Register } from 'claude-code'
 import type { AccessState, BandFeatures } from '../types'
 import { onboard } from './features/band'
 import { line } from './features/band/line'
-import { configured, modeOf } from './core/config'
+import { configured, modeOf, redactContactsSetting } from './core/config'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
+import { setRedactContacts } from './engine/privacy'
 import * as accessGate from './features/access-gate'
 import * as browser from './features/browser'
 import * as command from './features/command'
@@ -212,10 +213,21 @@ function failedWith(text: string) {
   return { deny: text }
 }
 
+/**
+ * Whether redact() masks contact details, for every feature at once: the person's setting, or the
+ * project's turning it on. Read at session start and at each prompt, so an edit to the project's
+ * file holds from the next prompt; /config reloads the module, which reads it again below.
+ */
+async function loadPrivacy(io: IO): Promise<void> {
+  setRedactContacts(await redactContactsSetting(io))
+}
+
 // A change in /config, or a key set in the plugin's settings, reloads this module with the new options.
 export const register: Register = (on, given) => {
   options = { ...(given ?? {}) }
+  setRedactContacts(options.redact_contacts === true || options.redact_contacts === 'true')
   on('session.start', async ($, e, next) => {
+    await loadPrivacy(ioOf($))
     await $.command.register(command.command)
     await offerFindFiles($)
     await offerReviewTriage($)
@@ -234,8 +246,9 @@ export const register: Register = (on, given) => {
   // Each feature's look at the prompt, all at once: the prompt waits for the slowest, not the sum.
   on('prompt.submit', async ($, e, next) => {
     const text = e.text
-    if (!text.trim() || text.trimStart().startsWith('/')) return next(e)
     const io = ioOf($)
+    await loadPrivacy(io) // before the slash commands too: /compact-jev sends
+    if (!text.trim() || text.trimStart().startsWith('/')) return next(e)
     await memory.load(io)
     const [suggestion, triaged] = await Promise.all([skills.analyse(io, text), reviewTriage.analyse(io, text), routing.analyse(io, text),
       toolGate.analyse(io, text, e.origin), rulesGate.analyse(io, text, e.origin), offerFindFiles($), offerReviewTriage($), offerBrowse($)])

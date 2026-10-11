@@ -99,6 +99,11 @@ Known differences that are not fixture answers, and why:
   that goes on as `-4`, `.5`, `/2`, and keeps a bare run of 12 or more digits; it also masks a
   bracketed two-to-four digit area code (`(09) 373 7599`). No captured fixture's answer changes,
   so divergences.ts has no entry; privacy.test.ts pins the new cases.
+- **Contact details kept by default.** privacy.py always masks emails and phones. privacy.ts
+  masks them only with the `redact_contacts` setting on (or a project's `"redactContacts": true`):
+  Claude already has them, so hiding them from the decision model buys nothing. Secrets and card
+  numbers are masked either way. The parity tests (privacy, lanes, skills, screen) run with it on,
+  so every captured answer still stands.
 - **Compaction asks keep or drop, never summarize.** compact.py offers keep / summarize / drop.
   The mod has no summariser, so every summarize turn (and every turn left unjudged, which
   defaulted to summarize, and every low-confidence drop) was deleted. `engine/compact.ts` asks

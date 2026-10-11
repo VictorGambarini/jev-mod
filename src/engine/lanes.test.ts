@@ -11,6 +11,12 @@ import { LANE_POLICY_TEXT } from './lane-policy'
 import { admitState, chargeState, classify, LIMIT_DEFAULTS, limitConfig, targets, type Limits } from './lanes'
 import { apply, drifted, lint, parse, preDecide, readings, versionOf, type Policy } from './policy'
 import { loads } from './pyjson'
+import { setRedactContacts } from './privacy'
+
+// The captured requests come from jev-skills, which masks contact details: these runs ask for that
+// (the redact_contacts setting on). Each test file runs in its own process, so this stays here.
+setRedactContacts(true)
+
 
 const sorted = (value: unknown): string => JSON.stringify(value ?? null, (_, v) =>
   v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => (a < b ? -1 : 1))) : v)

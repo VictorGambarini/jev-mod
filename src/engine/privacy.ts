@@ -1,8 +1,14 @@
 // The outbound boundary. Everything sent to a decision backend passes through here first.
 //
-// Two tools: `redact` masks things that look like secrets or contact details, and
-// `isSensitive` says "do not send this at all". Callers that get true from `isSensitive`
-// must skip the backend and take their fail-open path.
+// Two tools: `redact` masks things that look like secrets (and contact details, when the person
+// asks for that), and `isSensitive` says "do not send this at all". Callers that get true from
+// `isSensitive` must skip the backend and take their fail-open path.
+//
+// Contact details (emails, phone numbers) are kept by default: the text comes from the
+// conversation, so Claude already has them, and there is no point hiding them from the decision
+// model. The person's redact_contacts setting (/config), or a project's
+// "redactContacts": true, masks them again; register.tsx sets it here with setRedactContacts().
+// Secrets, card numbers included, are masked whatever it says.
 //
 // Ported from jev-skills' jevkit/privacy.py; test/parity/fixtures/privacy.json holds its
 // answers over 847 inputs and privacy.test.ts requires these to match every one. The rules'
@@ -219,7 +225,20 @@ export function isSensitive(text: string): boolean {
     || TOKEN_SHAPES.test(probe) || [...probe.matchAll(UNLABELLED)].some(m => randomToken(m[0]))
 }
 
-export function redact(text: string, limit = 4000): string {
+let contacts = false
+
+/** Whether redact() masks emails and phone numbers too: register.tsx sets it from the person's settings. */
+export function setRedactContacts(on: boolean): void {
+  contacts = on
+}
+
+export function redactsContacts(): boolean {
+  return contacts
+}
+
+export type RedactOptions = { /** Mask emails and phone numbers too; the person's setting when left out. */ contacts?: boolean }
+
+export function redact(text: string, limit = 4000, options: RedactOptions = {}): string {
   let out = foldConfusables(normalize(text))
   // Hold tracking numbers aside so the phone rule cannot reach their digits, then put them
   // back before any truncation can cut a placeholder in half. normalize() removed every \0,
@@ -236,10 +255,12 @@ export function redact(text: string, limit = 4000): string {
   // DOIs are held aside after the secret rules (a key inside one is still masked), before the digit rules.
   out = out.replace(DOI, m => { held.push(m); return `\0TRK${held.length - 1}\0` })
   out = out.replace(CARD, maskCard)
-  out = out.replace(EMAIL, '[email]')
-  out = out.replace(PHONE, maskPhone)
-  out = out.replace(INTL_PHONE, '[phone]')
-  out = out.replace(AREA_PHONE, '[phone]')
+  if (options.contacts ?? contacts) {
+    out = out.replace(EMAIL, '[email]')
+    out = out.replace(PHONE, maskPhone)
+    out = out.replace(INTL_PHONE, '[phone]')
+    out = out.replace(AREA_PHONE, '[phone]')
+  }
   held.forEach((value, index) => { out = out.split(`\0TRK${index}\0`).join(value) })
   const points = [...out]
   if (points.length > limit) {
@@ -333,6 +354,6 @@ export function maskSecretValues(text: string): string {
  * maskSecretValues() and redact() find masked, the mention of a secret kept. Use it where a
  * mention alone must not stop the text being sent; elsewhere isSensitive() still decides.
  */
-export function redactSecretValues(text: string, limit = 4000): string {
-  return redact(maskSecretValues(text), limit)
+export function redactSecretValues(text: string, limit = 4000, options: RedactOptions = {}): string {
+  return redact(maskSecretValues(text), limit, options)
 }

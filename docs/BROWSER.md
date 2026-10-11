@@ -113,7 +113,8 @@ status closes it at once, and every browser closes when the session ends.
    run stops as `bot_check`, without a step request. Nothing tries to solve it.
 3. **Prepare the text.** Input values are cut out (as typed, and as a URL carries them, each as
    `[input:<name>]`), then
-   the text is redacted (emails, phones, cards, tokens) and screened: passages carrying
+   the text is redacted (cards and tokens; emails and phones too with *Mask contact details*,
+   `redact_contacts`, on) and screened: passages carrying
    instructions aimed at an AI are withheld, by the same screen as WebFetch's, whatever the
    screening feature's own mode. A page with a password, card or one-time-code field, or text that
    looks like it holds secrets, is sent as its elements only. Labels have the values cut out, are

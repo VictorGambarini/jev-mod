@@ -99,7 +99,7 @@ test('a low-confidence drop of a pair keeps it whole', async () => {
   expect(indexes(await compact(benchFake, messages), messages)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 })
 
-test('the request holds the redacted tool summary and never a secret from a tool result', async () => {
+test('the request holds the redacted tool summary and never a secret from a tool result; contact details stay', async () => {
   const messages = convo()
   messages[6] = m('user', '', { toolResults: [res('t3', 'mail me at bob@example.com when done')] })
   const fake = io(() => ({ choice: 'keep', confidence: 0.9 }))
@@ -107,9 +107,8 @@ test('the request holds the redacted tool summary and never a secret from a tool
   const sent = JSON.stringify(fake.asked)
   const turns = fake.asked.flatMap(b => Object.values(b.state.turns))
   expect(turns).toContain('tool: tool call Bash: npm test\nresult: FAIL src/a.test.ts\nexpected 2, got 3')
-  expect(turns).toContain('tool: tool call Bash: cat notes.txt\nresult: mail me at [email] when done')
+  expect(turns).toContain('tool: tool call Bash: cat notes.txt\nresult: mail me at bob@example.com when done')
   expect(sent).not.toContain(SECRET)
-  expect(sent).not.toContain('bob@example.com')
   expect(sent).not.toContain('tail 0') // the tail is kept without asking
 })
 

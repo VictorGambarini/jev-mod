@@ -12,7 +12,7 @@ const TREE: Record<string, string> = {
   '/proj/node_modules/retry/index.js': '// retry backoff\n',
 }
 
-function setUp(on: any, mode: string, sent: any[], registered: any[] = []) {
+function setUp(on: any, mode: string, sent: any[], registered: any[] = [], files: Record<string, string> = {}) {
   mock.store(on)
   mock.clock(on, { now: Date.now() }) // held waits: the request's deadline never fires
   on('session.start', async (_$: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
@@ -29,6 +29,7 @@ function setUp(on: any, mode: string, sent: any[], registered: any[] = []) {
   on('session.root', async () => ({ value: '/proj' }))
   on('fs.read', async (_$: unknown, e: { path: string }) => {
     if (e.path === '/cfg/jev-mod/config.json') return { value: JSON.stringify({ features: { 'find-files': { mode } } }) }
+    if (e.path in files) return { value: files[e.path] }
     if (e.path in TREE) return { value: TREE[e.path] }
     throw new Error('no such file')
   })
@@ -76,4 +77,36 @@ test('off: the tool is not offered', async ($, on) => {
   setUp(on, 'off', [], registered)
   await $.session.start({ cwd: '/proj', surface: null, isInteractive: false })
   expect(registered).toEqual([])
+})
+
+// Contact details reach the decision model unless the person (/config) or the project turns
+// redact_contacts on; register.tsx sets it once for every feature. A card number is masked either way
+// (a key in the query would stop it being sent at all).
+const QUERY = 'retries with exponential backoff, ask ana@example.com or +64 21 123 4567, card 4111 1111 1111 1111'
+
+async function sentQuery($: any, on: any, files: Record<string, string> = {}): Promise<string> {
+  const sent: any[] = []
+  setUp(on, 'on', sent, [], files)
+  await $.session.start({ cwd: '/proj', surface: null, isInteractive: false })
+  await $.tool.call({ tool: TOOL, query: QUERY } as never)
+  expect(sent.length).toBe(1)
+  return String(sent[0].state.query)
+}
+
+test('contact details go to the decision model by default; a card number never does', async ($, on) => {
+  expect(await sentQuery($, on)).toBe('retries with exponential backoff, ask ana@example.com or +64 21 123 4567, card [card]')
+})
+
+test('redact_contacts on in /config masks them for every feature', { options: { redact_contacts: true } }, async ($, on) => {
+  expect(await sentQuery($, on)).toBe('retries with exponential backoff, ask [email] or [phone], card [card]')
+})
+
+test('a project may turn redact_contacts on, never off', async ($, on) => {
+  expect(await sentQuery($, on, { '/proj/.claude/jev-mod.json': JSON.stringify({ redactContacts: true }) }))
+    .toBe('retries with exponential backoff, ask [email] or [phone], card [card]')
+})
+
+test('a project\'s redactContacts: false leaves /config\'s on standing', { options: { redact_contacts: true } }, async ($, on) => {
+  expect(await sentQuery($, on, { '/proj/.claude/jev-mod.json': JSON.stringify({ redactContacts: false }) }))
+    .toBe('retries with exponential backoff, ask [email] or [phone], card [card]')
 })

@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { configured, problems, reset, resolve, snapshot, write } from './config'
+import { configured, problems, redactContactsSetting, reset, resolve, snapshot, write } from './config'
 import type { IO } from './io'
 import { checkKnob, FEATURES, feature, type Feature } from './registry'
 import { isPrivate } from './settings'
@@ -190,4 +190,25 @@ test('configured: the user file exists or it does not', async () => {
   expect(await configured(io({}, {}))).toBe(false)
   expect(await configured(io({}, { [PROJECT]: '{}' }))).toBe(false)
   expect(await configured(io({}, { [USER]: '{}' }))).toBe(true)
+})
+
+test('contact details: masked only when /config or a project turns it on; a project never turns it off', async () => {
+  const project = (value: unknown) => ({ [PROJECT]: JSON.stringify({ redactContacts: value, features: {} }) })
+  expect(await redactContactsSetting(io({}, {}))).toBe(false) // off by default
+  expect(await redactContactsSetting(io({ redact_contacts: true }, {}))).toBe(true)
+  expect(await redactContactsSetting(io({ redact_contacts: 'true' }, {}))).toBe(true)
+  expect(await redactContactsSetting(io({}, project(true)))).toBe(true) // a project may turn it on
+  expect(await redactContactsSetting(io({ redact_contacts: true }, project(false)))).toBe(true) // never off
+  expect(await redactContactsSetting(io({}, project(false)))).toBe(false)
+  expect(await redactContactsSetting(io({}, project('yes')))).toBe(false)
+  expect(await redactContactsSetting(io({}, { [PROJECT]: '{' }))).toBe(false)
+  expect(await redactContactsSetting(io({}, project(true), null))).toBe(false) // no project folder, no project file
+  // the user's file does not hold it (/config does); what is passed over is reported
+  expect(await redactContactsSetting(io({}, { [USER]: JSON.stringify({ redactContacts: true }) }))).toBe(false)
+  expect(problems(await snapshot(io({}, { ...project(false), [USER]: JSON.stringify({ redactContacts: true }) })))).toEqual([
+    'user config: redactContacts is set in /config (redact_contacts), not here; it is passed over',
+    'project config may not turn redactContacts off: it guards you, so a project may only turn it on; it is passed over',
+  ])
+  expect(problems(await snapshot(io({}, project('yes'))))).toEqual(['project config: redactContacts must be true or false'])
+  expect(problems(await snapshot(io({}, project(true))))).toEqual([])
 })

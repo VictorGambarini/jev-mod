@@ -20,7 +20,8 @@
 // (core/bench-overlay.ts LOOPBACK_ON), which is all these sites need.
 
 import type { Arm, Checked, TaskCase } from '../../../bench/types'
-import { type Hit, newState, handle, type SiteId } from './sites'
+import { redactSecretValues } from '../../../engine/privacy'
+import { DEMO_LOGIN, type Hit, newState, handle, type SiteId } from './sites'
 
 export type BrowserTask = TaskCase & {
   site: SiteId
@@ -174,9 +175,70 @@ export function checkRun(t: BrowserTask, finalText: string, log: readonly Hit[])
       actions: log.filter(h => h.action && h.action !== 'search').length,
       requests: log.length,
       logins_failed: log.filter(h => h.action === 'login-failed').length,
+      trail: trailOf(log),
+      final_text: redactSecretValues(cut(finalText, FINAL_CHARS), Number.POSITIVE_INFINITY),
     },
   }
 }
+
+// What a row keeps of a run, so a loss can be read afterwards: the site's own log of pages and
+// actions (both arms alike), the answer, and each browser tool call with what it answered. The
+// answer and the calls are masked as the result file's own check wants (a phone number reads
+// [phone]); `answered` says whether the answer itself matched.
+export const TRAIL_MAX = 60
+export const FINAL_CHARS = 2000
+export const TOOL_CALLS_MAX = 30
+const TOOL_RESULT_CHARS = { browse: 2500, other: 600 }
+
+const cut = (text: string, n: number) => ([...text].length > n ? [...text].slice(0, n - 1).join('') + '…' : text)
+
+/** The site's log as one line per page read or action taken, in order: `page /contact.html`, `search /api/search`. */
+export function trailOf(log: readonly Hit[]): string[] {
+  const steps = log.filter(h => h.page || h.action)
+    .map(h => `${h.action ?? 'page'} ${h.path}${h.status >= 400 ? ` (${h.status})` : ''}`)
+  return steps.length > TRAIL_MAX ? [...steps.slice(0, TRAIL_MAX), `(${steps.length - TRAIL_MAX} more)`] : steps
+}
+
+export type ToolCall = { tool: string; input: string; result: string }
+
+/**
+ * The browser tool calls in a session's transcript (Claude Code's JSONL), in order: the tool, its
+ * input, and its answer. browse's answer is kept up to its page text (status, reason, url, steps,
+ * what was found along the way); a Playwright answer's first lines. The demo login's password,
+ * and any `inputs` value given to browse, never reach the row.
+ */
+export function toolCalls(transcript: string): ToolCall[] {
+  const calls: (ToolCall & { id: string })[] = []
+  const results = new Map<string, string>()
+  for (const line of transcript.split('\n')) {
+    if (!line.includes('mcp__') && !line.includes('tool_result')) continue
+    let e: any
+    try { e = JSON.parse(line) } catch { continue }
+    const content = e?.message?.content
+    if (!Array.isArray(content)) continue
+    for (const block of content) {
+      if (block?.type === 'tool_use' && typeof block.name === 'string' && /^mcp__(jev-mod__browse|playwright__)/.test(block.name)) {
+        const input = { ...(block.input ?? {}) }
+        if (input.inputs && typeof input.inputs === 'object') input.inputs = Object.keys(input.inputs)
+        calls.push({ id: String(block.id), tool: block.name.replace(/^mcp__/, ''), input: hide(JSON.stringify(input), 400), result: '' })
+      } else if (block?.type === 'tool_result') {
+        const text = typeof block.content === 'string' ? block.content
+          : Array.isArray(block.content) ? block.content.filter((c: any) => c?.type === 'text').map((c: any) => c.text).join('\n') : ''
+        results.set(String(block.tool_use_id), text)
+      }
+    }
+  }
+  return calls.slice(0, TOOL_CALLS_MAX).map(({ id, ...c }) => {
+    const text = results.get(id) ?? ''
+    const browse = c.tool === 'jev-mod__browse'
+    const kept = browse ? text.split(/\npage text[ :(]/)[0]! : text
+    return { ...c, result: hide(kept, browse ? TOOL_RESULT_CHARS.browse : TOOL_RESULT_CHARS.other) }
+  })
+}
+
+// a row is never written with a secret-shaped value in it (results.ts), so the masks go on first: a phone number reads [phone]
+// (cut first: a mask cut in half would read as something else)
+const hide = (text: string, n: number) => redactSecretValues(cut(text.split(DEMO_LOGIN.password).join('[password]'), n), Number.POSITIVE_INFINITY)
 
 /** The headless Chromium jev-mod's browser installs, for Playwright MCP to use too. */
 export function chromiumPath(home: string): string {

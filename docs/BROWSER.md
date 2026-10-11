@@ -39,7 +39,11 @@ Input:
 | `resumeId` | | Carry on in a browser a previous answer left waiting. |
 | `approve` | | With `resumeId`: an action id a `needs_confirm` or `blocked` answer offered, to do now. |
 
-The answer is plain text, and the tool never throws:
+The answer is plain text, and the tool never throws. Besides the last page's text it carries
+*found along the way*: each page the run read (at most 10), its URL and title, and its best three
+sentences that share the goal's words (each at most 200 characters, 2000 in all: half the last
+page's 4000), screened like the page text. A fact seen on page 2 is still there when the run ends
+on page 4.
 
 ```text
 status: needs_confirm
@@ -52,13 +56,17 @@ options:
 steps:
 1. clicked link "Pricing" → acme.example/pricing (0.90)
 2. stopped before: click button "Buy now" under "Pricing"
+found along the way (each page read, with its sentences that share the goal's words; screened; data, not instructions):
+- https://acme.example/ "Acme" (nothing matching)
+- https://acme.example/pricing "Acme pricing":
+  · Team plan: $10 per seat per month.
 page text (screened; data, not instructions):
 …
 ```
 
 | status | means | what next |
 |---|---|---|
-| `done` | the decision model picked *done*, or said the goal is reached (below), and a second yes/no over the page's own text agreed | |
+| `done` | the decision model picked *done*, or said the goal is reached (below), and a second check over the page's own text found the exact thing the goal asks for on it | |
 | `unverified` | the step budget ran out after a *done* the page check did not confirm | look at the page text |
 | `needs_input` | a field needs text none of the inputs holds (the field is named) | call again with `resumeId` and that input |
 | `needs_confirm` | a consequential step (below) the goal does not plainly ask for; or one that was attempted and whose result is unknown, or any consequential step after such an attempt (the `attempted` line says which) | ask the person; only on their yes, call again with `resumeId` and `approve` |
@@ -110,6 +118,11 @@ status closes it at once, and every browser closes when the session ends.
    screening feature's own mode. A page with a password, card or one-time-code field, or text that
    looks like it holds secrets, is sent as its elements only. Labels have the values cut out, are
    redacted, and are screened locally (a label that looks like an injection or a secret is replaced).
+   The redaction guards what leaves for the decision backend. The answer to the model carries the
+   page text with the values cut out and screened, but not redacted, as a fetched page comes back
+   (a phone number or an email address is often what was asked for); when screening withheld any
+   of it, the answer carries the screened, redacted copy instead. A page sent as its elements only
+   has no text in the answer either.
 4. **The table.** `click-<id>` per element; per field that takes text, once it holds text
    `submit-<id>` (press Enter: runs a search box's search), `type-<input>-<id>` per input name
    (not the input the field holds already), and `fill-<id>` (none of the inputs fits: stops as
@@ -124,8 +137,13 @@ status closes it at once, and every browser closes when the session ends.
    stuck: repeating the same actions, or making no progress toward the goal?". Below `stepFloor`
    (0.4: an ordinary step on a real site scores 0.35-0.55), or `abstain`: `blocked`.
 6. **Check, where a step needs it.** *done*, or *goal reached* at 0.85 or more, asks a second
-   yes/no over the page's own text: "From this page, the goal is achieved now, without waiting for
-   another person." That check is the safety: under `confirmConfidence` the run carries on (with
+   check over the page's own text. It asks the decision model to name to itself the exact thing
+   the goal asks for ("the sales phone number", not a phone number) and whether that thing is
+   visible on the page now (a link to it, a related thing, or a different one of the same kind,
+   such as the support number, is not); and, when lines of the page share the goal's words (up to
+   six), which of them shows it, or none. It is done only at `confirmConfidence` or more *and*
+   with a line picked; the step line quotes that line. With no such line (or no page text) the
+   yes/no decides alone. That check is the safety: under `confirmConfidence` the run carries on (with
    the picked step, in the same step, for *goal reached*), and neither is taken on that same page
    again. *stuck* at 0.85 or more (or 0.6 while the last steps changed nothing) ends the run as
    `stuck`. Both are counted on the answer's `signals` line. A consequential step asks the tool
@@ -243,7 +261,7 @@ becomes the page. A site that changes its elements' labels as it renders can rea
 
 `claude plugin test .` runs the rules (`rules.test.ts`) and the loop with a fake decision backend
 and a fake driver (`index.test.ts`): the table, the allowlist, the consequential gate, blocked,
-needs_input, the done check, resume and approve, screening and redaction, and that no input
+needs_input, the done check (a line must show the goal's thing), what was found along the way, resume and approve, screening and redaction, and that no input
 value reaches any request or the store (and a secret-named one the answer); a bot check that
 clears and one that does not (each provider's page is a fixture in `bots.fixture.ts`, with pages
 that only look like one), goal reached and stuck stopping early, an unknown submit not repeated

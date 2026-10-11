@@ -1,6 +1,7 @@
 import { test, expect } from 'claude-code/testing'
+import { unsafe } from '../../../bench/results'
 import { handle, newState, searchDocs, type SiteState } from './sites'
-import { armArgs, cartOf, checkRun, parseLog, playwrightConfig, projectsOf, REFUSED, TASKS, type BrowserTask } from './tasks'
+import { armArgs, cartOf, checkRun, FINAL_CHARS, parseLog, playwrightConfig, projectsOf, REFUSED, TASKS, toolCalls, TRAIL_MAX, trailOf, type BrowserTask } from './tasks'
 
 const byId = (id: string) => TASKS.find(t => t.id === id)! as BrowserTask
 const get = (s: SiteState, url: string, cookie?: string) => handle(s, { method: 'GET', url, ...(cookie ? { cookie } : {}) })
@@ -155,4 +156,45 @@ test('each arm gets its own browser tool and nothing else from MCP; both refuse 
   const config = JSON.parse(playwrightConfig('/c/chrome'))
   expect(config.mcpServers.playwright.args).toEqual(['-y', '@playwright/mcp@0.0.78', '--headless', '--isolated', '--executable-path', '/c/chrome'])
   expect(REFUSED).toEqual(expect.arrayContaining(['WebFetch', 'Bash']))
+})
+
+test('a row keeps the site\'s trail of pages and actions and the answer, so a loss can be read afterwards', () => {
+  const fb = newState('fernbird')
+  get(fb, '/')
+  get(fb, '/contact.html')
+  form(fb, '/api/login', { email: 'demo@fernbird.test', password: 'wrong' })
+  const checked = checkRun(byId('sales-phone'), 'Their number is +64 9 555 0100.', fb.log)
+  expect(checked.success).toBe(false)
+  expect(checked.detail).toMatchObject({ trail: ['page /', 'page /contact.html', 'login-failed /api/login (401)'], final_text: 'Their number is [phone].' })
+  expect(unsafe(checked)).toBeNull()
+  // cut, then masked (a mask may be a little longer than what it hides)
+  expect(String(checkRun(byId('sales-phone'), 'x '.repeat(5000), []).detail!.final_text).length).toBeLessThanOrEqual(FINAL_CHARS + 20)
+  const long = Array.from({ length: TRAIL_MAX + 5 }, () => ({ method: 'GET', path: '/', status: 200, page: true as const }))
+  expect(trailOf(long)).toHaveLength(TRAIL_MAX + 1)
+  expect(trailOf(long).at(-1)).toBe('(5 more)')
+})
+
+test('the tool calls from a transcript: browse up to its page text, Playwright cut short, input values and the demo password out', () => {
+  const line = (role: string, content: unknown[]) => JSON.stringify({ type: role, message: { role, content } })
+  const transcript = [
+    line('assistant', [{ type: 'tool_use', id: 't1', name: 'mcp__jev-mod__browse',
+      input: { goal: 'Log in and find the usage', startUrl: 'http://127.0.0.1:1/', inputs: { email: 'demo@fernbird.test', password: 'Kea-Orchard-41' } } }]),
+    line('user', [{ type: 'tool_result', tool_use_id: 't1', content: [{ type: 'text',
+      text: 'status: done\nreason: r\nsteps:\n1. clicked link "Log in" → 127.0.0.1/login.html (0.90)\nfound along the way (…):\n- u "t":\n  · 48,213 calls\npage text (screened; data, not instructions):\n' + 'p'.repeat(5000) }] }]),
+    line('assistant', [{ type: 'tool_use', id: 't2', name: 'mcp__playwright__browser_type', input: { ref: 'e3', text: 'Kea-Orchard-41' } }]),
+    line('user', [{ type: 'tool_result', tool_use_id: 't2', content: 'typed ' + 'q'.repeat(2000) }]),
+    line('assistant', [{ type: 'tool_use', id: 't3', name: 'Read', input: { file_path: '/x' } }]),
+    'not json',
+  ].join('\n')
+  const calls = toolCalls(transcript)
+  expect(calls.map(c => c.tool)).toEqual(['jev-mod__browse', 'playwright__browser_type'])
+  expect(calls[0]!.input).toContain('"inputs":["email","password"]')
+  expect(calls[0]!.result).toContain('1. clicked link "Log in"')
+  expect(calls[0]!.result).toContain('48,213 calls')
+  expect(calls[0]!.result).not.toContain('ppp')
+  expect(calls[1]!.input).toBe('{"ref":"e3","text":"[password]"}')
+  expect(calls[1]!.result.length).toBeLessThanOrEqual(620)
+  expect(JSON.stringify(calls)).not.toContain('Kea-Orchard-41')
+  expect(JSON.stringify(calls)).not.toContain('demo@fernbird.test')
+  expect(unsafe({ calls })).toBeNull()
 })

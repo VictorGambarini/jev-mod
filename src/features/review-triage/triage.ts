@@ -4,6 +4,36 @@ import { noul, type Answer, type Question } from '../../engine/client'
 // files and hunks, what is sent (capped, redacted, secrets left out), the (up to) seven questions, the
 // verdict, which files drove it, and the text the model reads.
 
+// ── is the prompt a review request ───────────────────────────────────────────
+
+const REVIEW_VERB = /\b(?:re-?review|review|look(?:ing)? (?:over|through)|go(?:ing)? (?:over|through)|check(?:ing)? over|audit|critique)\b/gi
+const REVIEW_OBJECT = /\b(?:diffs?|changes?|changesets?|prs?|pull[- ]?requests?|merge[- ]?requests?|mrs?|commits?|patch(?:es)?|branch|edits|work so far|code|implementation)\b/i
+/** Words before "review" that make it a noun or a thing to build, not a request. */
+/** "review them for bugs": the pronoun points back at a change named earlier; a bug hunt is a code review. */
+const REVIEW_PRONOUN = /^(?:it|them|this|these|those|that|everything)\b/i
+const BUG_HUNT = /\bfor (?:bugs|defects|regressions)\b/i
+const NOT_A_REQUEST = /\b(?:a|an|the|your|my|peer|add|adds|implement|build|write|create|design|support|supports|feature|tool|skill|command|hook|after|during|in)\s*$/i
+const CODE_REVIEW_ASK = /\b(?:do|give|run|perform|need|want|start|get|please|can you|could you)\b[^.?!\n]{0,24}\bcode[- ]?review\b/i
+const REVIEW_WINDOW = 1500
+
+/**
+ * Whether a prompt asks for a code review of a change ("review my changes", "look over this PR",
+ * "can you do a code review"). A cheap local check: "review" must be used as a verb with a code-change
+ * word within a few words after it, so "review the paper" or "add a review step to the code" is not one.
+ * A false match costs one decision call; a miss means the tool stays the model's choice.
+ */
+export function asksForReview(text: string): boolean {
+  const head = text.slice(0, REVIEW_WINDOW)
+  if (CODE_REVIEW_ASK.test(head)) return true
+  for (const m of head.matchAll(REVIEW_VERB)) {
+    if (NOT_A_REQUEST.test(head.slice(Math.max(0, m.index! - 20), m.index!))) continue
+    const after = head.slice(m.index! + m[0].length).split(/[.?!\n]/)[0]!.split(/\s+/).filter(Boolean).slice(0, 7).join(' ')
+    if (REVIEW_OBJECT.test(after) || BUG_HUNT.test(after)) return true
+    if (REVIEW_PRONOUN.test(after) && REVIEW_OBJECT.test(head)) return true
+  }
+  return false
+}
+
 // ── reading the change ───────────────────────────────────────────────────────
 
 /** git diff's flags: plain text, no external differ, renames found, three lines of context. */

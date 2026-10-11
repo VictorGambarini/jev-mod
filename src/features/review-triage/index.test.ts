@@ -1,7 +1,8 @@
 import { test, expect } from 'claude-code/testing'
 import type { FetchInit, IO } from '../../core/io'
 import { run } from '../command'
-import { triage } from './index'
+import { analyse, triage } from './index'
+import { asksForReview } from './triage'
 
 // review-triage's glue with a fake IO: git's answers by command, a project with a CLAUDE.md,
 // and a fake decision backend that answers each question from a table. No real key, no real
@@ -255,8 +256,9 @@ test('the registry entry is all /jev-mod needs: listed, helped, set', async () =
   const fake = io({ backend: 'none' })
   delete fake.disk[USER]
   expect((await run(fake, 'list')).text).toContain('review-triage')
-  expect((await run(fake, 'review-triage')).text).toContain('There is no shadow')
-  expect((await run(fake, 'review-triage shadow')).text).toContain('mode must be off, on')
+  expect((await run(fake, 'review-triage')).text).toContain('shadow: the hook triages and counts')
+  expect((await run(fake, 'review-triage shadow')).text).toContain('review-triage')
+  expect((await run(fake, 'review-triage bogus')).text).toContain('takes off, shadow, on')
   expect((await run(fake, 'review-triage minConfidence 0.4')).text).toContain('0.5 to 1')
   expect((await run(fake, 'review-triage maxDiffChars 20000')).text).toContain('20000')
   expect(JSON.parse(fake.disk[USER]!).features['review-triage'].maxDiffChars).toBe(20000)
@@ -301,6 +303,68 @@ test('a repository with one commit: the last commit is diffed against the empty 
   expect(diffs(fake).at(-1)).toEqual(['4b825dc642cb6eb9a060e54bf8d69288fbee4904', 'HEAD', '--'])
 })
 
+test('the prompt hook: a review request is triaged and the verdict is injected, counted once', async () => {
+  const fake = io({ settings: { mode: 'on' } })
+  const out = await analyse(fake, 'please review my changes before I commit')
+  expect(out).toContain('verdict: quick')
+  expect(out).toContain('review_triage tool')
+  expect(fake.asked.length).toBe(1)
+  expect(fake.asked[0]!.state.diff.F1).toContain('audit(user)') // the diff, redacted, as the tool reads it
+  expect(fake.asked[0]!.state.intent).toBeUndefined() // the prompt's own text is not sent
+  expect(JSON.stringify(fake.asked[0]!)).not.toContain('before I commit')
+  await settle()
+  expect(today(fake).injected).toBe(1)
+})
+
+test('the prompt hook: a flagged change injects a full verdict naming the files', async () => {
+  const fake = io({ p: { security: 0.95 } })
+  const out = await analyse(fake, 'can you review this diff?')
+  expect(out).toContain('verdict: full')
+  expect(out).toContain('src/auth/login.ts')
+})
+
+test('the prompt hook: other prompts do not trigger it, and nothing is asked', async () => {
+  const fake = io()
+  for (const prompt of ['fix the failing test in auth', 'summarise this paper for my review meeting', 'add a review step to the code', 'review the literature on caching', 'write the performance review for Sam', 'what does git diff do?']) {
+    expect(await analyse(fake, prompt)).toBeNull()
+  }
+  expect(fake.asked.length).toBe(0)
+  expect(fake.ran.length).toBe(0)
+})
+
+test('asksForReview: review requests are found, other uses of the word are not', () => {
+  for (const yes of ['review my changes', 'Review this diff please', 'look over this PR', 'Could you go through my commit?', 'I need a code review', 'do a code review of the branch', 'audit the patch for bugs', 'Please re-review the changes I made', 'I have uncommitted changes. Please review them for bugs first.', 'review this for bugs'])
+    expect(asksForReview(yes), yes).toBe(true)
+  for (const no of ['review the docs', 'the code review process is slow', 'implement a review feature', 'hello', 'review', 'peer review of the paper', 'add a review button to the page'])
+    expect(asksForReview(no), no).toBe(false)
+})
+
+test('the prompt hook: shadow decides and counts, injects nothing; the tool still says it is off', async () => {
+  const fake = io({ settings: { mode: 'shadow' } })
+  expect(await analyse(fake, 'review my changes')).toBeNull()
+  expect(fake.asked.length).toBe(1)
+  await settle()
+  expect(today(fake)['would-inject']).toBe(1)
+  expect(today(fake).injected).toBeUndefined()
+  expect(await triage(fake, {})).toContain('review_triage is off')
+})
+
+test('the prompt hook: off asks nothing', async () => {
+  const fake = io({ settings: { mode: 'off' } })
+  expect(await analyse(fake, 'review my changes')).toBeNull()
+  expect(fake.asked.length + fake.ran.length).toBe(0)
+})
+
+test('the prompt hook: no decision, no injection, no throw (no key, no changes, a secret-shaped diff)', async () => {
+  expect(await analyse(io({ backend: 'none' }), 'review my changes')).toBeNull()
+  expect(await analyse(io({ git: { uncommitted: '', lastCommit: '' } }), 'review my changes')).toBeNull()
+  const secret = DIFF.replace('audit(user)', `token = "${TOKEN}"`)
+  const withSecret = io({ git: { uncommitted: secret } })
+  const out = await analyse(withSecret, 'review my changes')
+  expect(JSON.stringify(withSecret.asked)).not.toContain(TOKEN) // never sent
+  expect(out === null || out.includes('verdict: full')).toBe(true) // a secret makes it full, never quick
+})
+
 // Last: a failure starts the five-minute cool-off for the rest of this file's process.
 test('a backend that fails: full with the reason; then the cool-off asks nothing', async () => {
   const down = await triage(io({ backend: 'down' }), {})
@@ -309,4 +373,8 @@ test('a backend that fails: full with the reason; then the cool-off asks nothing
   const after = io()
   expect(await triage(after, {})).toContain('cooling off')
   expect(after.asked.length).toBe(0)
+})
+
+test('the prompt hook: a backend that fails injects nothing and does not throw', async () => {
+  expect(await analyse(io({ backend: 'down' }), 'review my changes')).toBeNull()
 })

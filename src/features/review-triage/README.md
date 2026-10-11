@@ -1,8 +1,8 @@
 # Review triage (`review-triage`)
 
-A tool the model calls before a code review: how deep should the first pass go?
+How deep should the first pass of a code review go? Decided at prompt submit when the prompt asks for a review, and by a tool the model can call when it did not.
 
-Modes: `on`, `off`. Default: `off`. There is no shadow: the model calls the tool by choice, so there is nothing to watch it do unasked.
+Modes: `on`, `shadow`, `off`. Default: `off`, as shipped for this feature before the hook: every use of the decision model is opt-in, and turning this on adds a decision call to each review request. With `off` the hook does nothing (the bench turns the feature on). `shadow` runs the hook, counts what it would have injected (`would-inject`) and adds nothing; the tool is offered only in `on`.
 
 ## What it decides
 
@@ -10,7 +10,9 @@ Modes: `on`, `off`. Default: `off`. There is no shadow: the model calls the tool
 
 ## When it runs
 
-When the model calls `review_triage` (`mcp__jev-mod__review_triage`) before a code review, which is offered while the feature is on. With `off`, the tool is not offered (a session started while it was on keeps it, and it answers that it is off).
+**At prompt submit (the hook).** A cheap local check decides whether the prompt asks for a review of a change: "review" (or "look over", "go through", "audit") used as a verb with a code word (diff, changes, PR, commit, patch, branch, code) within a few words after it, or "do/give/need a code review". "Review the paper", "a review step in the code" or "peer review" do not match. A false match costs one decision call; a miss leaves the tool to the model. On a match the hook runs the same triage the tool runs, on the same git diff (uncommitted changes against HEAD, else the last commit), with the same redaction, secret-shaped skip, budget, private mode and cool-off, and adds the verdict as context beside the prompt (and a toast). The prompt's own text is never sent, and no intent is passed. If the decision model gives no answer (no key, budget, timeout, backend down, a diff too large, nothing to triage, a diff that is mostly secrets) nothing is added and the prompt goes on as it would have. Counted as `injected` (on) or `would-inject` (shadow), beside the usual `quick`/`full`/`undecided`. A review of other changes (a branch or PR named in the prompt) is for the tool, which takes a `base`.
+
+**By the tool.** When the model calls `review_triage` (`mcp__jev-mod__review_triage`) before a code review, which is offered while the feature is on. With `off`, the tool is not offered (a session started while it was on keeps it, and it answers that it is off).
 
 ## How it decides
 
@@ -38,7 +40,7 @@ The git diff goes to the decision model: the uncommitted changes against HEAD, e
 
 ## Failing open, privacy and budget
 
-No key, private mode, the daily budget, a failing backend, no answer within `timeoutMs`, or a diff too large to triage: *full*, with the reason. The diff is redacted; a part that looks like it holds a secret is not sent.
+No key, private mode, the daily budget, a failing backend, no answer within `timeoutMs`, or a diff too large to triage: the tool answers *full*, with the reason; the hook adds nothing. The diff is redacted; a part that looks like it holds a secret is not sent.
 
 ## Limits
 

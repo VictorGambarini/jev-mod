@@ -249,8 +249,10 @@ sends only the best `maxCandidates` to the decision model, as redacted cards, ab
 request, packed by encoded size as compaction's turns are. Every failure (no key, private mode,
 the budget, the cool-off, a timeout) answers with the local ranking, labelled as such.
 
-`review-triage` offers `mcp__jev-mod__review_triage` the same way (off by default), for the model
-to call before it reviews a change. It reads the change with git (`git diff HEAD` plus untracked
+`review-triage` also runs at prompt submit: `analyse` (as skills' does) matches a review request with a cheap local
+check (`asksForReview`), runs the same triage on the git diff and adds the verdict beside the prompt (nothing in
+shadow, nothing when the decision model did not answer). It offers `mcp__jev-mod__review_triage` the same way (off by default), for the model
+to call before it reviews a change, when the hook did not fire. It reads the change with git (`git diff HEAD` plus untracked
 files; with none, `HEAD~1 HEAD` (the empty tree against `HEAD` in a repository with one commit); given a `base`, `git diff --merge-base <base>`, or the range as
 given), splits it per file and hunk, and builds a summary: hunks that look like they hold or handle
 a secret (`isSensitive`) are left out, the rest redacted, and hunks longer than a common cap are cut to it

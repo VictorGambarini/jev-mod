@@ -237,10 +237,11 @@ export const register: Register = (on, given) => {
     if (!text.trim() || text.trimStart().startsWith('/')) return next(e)
     const io = ioOf($)
     await memory.load(io)
-    const [suggestion] = await Promise.all([skills.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text),
+    const [suggestion, triaged] = await Promise.all([skills.analyse(io, text), reviewTriage.analyse(io, text), routing.analyse(io, text), toolGate.analyse(io, text),
       offerFindFiles($), offerReviewTriage($), offerBrowse($)])
     await refresh($)
-    return next(suggestion ? { ...e, context: [...(e.context ?? []), suggestion] } : e)
+    const added = [suggestion, triaged].filter((c): c is string => Boolean(c))
+    return next(added.length ? { ...e, context: [...(e.context ?? []), ...added] } : e)
   }).catch(($, e, next) => next(e))
 
   on('turn.start', async ($, e, next) => {

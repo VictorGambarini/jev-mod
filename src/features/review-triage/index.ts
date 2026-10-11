@@ -9,7 +9,7 @@ import { ask, costOf, JevError, MAX_STATE_CHARS, type Answer, type Asked } from 
 import { isSensitive, redact } from '../../engine/privacy'
 import { encode } from '../../engine/pyjson'
 import {
-  attribute, capRules, decide, describeSource, diffArgs, followUpOf, HARD_CAP_FACTOR, MAX_FILES, MAX_PATHS,
+  asksForReview, attribute, capRules, decide, describeSource, diffArgs, followUpOf, HARD_CAP_FACTOR, MAX_FILES, MAX_PATHS,
   MIN_SENT_SHARE, parseDiff, projectPath, questionsOf, render, RULE_FILES, rulesIn, statsOf, summarize,
   untrackedArgs, untrackedDiff, validRef, type FileDiff, type Outcome, type QuestionId, type Source,
 } from './triage'
@@ -60,7 +60,7 @@ export const SPEC = {
   isDeferred: false,
 }
 
-/** Whether the tool should be offered to the model now. */
+/** Whether the tool should be offered to the model now (not in shadow: the hook runs there, the tool is not offered). */
 export async function offered(io: IO): Promise<boolean> {
   try { return (await setting(io, ID)).mode === 'on' } catch { return false }
 }
@@ -137,9 +137,9 @@ export async function projectRules(io: IO, root: string): Promise<string[]> {
 type Calls = { calls: Asked[]; errors: string[]; refused?: string }
 
 async function askOnce(io: IO, state: unknown, questions: Record<string, unknown>, deadline: number, calls: Calls,
-  limits: Awaited<ReturnType<typeof limitsOf>>): Promise<Record<string, Answer> | null> {
+  limits: Awaited<ReturnType<typeof limitsOf>>, shadow = false): Promise<Record<string, Answer> | null> {
   if (limits) {
-    const [allowed, reason] = await limits.admit(false)
+    const [allowed, reason] = await limits.admit(shadow)
     if (!allowed) { calls.refused = reason || 'the daily budget is spent'; return null }
   }
   try {
@@ -227,11 +227,19 @@ function undecided(base: Omit<Outcome, 'verdict' | 'by'>, reason: string, by = '
   return render({ ...base, verdict: 'full', notes: [...(base.notes ?? []), `triage could not decide: ${reason}`], by })
 }
 
-/** The tool's answer, as text for the model. Never throws: a failure is said in the text, as verdict full. */
-export async function triage(io: IO, input: Input): Promise<string> {
+/** What the prompt hook learns about a run: whether the decision model answered, and the mode it ran in. */
+export type Trace = { decided?: boolean; shadow?: boolean }
+
+/**
+ * The tool's answer, as text for the model. Never throws: a failure is said in the text, as verdict full.
+ * `trace` is for the prompt hook: it runs in shadow too (`trace` given), and learns whether the decision model answered.
+ */
+export async function triage(io: IO, input: Input, trace?: Trace): Promise<string> {
   try {
     const mine = await setting(io, ID)
-    if (mine.mode !== 'on') return 'review_triage is off (/jev-mod review-triage on turns it on); do the full review.'
+    const shadow = Boolean(trace) && mine.mode === 'shadow'
+    if (trace) trace.shadow = shadow
+    if (mine.mode !== 'on' && !shadow) return 'review_triage is off (/jev-mod review-triage on turns it on); do the full review.'
     const minConfidence = Number(mine.knobs.minConfidence?.value ?? 0.8)
     const maxDiffChars = Number(mine.knobs.maxDiffChars?.value ?? 12000)
     const timeoutMs = Number(mine.knobs.timeoutMs?.value ?? 8000)
@@ -302,7 +310,7 @@ export async function triage(io: IO, input: Input): Promise<string> {
     const deadline = Date.now() + timeoutMs
     const calls: Calls = { calls: [], errors: [] }
     const questions = questionsOf(hasIntent, rules.length > 0)
-    const answers = await askOnce(io, state, questions, deadline, calls, limits)
+    const answers = await askOnce(io, state, questions, deadline, calls, limits, shadow)
     if (!answers) {
       await recordCalls(io, calls.calls, calls.errors, ID)
       void activity.count(io, ID, 'undecided')
@@ -315,13 +323,14 @@ export async function triage(io: IO, input: Input): Promise<string> {
       for (const f of decision.flags) attributed.set(f.id, [named[0]!.file])
     } else if (decision.flags.length && named.length > 1 && deadline - Date.now() > 1000) {
       const followUp = followUpOf(decision.flags.map(f => f.id), named, hasIntent)
-      const more = await askOnce(io, state, followUp, deadline, calls, limits)
+      const more = await askOnce(io, state, followUp, deadline, calls, limits, shadow)
       if (more) attributed = attribute(more, decision.flags, named)
     }
     await recordCalls(io, calls.calls, calls.errors, ID)
     const verdict = decision.verdict === 'quick' && !withheld.length && !incomplete ? 'quick' : 'full'
     void activity.count(io, ID, verdict)
     const requests = calls.calls.length
+    if (trace) trace.decided = true
     return render({ ...shown, verdict, flags: decision.flags, attributed, hasIntent, notes, withheld, skipped, trimmed,
       by: `the decision model (${requests} request${requests === 1 ? '' : 's'})` })
   } catch (error) {
@@ -329,3 +338,31 @@ export async function triage(io: IO, input: Input): Promise<string> {
     return `verdict: full\ndo the full review; start with these files.\nreasons:\n- triage failed (${error instanceof Error ? error.message : String(error)})`
   }
 }
+
+// ── the prompt hook ──────────────────────────────────────────────────────────
+
+/**
+ * At prompt submit: when the prompt asks for a code review, triage the change now and return the
+ * verdict as context beside the prompt, so the model need not remember to call the tool. Null when
+ * the prompt is not a review request, the mode is off or shadow (shadow decides and counts, adds
+ * nothing), or triage did not get an answer from the decision model (the model then reviews as it
+ * would have). The prompt's own text is never sent: triage reads only the git diff, as the tool does.
+ */
+export async function analyse(io: IO, text: string): Promise<string | null> {
+  try {
+    if (!asksForReview(text)) return null
+    const mode = (await setting(io, ID)).mode
+    if (mode === 'off') return null
+    const trace: Trace = {}
+    const answer = await triage(io, {}, trace)
+    if (!trace.decided) return null
+    if (trace.shadow) { void activity.count(io, ID, 'would-inject'); return null }
+    void activity.count(io, ID, 'injected')
+    io.toast('jev-mod: review triaged')
+    return `${NOTE}\n${answer}`
+  } catch {
+    return null
+  }
+}
+
+const NOTE = 'jev-mod triaged the current git changes for this review request (the review_triage tool, run for you; no need to call it again unless you review other changes):'

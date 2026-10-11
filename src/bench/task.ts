@@ -12,6 +12,7 @@
 // the context its final step read and, when the mod recorded one, what its compaction kept and dropped.
 
 import { PROVIDERS } from '../engine/keys'
+import './gate-sys' // the gate benches' cases reach the machine through it
 import { fs, proc, run, say, warn } from './node'
 import { overlayFor } from './plan'
 import { toLine } from './results'
@@ -64,6 +65,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       const git = (...args: string[]) => run('git', ['-c', 'user.name=bench', '-c', 'user.email=bench@example.invalid', ...args], { cwd: work, timeoutMs: 30_000 })
       for (const args of [['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'fixture']]) await git(...args)
     }
+    if (c.prepare) await c.prepare(work)
     const tools = c.allowedTools ?? []
     // the shared session, built with every feature that changes what the model sees off
     const setupOverlay = `${dir}/overlay-setup.json`
@@ -82,8 +84,12 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     rows.push(setup)
     await f.appendFile(o.out, toLine(setup) + '\n')
     say(`${c.id}: setup ${setupFailed ? `failed (${setupFailed})` : `done (session ${session ?? 'none'})`}, $${setup.claude_cost_usd!.toFixed(3)} Claude`)
+    // an isolated case: the project as the setup left it, put back before every arm after the first
+    const pristine = c.isolated && !setupFailed ? `${dir}/pristine` : null
+    if (pristine) await f.cp(work, pristine, { recursive: true })
     const done: { arm: Arm; row: Row; run: ArmRun }[] = []
     for (const [k, arm] of o.arms.entries()) {
+      if (pristine && k > 0) { await f.rm(work, { recursive: true, force: true }); await f.cp(pristine, work, { recursive: true }) }
       const ledger = `${dir}/ledger-${k}`
       const overlay = `${dir}/overlay-${k}.json`
       await f.mkdir(ledger, { recursive: true })
@@ -97,7 +103,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       if (setupFailed) { row.outcome = 'error'; row.error = `setup: ${setupFailed}` }
       for (const [s, step] of o.adapter.steps(c, arm).entries()) {
         if (row.outcome === 'error') break
-        const r = await claude(step.prompt, work, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
+        const r = await claude(step.prompt, work, overlay, { ...backendEnv(arm), ...(o.adapter.env?.(arm) ?? {}) }, mine, s === 0 && mine !== null, tools, step.disallowedTools)
         row.wall_ms! += r.ms
         row.claude_cost_usd! += r.cost
         for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]

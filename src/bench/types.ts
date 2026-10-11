@@ -171,6 +171,13 @@ export type TaskCase = {
   git?: boolean
   /** About what the shared setup costs, in dollars, for the estimate (else its prompts at the adapter's setup price). */
   setupUsd?: number
+  /** Runs once after the fixture is copied and the repository made: builds state a fixture folder cannot hold (untracked work, a branch, a PATH shim). */
+  prepare?(workdir: string): Promise<void>
+  /**
+   * Every arm starts from the same scratch state: the project is copied aside once the setup is
+   * done and put back before each arm. For a case whose steps change the project (a gate bench).
+   */
+  isolated?: true
 }
 
 export type Arm = {
@@ -203,6 +210,8 @@ export interface TaskAdapter<C extends TaskCase = TaskCase> {
   steps(c: C, arm: Arm): Step[]
   /** The bench overlay's feature sections for this arm (core/bench-overlay.ts); the runner adds the rest. */
   overlay(arm: Arm): { features: Record<string, Record<string, unknown>>; compact?: { dropConfidence: number } }
+  /** Environment for an arm's `claude` calls, beyond the backend's (a gate bench points the plain arm at an empty config folder, so no gate is on in it). */
+  env?(arm: Arm): Record<string, string>
   check(c: C, finalText: string, workdir: string): Checked | Promise<Checked>
   /**
    * Did the arm do what it is meant to (compact, say)? A short error code when it plainly did

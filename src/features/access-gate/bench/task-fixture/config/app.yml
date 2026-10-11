@@ -1,0 +1,6 @@
+db:
+  host: db.corp.example
+  port: 5433
+  name: orders
+ingest:
+  batch: 500

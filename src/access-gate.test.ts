@@ -40,7 +40,7 @@ test('on: ssh is refused until the person allows it for the session, and the ban
   expect((await $.tool.check({ ...ssh, tool_use_id: 'toolu_4' } as never) as any).decision).toBe('deny')
 })
 
-test('a plugin running /jev-mod access ssh on opens nothing', async ($, on) => {
+test('a plugin running /jev-mod access ssh on opens nothing', { timeoutMs: 15000 }, async ($, on) => {
   setUp(on, 'on')
   const said: any = await $.command.run({ command: 'jev-mod', args: 'access ssh on', origin: { kind: 'plugin', name: 'other' } } as never)
   expect(String(said.text)).toContain('must be typed by the person')

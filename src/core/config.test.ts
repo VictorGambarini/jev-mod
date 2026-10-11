@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { configured, problems, redactContactsSetting, reset, resolve, snapshot, write } from './config'
+import { configured, problems, setting, redactContactsSetting, reset, resolve, snapshot, write } from './config'
 import type { IO } from './io'
 import { checkKnob, FEATURES, feature, type Feature } from './registry'
 import { isPrivate } from './settings'
@@ -211,4 +211,14 @@ test('contact details: masked only when /config or a project turns it on; a proj
   ])
   expect(problems(await snapshot(io({}, project('yes'))))).toEqual(['project config: redactContacts must be true or false'])
   expect(problems(await snapshot(io({}, project(true))))).toEqual([])
+})
+
+test('asking for one feature reads only that feature\'s files, not every feature\'s kill files', async () => {
+  const seen: string[] = []
+  const probe = io({}, { [USER]: conf({ skills: { mode: 'on' } }) })
+  const read = probe.readFile
+  probe.readFile = async (path: string) => { seen.push(path); return read(path) }
+  expect((await setting(probe, 'skills')).mode).toBe('on')
+  expect(seen.length).toBeLessThan(10)
+  expect(seen.filter(path => path.endsWith('/BROWSER_OFF'))).toEqual([])
 })

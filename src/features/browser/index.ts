@@ -207,19 +207,31 @@ export function pageOf(obs: Observation, values: Values, textChars: number): Pag
     return { url: obs.url, title: obs.title, text: null,
       withheld: obs.sensitive ? 'the page has a password, card or one-time-code field' : 'the page text looks like it holds secrets' }
   }
-  const cut = [...raw].slice(0, textChars).join('')
-  return { url: obs.url, title: obs.title, text: redact(scrub(cut, values), textChars + 200) }
+  const cut = scrub([...raw].slice(0, textChars).join(''), values)
+  return { url: obs.url, title: obs.title, text: redact(cut, textChars + 200), answer: cut }
 }
 
-/** The page's text as the decision model may read it: values out, redacted, screened. Null for a page that looks sensitive. */
+/**
+ * The page's text as the decision model may read it: values out, redacted, screened; and as the
+ * answer carries it: unredacted only when screening withheld nothing. Null for a page that looks sensitive.
+ */
 async function prepare(ctx: Ctx, s: Session, obs: Observation): Promise<Page> {
   const fp = fingerprint(obs)
   if (s.page?.fp === fp) return s.page.page
   const plain = pageOf(obs, s.values, ctx.textChars)
-  const page: Page = plain.text === null ? plain : { ...plain, text: await screen(ctx, plain.text) }
+  let page: Page = plain
+  if (plain.text !== null) {
+    const text = await screen(ctx, plain.text)
+    page = { ...plain, text, answer: text === plain.text ? plain.answer : text }
+  }
   s.page = { fp, page }
-  noteFound(s.found, { url: redact(scrub(obs.url, s.values), 500), title: safeLabel(obs.title, s.values), text: page.text }, scrub(s.goal, s.values))
+  noteFound(s.found, { url: redact(scrub(obs.url, s.values), 500), title: safeLabel(obs.title, s.values), text: shown(page) }, scrub(s.goal, s.values))
   return page
+}
+
+/** The page's text as the answer carries it (null: withheld as sensitive). */
+function shown(page: Page): string | null {
+  return page.text === null ? null : page.answer ?? page.text
 }
 
 /** Injected instructions withheld, as screening withholds them from a fetched page (whatever screening's own mode). */
@@ -264,7 +276,7 @@ function outcome(s: Session, status: Status, reason: string, extra: Partial<Outc
     status, reason, steps: s.steps,
     url: s.obs ? redact(scrub(s.obs.url, s.values), 500) : undefined,
     title: s.obs ? redact(scrub(s.obs.title, s.values), 200) : undefined,
-    text: page ? page.text : undefined,
+    text: page ? shown(page) : undefined,
     signals: s.signals,
     events: s.events,
     eventsMore: s.eventsMore,
@@ -721,7 +733,7 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
     }
     // The page text the model reads is the screened copy; a page not yet read is read (and screened) now.
     if (out.text === undefined && s.obs && !['failed', 'left_allowlist'].includes(out.status)) {
-      try { out = { ...out, text: (await prepare(ctx, s, s.obs)).text } } catch { /* the steps say enough */ }
+      try { out = { ...out, text: shown(await prepare(ctx, s, s.obs)) } } catch { /* the steps say enough */ }
     }
     await finish(io, out.status)
     // Everything above (what was sent, the band, the steps) carries [input:<name>]; the model's own answer gets the values back, secrets aside.

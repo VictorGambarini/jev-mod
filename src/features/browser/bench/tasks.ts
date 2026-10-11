@@ -20,6 +20,7 @@
 // (core/bench-overlay.ts LOOPBACK_ON), which is all these sites need.
 
 import type { Arm, Checked, TaskCase } from '../../../bench/types'
+import { redactSecretValues } from '../../../engine/privacy'
 import { DEMO_LOGIN, type Hit, newState, handle, type SiteId } from './sites'
 
 export type BrowserTask = TaskCase & {
@@ -175,13 +176,15 @@ export function checkRun(t: BrowserTask, finalText: string, log: readonly Hit[])
       requests: log.length,
       logins_failed: log.filter(h => h.action === 'login-failed').length,
       trail: trailOf(log),
-      final_text: cut(finalText, FINAL_CHARS),
+      final_text: redactSecretValues(cut(finalText, FINAL_CHARS), Number.POSITIVE_INFINITY),
     },
   }
 }
 
 // What a row keeps of a run, so a loss can be read afterwards: the site's own log of pages and
-// actions (both arms alike), the answer, and each browser tool call with what it answered.
+// actions (both arms alike), the answer, and each browser tool call with what it answered. The
+// answer and the calls are masked as the result file's own check wants (a phone number reads
+// [phone]); `answered` says whether the answer itself matched.
 export const TRAIL_MAX = 60
 export const FINAL_CHARS = 2000
 export const TOOL_CALLS_MAX = 30
@@ -217,7 +220,7 @@ export function toolCalls(transcript: string): ToolCall[] {
       if (block?.type === 'tool_use' && typeof block.name === 'string' && /^mcp__(jev-mod__browse|playwright__)/.test(block.name)) {
         const input = { ...(block.input ?? {}) }
         if (input.inputs && typeof input.inputs === 'object') input.inputs = Object.keys(input.inputs)
-        calls.push({ id: String(block.id), tool: block.name.replace(/^mcp__/, ''), input: cut(hide(JSON.stringify(input)), 400), result: '' })
+        calls.push({ id: String(block.id), tool: block.name.replace(/^mcp__/, ''), input: hide(JSON.stringify(input), 400), result: '' })
       } else if (block?.type === 'tool_result') {
         const text = typeof block.content === 'string' ? block.content
           : Array.isArray(block.content) ? block.content.filter((c: any) => c?.type === 'text').map((c: any) => c.text).join('\n') : ''
@@ -226,14 +229,16 @@ export function toolCalls(transcript: string): ToolCall[] {
     }
   }
   return calls.slice(0, TOOL_CALLS_MAX).map(({ id, ...c }) => {
-    const text = hide(results.get(id) ?? '')
+    const text = results.get(id) ?? ''
     const browse = c.tool === 'jev-mod__browse'
     const kept = browse ? text.split(/\npage text[ :(]/)[0]! : text
-    return { ...c, result: cut(kept, browse ? TOOL_RESULT_CHARS.browse : TOOL_RESULT_CHARS.other) }
+    return { ...c, result: hide(kept, browse ? TOOL_RESULT_CHARS.browse : TOOL_RESULT_CHARS.other) }
   })
 }
 
-const hide = (text: string) => text.split(DEMO_LOGIN.password).join('[password]')
+// a row is never written with a secret-shaped value in it (results.ts), so the masks go on first: a phone number reads [phone]
+// (cut first: a mask cut in half would read as something else)
+const hide = (text: string, n: number) => redactSecretValues(cut(text.split(DEMO_LOGIN.password).join('[password]'), n), Number.POSITIVE_INFINITY)
 
 /** The headless Chromium jev-mod's browser installs, for Playwright MCP to use too. */
 export function chromiumPath(home: string): string {

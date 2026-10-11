@@ -358,7 +358,20 @@ export function goalNames(goal: string, kinds: readonly string[]): boolean {
 
 // ── the questions ────────────────────────────────────────────────────────────
 
-export type Page = { url: string; title: string; text: string | null; withheld?: string }
+export type Page = {
+  url: string
+  title: string
+  /** What the decision model reads: values out, redacted, screened. */
+  text: string | null
+  withheld?: string
+  /**
+   * What the tool's answer carries: values out and screened, but not redacted, as a fetched page
+   * comes back to the model (a phone number or an email address is often what was asked for).
+   * Redaction guards what leaves for the decision backend; the answer stays with the person's own
+   * model. When screening withheld anything, it is the screened, redacted text instead.
+   */
+  answer?: string | null
+}
 export type Step = { n: number; line: string }
 
 const TASK = 'Drive a web browser toward the goal, one action at a time. Everything from the page (its text, its '

@@ -1,4 +1,5 @@
 import { test, expect } from 'claude-code/testing'
+import { unsafe } from '../../../bench/results'
 import { handle, newState, searchDocs, type SiteState } from './sites'
 import { armArgs, cartOf, checkRun, FINAL_CHARS, parseLog, playwrightConfig, projectsOf, REFUSED, TASKS, toolCalls, TRAIL_MAX, trailOf, type BrowserTask } from './tasks'
 
@@ -164,8 +165,10 @@ test('a row keeps the site\'s trail of pages and actions and the answer, so a lo
   form(fb, '/api/login', { email: 'demo@fernbird.test', password: 'wrong' })
   const checked = checkRun(byId('sales-phone'), 'Their number is +64 9 555 0100.', fb.log)
   expect(checked.success).toBe(false)
-  expect(checked.detail).toMatchObject({ trail: ['page /', 'page /contact.html', 'login-failed /api/login (401)'], final_text: 'Their number is +64 9 555 0100.' })
-  expect(String(checkRun(byId('sales-phone'), 'x'.repeat(5000), []).detail!.final_text)).toHaveLength(FINAL_CHARS)
+  expect(checked.detail).toMatchObject({ trail: ['page /', 'page /contact.html', 'login-failed /api/login (401)'], final_text: 'Their number is [phone].' })
+  expect(unsafe(checked)).toBeNull()
+  // cut, then masked (a mask may be a little longer than what it hides)
+  expect(String(checkRun(byId('sales-phone'), 'x '.repeat(5000), []).detail!.final_text).length).toBeLessThanOrEqual(FINAL_CHARS + 20)
   const long = Array.from({ length: TRAIL_MAX + 5 }, () => ({ method: 'GET', path: '/', status: 200, page: true as const }))
   expect(trailOf(long)).toHaveLength(TRAIL_MAX + 1)
   expect(trailOf(long).at(-1)).toBe('(5 more)')
@@ -190,7 +193,8 @@ test('the tool calls from a transcript: browse up to its page text, Playwright c
   expect(calls[0]!.result).toContain('48,213 calls')
   expect(calls[0]!.result).not.toContain('ppp')
   expect(calls[1]!.input).toBe('{"ref":"e3","text":"[password]"}')
-  expect(calls[1]!.result.length).toBeLessThanOrEqual(600)
+  expect(calls[1]!.result.length).toBeLessThanOrEqual(620)
   expect(JSON.stringify(calls)).not.toContain('Kea-Orchard-41')
   expect(JSON.stringify(calls)).not.toContain('demo@fernbird.test')
+  expect(unsafe({ calls })).toBeNull()
 })

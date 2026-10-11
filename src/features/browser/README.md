@@ -16,7 +16,7 @@ When the model calls `browse` (`mcp__jev-mod__browse`), which is offered while t
 
 - A headless Chromium on a throwaway profile (Playwright) opens the start page. Each step its links, buttons and fields become a table of actions and the decision model picks one.
 - It never writes text: what to type comes from the call's `inputs`, sent to the decision model by name only.
-- Page text is redacted and screened first.
+- Page text is redacted and screened first. The answer to the model gets it screened but not redacted (a phone number is often the point), as a fetched page comes back; when screening withheld any of it, the screened, redacted copy.
 - It stays on the start site.
 - A consequential step (buy, pay, send, delete, post, sign up, submit a form) waits for you unless the goal names it and the decision model is at least `confirmConfidence` sure the goal asks for it.
 - *Done* (or the decision model saying the goal is reached) needs a second check over the page's own text: the exact thing the goal asks for must be visible there, and when lines of the page share the goal's words, the decision model must pick the line that shows it (not "none").

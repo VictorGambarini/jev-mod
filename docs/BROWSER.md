@@ -118,6 +118,11 @@ status closes it at once, and every browser closes when the session ends.
    screening feature's own mode. A page with a password, card or one-time-code field, or text that
    looks like it holds secrets, is sent as its elements only. Labels have the values cut out, are
    redacted, and are screened locally (a label that looks like an injection or a secret is replaced).
+   The redaction guards what leaves for the decision backend. The answer to the model carries the
+   page text with the values cut out and screened, but not redacted, as a fetched page comes back
+   (a phone number or an email address is often what was asked for); when screening withheld any
+   of it, the answer carries the screened, redacted copy instead. A page sent as its elements only
+   has no text in the answer either.
 4. **The table.** `click-<id>` per element; per field that takes text, once it holds text
    `submit-<id>` (press Enter: runs a search box's search), `type-<input>-<id>` per input name
    (not the input the field holds already), and `fill-<id>` (none of the inputs fits: stops as

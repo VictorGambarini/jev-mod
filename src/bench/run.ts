@@ -17,7 +17,7 @@ import { runTasks } from './task'
 import type { Row, RunMeta, Setting } from './types'
 
 type Args = { feature: string; level: 'decision' | 'task'; backends: string[]; sweep: Sweep | null; settings: Record<string, Setting>;
-  cases: string[] | null; timeoutMs: number; yes: boolean; usdPerCall: number | null; maxUsdPerCall: number; claudeArgs: string[] }
+  cases: string[] | null; timeoutMs: number; yes: boolean; usdPerCall: number | null; maxUsdPerCall: number | null; claudeArgs: string[] }
 
 const USAGE = `usage: bun src/bench/run.ts <feature> [--level decision|task] --backend <name>[,<name>...]
   [--sweep name=from:to:step] [--set name=value ...] [--cases id,id] [--timeout ms]
@@ -27,7 +27,7 @@ backends: fake, default, typesafe, openrouter, venice, zen, or a name from backe
 
 export function parseArgs(argv: string[]): Args {
   const a: Args = { feature: '', level: 'decision', backends: [], sweep: null, settings: {}, cases: null, timeoutMs: 20_000,
-    yes: false, usdPerCall: null, maxUsdPerCall: 2, claudeArgs: [] }
+    yes: false, usdPerCall: null, maxUsdPerCall: null, claudeArgs: [] }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
     const value = () => {
@@ -127,7 +127,8 @@ async function main(): Promise<number> {
   await f.mkdir(dir, { recursive: true })
   const out = `${dir}/${fileName(date, 'task', a.backends.join('+'), false)}`
   say(`writing ${out}`)
-  const rows = await runTasks({ adapter, arms, cases, meta, repo, out, claudeArgs: a.claudeArgs, maxUsdPerCall: a.maxUsdPerCall, timeoutMs: 15 * 60_000 })
+  const rows = await runTasks({ adapter, arms, cases, meta, repo, out, claudeArgs: a.claudeArgs,
+    maxUsdPerCall: a.maxUsdPerCall ?? adapter.maxUsdPerCall ?? 2, timeoutMs: 15 * 60_000 })
   const sum = (mine: readonly Row[], f: (r: Row) => number) => mine.reduce((n, r) => n + f(r), 0)
   const setup = rows.filter(r => r.setup)
   const failed = rows.filter(r => !r.setup && r.outcome === 'error')

@@ -124,8 +124,10 @@ export type BarPanel = { title: string; rows: { label: string; value: number | n
 /** Small multiples of horizontal bars: one measure per panel, rows in the same order in each. */
 export function barPanels(c: { title: string; subtitle?: string; panels: BarPanel[]; fake?: boolean }): string {
   const labels = c.panels[0]?.rows.map(r => r.label) ?? []
-  const W = 720
-  const labelW = 170
+  // room for the longest label (about 7 px a character), up to 34 characters of it
+  const labelW = Math.max(170, Math.min(34, Math.max(0, ...labels.map(l => l.length))) * 7 + 16)
+  // wider for many panels, so each keeps room for its bars and their numbers
+  const W = Math.max(720, labelW + 24 + 130 * c.panels.length)
   const panelW = (W - labelW - 24) / Math.max(1, c.panels.length)
   const T = c.fake ? 96 : 78
   const rowH = 26
@@ -137,7 +139,7 @@ export function barPanels(c: { title: string; subtitle?: string; panels: BarPane
   if (c.subtitle) out.push(`<text class="st" x="16" y="44">${esc(c.subtitle)}</text>`)
   if (c.fake) out.push(`<text class="fake" x="16" y="${c.subtitle ? 62 : 44}">FAKE BACKEND: example numbers, not a measurement</text>`)
   labels.forEach((label, i) => {
-    const short = label.length > 26 ? label.slice(0, 25) + '…' : label
+    const short = label.length > 34 ? label.slice(0, 33) + '…' : label
     out.push(`<text class="lab" x="${labelW - 8}" y="${T + i * rowH + 17}" text-anchor="end">${esc(short)}</text>`)
   })
   c.panels.forEach((p, k) => {

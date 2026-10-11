@@ -1,0 +1,9 @@
+[project]
+name = "ledgerline"
+version = "2.13.2"
+description = "Tidewater subscription billing"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.ledgerline]
+default_region = "NZ"

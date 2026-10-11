@@ -45,6 +45,8 @@ Nothing is removed when the decision model does not answer, when it marks no tur
 
 ## Benchmarks
 
+Two benches (src/bench/README.md). The decision level asks Jev about ten labelled sessions and sweeps the drop bar. The task level builds three long, real coding sessions in `bench/task-fixture/` (a bug fix, a feature, an investigation; about 105k tokens of conversation each), compacts a fork of each with `/compact`, with this compaction at each drop bar, and not at all, then asks what a continuation needs with every tool refused. In a bench run the compaction writes what it kept and dropped to the run's ledger; an arm whose question did not read a meaningfully smaller context, or that dropped nothing, is `not_compacted`, never a score. It is not run yet: one pass costs about $105 in Claude calls (`bun src/bench/run.ts compact --level task --backend <name> --sweep drop=0.6:0.9:0.1` prints the plan).
+
 <!-- bench:start -->
 **Bench** (`bun src/bench/report.ts compact`; 0.11.0@14f7f68). Threshold swept: `drop` (today 0.7). Recommended = where accuracy peaks; a tie goes to the higher value: a higher bar keeps more, and a dropped message cannot be had back.
 

@@ -47,6 +47,10 @@ export type ArmSummary = {
   claudeCost: number | null
   decisionCost: number | null
   tokens: number | null
+  /** The final step's context in tokens (what a compacted question read), over every run that reported it, failed ones too. */
+  context: number | null
+  /** What the mod's compactions kept and dropped, in messages, over the runs that recorded one. */
+  compaction: { messages: number; kept: number; dropped: number } | null
 }
 
 export type Summary = {
@@ -136,6 +140,8 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
     .map(([key, mine]) => {
       const ok = mine.filter(r => r.outcome === 'ok')
       const num = (f: (r: Row) => number | undefined) => mean(ok.map(f).filter((n): n is number => typeof n === 'number'))
+      const all = (f: (r: Row) => number | null | undefined) => mean(mine.map(f).filter((n): n is number => typeof n === 'number'))
+      const compacted = mine.filter(r => r.compaction)
       const errors: Record<string, number> = {}
       for (const r of mine) if (r.outcome === 'error') errors[r.error ?? 'error'] = (errors[r.error ?? 'error'] ?? 0) + 1
       return {
@@ -143,6 +149,10 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
         success: num(r => (r.success === undefined ? undefined : r.success ? 1 : 0)), score: num(r => r.score),
         wallMs: num(r => r.wall_ms), claudeCost: num(r => r.claude_cost_usd), decisionCost: num(r => r.cost_usd),
         tokens: num(r => (r.claude_tokens ? r.claude_tokens.input + r.claude_tokens.output + r.claude_tokens.cache_read + r.claude_tokens.cache_write : undefined)),
+        // a compaction that did too little is an error, and what it read and kept is the reason: these count every run
+        context: all(r => r.context_tokens),
+        compaction: compacted.length ? { messages: all(r => r.compaction?.messages)!, kept: all(r => r.compaction?.kept)!,
+          dropped: all(r => r.compaction?.dropped)! } : null,
       }
     })
   const total = (mine: readonly Row[], f: (r: Row) => number | undefined) => mine.reduce((n, r) => n + (f(r) ?? 0), 0)
@@ -155,6 +165,7 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
 
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? '–' : `${(n * 100).toFixed(1)}%`)
 const usd = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n === 0 ? '$0' : n < 0.01 ? `$${n.toFixed(5)}` : `$${n.toFixed(3)}`)
+const tok = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${Math.round(n)}`)
 const ms = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n >= 10_000 ? `${(n / 1000).toFixed(1)} s` : `${Math.round(n)} ms`)
 
 /** The SVG plots, by file stem (`accuracy`, `effect`, `cost-latency`, `task`), only those with data. */
@@ -188,9 +199,12 @@ export function plots(adapter: DecisionAdapter, s: Summary): Record<string, stri
   if (s.arms.length) {
     out.task = barPanels({
       title: `${adapter.title}: jev-mod against plain Claude Code, end to end${tag}`, fake,
-      subtitle: 'per run: checker success, wall time, Claude cost, decision-model cost',
+      subtitle: 'per run: checker success and score, the context the last step read, messages dropped, wall time, Claude and decision cost',
       panels: [
         { title: 'success', format: n => pct(n), rows: s.arms.map(a => ({ label: a.key, value: a.success })) },
+        { title: 'score', format: n => pct(n), rows: s.arms.map(a => ({ label: a.key, value: a.score })) },
+        { title: 'question context', format: tok, rows: s.arms.map(a => ({ label: a.key, value: a.context })) },
+        { title: 'messages dropped', format: n => `${Math.round(n)}`, rows: s.arms.map(a => ({ label: a.key, value: a.compaction?.dropped ?? null })) },
         { title: 'wall time', format: ms, rows: s.arms.map(a => ({ label: a.key, value: a.wallMs })) },
         { title: 'Claude cost', format: usd, rows: s.arms.map(a => ({ label: a.key, value: a.claudeCost })) },
         { title: 'decision cost', format: usd, rows: s.arms.map(a => ({ label: a.key, value: a.decisionCost })) },
@@ -234,9 +248,11 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
     lines.push('', 'Recommended per backend:', '', ...recommendations(adapter, s).map(l => `- ${l}`), '')
   }
   if (s.arms.length) {
-    lines.push('| arm | runs | success | score | wall time | Claude cost | decision cost | Claude tokens |', '|---|---|---|---|---|---|---|---|')
+    lines.push('| arm | runs | success | score | question context | kept / dropped | wall time | Claude cost | decision cost | Claude tokens |',
+      '|---|---|---|---|---|---|---|---|---|---|')
     const failed = (a: ArmSummary) => Object.entries(a.errors).map(([code, n]) => `${n} ${code}`).join(', ')
-    for (const a of s.arms) lines.push(`| ${a.key} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${ms(a.wallMs)} | ${usd(a.claudeCost)} | ${usd(a.decisionCost)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
+    const kd = (a: ArmSummary) => (a.compaction ? `${Math.round(a.compaction.kept)} / ${Math.round(a.compaction.dropped)} of ${Math.round(a.compaction.messages)}` : '–')
+    for (const a of s.arms) lines.push(`| ${a.key} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${tok(a.context)} | ${kd(a)} | ${ms(a.wallMs)} | ${usd(a.claudeCost)} | ${usd(a.decisionCost)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
     lines.push('')
   }
   if (s.spend) {

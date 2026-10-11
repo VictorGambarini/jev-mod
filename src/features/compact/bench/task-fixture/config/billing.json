@@ -1,0 +1,14 @@
+{
+  "default_region": "NZ",
+  "regions": {"NZ": {"currency": "NZD", "gst": "15/100"}, "AU": {"currency": "AUD", "gst": "10/100"}},
+  "invoice_prefix": "INV-",
+  "dunning": {"retry_days": [1, 3, 5, 7], "suspend_after_days": 14},
+  "webhooks": {
+    "tolerance_seconds": 300,
+    "partners": {
+      "kauri-analytics": "https://hooks.kauri-analytics.example/ledgerline",
+      "harbourview-crm": "https://api.harbourview.example/webhooks/billing",
+      "flaxroot-books": "https://flaxroot.example/in/ledgerline"
+    }
+  }
+}

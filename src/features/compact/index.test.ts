@@ -1,5 +1,6 @@
 import { test, expect } from 'claude-code/testing'
 import type { FetchInit, IO } from '../../core/io'
+import { readLedger } from '../../bench/task-rows'
 import { compact, isOurs, MARK } from './index'
 
 // /jev-mod compact end to end with a fake IO: a fake decision backend answers each question by
@@ -112,4 +113,33 @@ test('a /compact with the marker is ours when typed or sent headless; never a su
   expect(isOurs({ trigger: 'manual' })).toBe(false)
   expect(isOurs({ trigger: 'auto', instructions: MARK })).toBe(false)
   expect(isOurs({ trigger: 'manual', instructions: MARK, agentId: 'a1' })).toBe(false)
+})
+
+// a bench run: the overlay names a ledger folder, and each compaction writes what it kept and dropped there
+function benched(fake: Fake): Fake & { files: Record<string, string> } {
+  const files: Record<string, string> = { '/scratch/overlay.json': JSON.stringify({ ledger: '/scratch/ledger' }) }
+  const env = fake.env
+  return Object.assign(fake, {
+    files,
+    env: async (name: string) => (name === 'JEV_MOD_BENCH_OVERLAY' ? '/scratch/overlay.json' : env(name)),
+    readFile: async (path: string) => { if (path in files) return files[path]!; throw new Error('ENOENT') },
+    writeFile: async (path: string, text: string) => { files[path] = text },
+  })
+}
+const ledgerOf = (files: Record<string, string>) =>
+  readLedger(Object.entries(files).filter(([p]) => p.startsWith('/scratch/ledger/')).map(([p, text]) => ({ name: p.split('/').pop()!, text })))
+
+test('a bench run records what the compaction kept and dropped, and why nothing went when nothing did', async () => {
+  const messages = convo()
+  const fake = benched(io(turn => (turn.includes('npm test') ? { choice: 'keep', confidence: 0.9 } : { choice: 'drop', confidence: 0.9 })))
+  const out = await compact(fake, messages)
+  expect('messages' in out).toBe(true)
+  // 13 messages: the user's first message, its narration and the cat pair go; the ls pair (unsent) and the tail stay
+  expect(ledgerOf(fake.files).compaction).toEqual({ messages: 13, kept: 10, dropped: 3, skip: null })
+  const down = benched(io(() => ({ choice: 'drop', confidence: 0.99 }), 'down'))
+  await compact(down, convo())
+  expect(ledgerOf(down.files).compaction).toEqual({ messages: 13, kept: 13, dropped: 0, skip: 'Jev did not answer; nothing was removed' })
+  // the decision calls are counted apart from the compaction: one file per request, the failed one too
+  expect(ledgerOf(fake.files).decisions).toBe(fake.asked.length)
+  expect(ledgerOf(down.files).decisions).toBe(1)
 })

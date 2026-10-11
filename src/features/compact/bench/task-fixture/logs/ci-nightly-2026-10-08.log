@@ -1,0 +1,577 @@
+2026-10-08T13:00:04.5587808Z ##[group]Run nightly / test (python 3.11.9)
+2026-10-08T13:00:04.3343490Z Current runner version: '2.319.1'
+2026-10-08T13:00:04.5179737Z Operating System: Ubuntu 24.04.1 LTS
+2026-10-08T13:00:04.1074510Z Runner Image: ubuntu-24.04 Version: 20260929.1
+2026-10-08T13:00:04.9074127Z GITHUB_TOKEN Permissions Actions: write
+2026-10-08T13:00:04.2736566Z GITHUB_TOKEN Permissions Checks: write
+2026-10-08T13:00:04.5327366Z GITHUB_TOKEN Permissions Contents: read
+2026-10-08T13:00:05.6722662Z GITHUB_TOKEN Permissions Metadata: read
+2026-10-08T13:00:05.7044219Z GITHUB_TOKEN Permissions PullRequests: read
+2026-10-08T13:00:05.8110182Z GITHUB_TOKEN Permissions Statuses: write
+2026-10-08T13:00:05.2183456Z Secret source: Actions
+2026-10-08T13:00:05.1606070Z Prepare workflow directory
+2026-10-08T13:00:05.6247571Z Prepare all required actions
+2026-10-08T13:00:05.5567864Z Getting action download info
+2026-10-08T13:00:06.9043184Z Download action repository 'actions/checkout@v4' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-10-08T13:00:06.4351236Z Download action repository 'actions/setup-python@v5' (SHA:0b93645e9fea7318ecaed2b359559ac225c90a2b)
+2026-10-08T13:00:06.5053521Z Download action repository 'actions/cache@v4' (SHA:6849a6489940f00c2f30c0fb92c6274307ccb58a)
+2026-10-08T13:00:06.2594119Z ##[endgroup]
+2026-10-08T13:00:07.9420298Z ##[group]Run actions/checkout@v4
+2026-10-08T13:00:07.2621448Z   repository: tidewater/ledgerline
+2026-10-08T13:00:07.1833188Z   ref: refs/heads/main
+2026-10-08T13:00:07.3819275Z   fetch-depth: 1
+2026-10-08T13:00:07.9077616Z   lfs: false
+2026-10-08T13:00:08.4362513Z   submodules: false
+2026-10-08T13:00:08.9349533Z   set-safe-directory: true
+2026-10-08T13:00:08.3556090Z Syncing repository: tidewater/ledgerline
+2026-10-08T13:00:08.6563605Z Determining the checkout info
+2026-10-08T13:00:08.9012197Z /usr/bin/git sparse-checkout disable
+2026-10-08T13:00:08.2306659Z /usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-08T13:00:08.2108003Z Checking out the ref
+2026-10-08T13:00:08.9644504Z /usr/bin/git log -1 --format=%H
+2026-10-08T13:00:09.7131725Z 4e1c9b07d2a85f3f6c0e8a91b3d74f2a6c5e1d08
+2026-10-08T13:00:09.9116581Z ##[endgroup]
+2026-10-08T13:00:09.4956427Z ##[group]Run actions/setup-python@v5 (python-version: 3.11.9)
+2026-10-08T13:00:09.1642803Z Successfully set up CPython (3.11.9)
+2026-10-08T13:00:09.7881290Z ##[endgroup]
+2026-10-08T13:00:09.6949390Z ##[group]Run pip install --upgrade pip coverage ruff
+2026-10-08T13:00:10.2166514Z Collecting pip
+2026-10-08T13:00:10.6735120Z   Downloading pip-24.2-py3-none-any.whl.metadata (5.6 kB)
+2026-10-08T13:00:10.3253087Z   Downloading pip-24.2-py3-none-any.whl (1.8 MB)
+2026-10-08T13:00:10.6473184Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 81.5 MB/s eta 0:00:00
+2026-10-08T13:00:11.4984258Z Collecting coverage
+2026-10-08T13:00:11.1349377Z   Downloading coverage-7.6.1-py3-none-any.whl.metadata (3.9 kB)
+2026-10-08T13:00:11.5053123Z   Downloading coverage-7.6.1-py3-none-any.whl (0.2 MB)
+2026-10-08T13:00:11.2406479Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.2/0.2 MB 65.0 MB/s eta 0:00:00
+2026-10-08T13:00:12.1766579Z Collecting ruff
+2026-10-08T13:00:12.9289701Z   Downloading ruff-0.6.9-py3-none-any.whl.metadata (7.7 kB)
+2026-10-08T13:00:12.4237708Z   Downloading ruff-0.6.9-py3-none-any.whl (10.9 MB)
+2026-10-08T13:00:12.6743952Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.9/10.9 MB 83.0 MB/s eta 0:00:00
+2026-10-08T13:00:12.4936195Z Installing collected packages: ruff, pip, coverage
+2026-10-08T13:00:12.5747312Z Successfully installed coverage-7.6.1 pip-24.2 ruff-0.6.9
+2026-10-08T13:00:13.4286966Z ##[endgroup]
+2026-10-08T13:00:13.9090018Z ##[group]Run ruff check billing tests
+2026-10-08T13:00:13.3491225Z All checks passed!
+2026-10-08T13:00:13.7836328Z ##[endgroup]
+2026-10-08T13:00:13.1559184Z ##[group]Run python -m compileall -q billing tests
+2026-10-08T13:00:14.1793377Z ##[endgroup]
+2026-10-08T13:00:14.6379159Z ##[group]Run coverage run -m unittest discover -s tests -t . -v
+2026-10-08T13:00:14.6053927Z test_retries_then_none (tests.test_dunning.DunningTest.test_retries_then_none) ... ok (0.003s)
+2026-10-08T13:00:14.3779613Z test_schedule_from_config (tests.test_dunning.DunningTest.test_schedule_from_config) ... ok (0.002s)
+2026-10-08T13:00:14.7966817Z test_suspends_after_two_weeks (tests.test_dunning.DunningTest.test_suspends_after_two_weeks) ... ok (0.267s)
+2026-10-08T13:00:15.3166063Z test_a_coupon_is_one_kind (tests.test_discounts.CouponTest.test_a_coupon_is_one_kind) ... ok (0.004s)
+2026-10-08T13:00:15.1574009Z test_amount_off_never_exceeds_the_lines (tests.test_discounts.CouponTest.test_amount_off_never_exceeds_the_lines) ... ok (0.009s)
+2026-10-08T13:00:15.4447702Z test_one_coupon_only_the_best (tests.test_discounts.CouponTest.test_one_coupon_only_the_best) ... ok (0.006s)
+2026-10-08T13:00:15.5934778Z test_percent_off (tests.test_discounts.CouponTest.test_percent_off) ... ok (0.004s)
+2026-10-08T13:00:15.2489300Z test_csv_escapes_commas_in_customer_names (tests.test_export.ExportTest.test_csv_escapes_commas_in_customer_names) ... FAIL (1.194s)
+2026-10-08T13:00:15.8914537Z test_header_and_one_row (tests.test_export.ExportTest.test_header_and_one_row) ... ok (0.940s)
+2026-10-08T13:00:16.3581457Z test_gst_after_a_negative_line (tests.test_invoice.BuildInvoiceTest.test_gst_after_a_negative_line) ... ok (0.008s)
+2026-10-08T13:00:16.3372518Z test_gst_on_the_net_total (tests.test_invoice.BuildInvoiceTest.test_gst_on_the_net_total) ... ok (0.007s)
+2026-10-08T13:00:16.6009551Z test_numbers_follow_each_other (tests.test_invoice.BuildInvoiceTest.test_numbers_follow_each_other) ... ok (0.127s)
+2026-10-08T13:00:16.6117438Z test_refuses_empty_and_negative (tests.test_invoice.BuildInvoiceTest.test_refuses_empty_and_negative) ... ok (0.001s)
+2026-10-08T13:00:16.2007179Z test_paid_then_refundable (tests.test_invoice.StatusTest.test_paid_then_refundable) ... ok (0.003s)
+2026-10-08T13:00:16.7701240Z test_summary_is_plain_data (tests.test_invoice.StatusTest.test_summary_is_plain_data) ... ok (0.009s)
+2026-10-08T13:00:16.1144646Z test_parts_add_up (tests.test_money.AllocateTest.test_parts_add_up) ... ok (0.006s)
+2026-10-08T13:00:17.6289489Z test_formats (tests.test_money.FmtTest.test_formats) ... ok (0.375s)
+2026-10-08T13:00:17.5276587Z test_below_half_goes_down (tests.test_money.RoundHalfUpTest.test_below_half_goes_down) ... ok (0.007s)
+2026-10-08T13:00:17.5392362Z test_halves_go_up (tests.test_money.RoundHalfUpTest.test_halves_go_up) ... ok (0.008s)
+2026-10-08T13:00:17.6938581Z test_halves_of_negatives_go_away_from_zero (tests.test_money.RoundHalfUpTest.test_halves_of_negatives_go_away_from_zero) ... ok (0.001s)
+2026-10-08T13:00:17.9066328Z test_refuses_a_zero_denominator (tests.test_money.RoundHalfUpTest.test_refuses_a_zero_denominator) ... ok (0.008s)
+2026-10-08T13:00:17.1179438Z test_refuses_floats (tests.test_money.ToCentsTest.test_refuses_floats) ... ok (0.006s)
+2026-10-08T13:00:17.8047845Z test_strings_and_decimals (tests.test_money.ToCentsTest.test_strings_and_decimals) ... ok (0.001s)
+2026-10-08T13:00:17.3216744Z test_days_between (tests.test_proration.HelpersTest.test_days_between) ... ok (0.003s)
+2026-10-08T13:00:17.8048342Z test_proration_line (tests.test_proration.HelpersTest.test_proration_line) ... ok (0.002s)
+2026-10-08T13:00:17.5206775Z test_exact_division (tests.test_proration.ProrateTest.test_exact_division) ... ok (0.005s)
+2026-10-08T13:00:18.4620964Z test_full_cycle_is_the_whole_amount (tests.test_proration.ProrateTest.test_full_cycle_is_the_whole_amount) ... ok (0.001s)
+2026-10-08T13:00:18.2442283Z test_nothing_used_is_zero (tests.test_proration.ProrateTest.test_nothing_used_is_zero) ... ok (0.067s)
+2026-10-08T13:00:18.4606132Z test_refuses_days_outside_the_cycle (tests.test_proration.ProrateTest.test_refuses_days_outside_the_cycle) ... ok (0.059s)
+2026-10-08T13:00:18.6800178Z test_rounds_half_up (tests.test_proration.ProrateTest.test_rounds_half_up) ... FAIL (0.007s)
+2026-10-08T13:00:18.4315045Z test_rounds_half_up_on_odd_amounts (tests.test_proration.ProrateTest.test_rounds_half_up_on_odd_amounts) ... FAIL (0.004s)
+2026-10-08T13:00:18.9277879Z test_change_on_the_first_day_of_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_change_on_the_first_day_of_a_31_day_cycle) ... ERROR (0.007s)
+2026-10-08T13:00:18.3535577Z test_downgrade_is_a_credit (tests.test_proration.UpgradeChargeTest.test_downgrade_is_a_credit) ... ok (0.003s)
+2026-10-08T13:00:19.1026866Z test_refuses_a_change_outside_the_cycle (tests.test_proration.UpgradeChargeTest.test_refuses_a_change_outside_the_cycle) ... ok (0.295s)
+2026-10-08T13:00:19.3660680Z test_upgrade_in_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_upgrade_in_a_31_day_cycle) ... FAIL (0.004s)
+2026-10-08T13:00:19.5959010Z test_upgrade_in_february (tests.test_proration.UpgradeChargeTest.test_upgrade_in_february) ... FAIL (0.004s)
+2026-10-08T13:00:19.7156850Z test_gst_inside_a_gross_amount (tests.test_tax.GstTest.test_gst_inside_a_gross_amount) ... ok (0.344s)
+2026-10-08T13:00:19.3135297Z test_gst_on_a_net_amount (tests.test_tax.GstTest.test_gst_on_a_net_amount) ... ok (0.228s)
+2026-10-08T13:00:19.8410413Z test_nz_and_au_rates (tests.test_tax.GstTest.test_nz_and_au_rates) ... ok (0.116s)
+2026-10-08T13:00:19.4889496Z test_invoice_paid_shape (tests.test_webhooks.EventTest.test_invoice_paid_shape) ... ok (0.002s)
+2026-10-08T13:00:20.5052757Z test_rejects_a_malformed_header (tests.test_webhooks.SignatureTest.test_rejects_a_malformed_header) ... ok (0.007s)
+2026-10-08T13:00:20.4385320Z test_rejects_a_tampered_body (tests.test_webhooks.SignatureTest.test_rejects_a_tampered_body) ... ok (0.008s)
+2026-10-08T13:00:20.8478443Z test_rejects_an_old_delivery (tests.test_webhooks.SignatureTest.test_rejects_an_old_delivery) ... ok (0.008s)
+2026-10-08T13:00:20.8438018Z test_round_trip (tests.test_webhooks.SignatureTest.test_round_trip) ... ok (0.004s)
+2026-10-08T13:00:20.1227684Z test_tolerates_whitespace_a_proxy_adds (tests.test_webhooks.SignatureTest.test_tolerates_whitespace_a_proxy_adds) ... ok (0.001s)
+2026-10-08T13:00:20.1190086Z ======================================================================
+2026-10-08T13:00:20.4719710Z FAIL: test_csv_escapes_commas_in_customer_names (tests.test_export.ExportTest.test_csv_escapes_commas_in_customer_names)
+2026-10-08T13:00:21.8202870Z ----------------------------------------------------------------------
+2026-10-08T13:00:21.5664239Z Traceback (most recent call last):
+2026-10-08T13:00:21.6504144Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_export.py", line 24, in test_csv_escapes_commas_in_customer_names
+2026-10-08T13:00:21.8148034Z     self.assertEqual(rows[1][2], "Smith, Tane & Co")
+2026-10-08T13:00:21.7852554Z AssertionError: 'Smith' != 'Smith, Tane & Co'
+2026-10-08T13:00:21.4697649Z - Smith
+2026-10-08T13:00:21.9317974Z + Smith, Tane & Co
+2026-10-08T13:00:22.9344269Z 
+2026-10-08T13:00:22.3723337Z ======================================================================
+2026-10-08T13:00:22.1567100Z FAIL: test_rounds_half_up (tests.test_proration.ProrateTest.test_rounds_half_up)
+2026-10-08T13:00:22.7644518Z ----------------------------------------------------------------------
+2026-10-08T13:00:22.8808894Z Traceback (most recent call last):
+2026-10-08T13:00:22.2334060Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 23, in test_rounds_half_up
+2026-10-08T13:00:22.7383647Z     self.assertEqual(prorate(999, 15, 30), 500)
+2026-10-08T13:00:22.9135151Z AssertionError: 499 != 500
+2026-10-08T13:00:22.9267532Z 
+2026-10-08T13:00:23.5284584Z ======================================================================
+2026-10-08T13:00:23.7600512Z FAIL: test_rounds_half_up_on_odd_amounts (tests.test_proration.ProrateTest.test_rounds_half_up_on_odd_amounts)
+2026-10-08T13:00:23.5215075Z ----------------------------------------------------------------------
+2026-10-08T13:00:23.1012569Z Traceback (most recent call last):
+2026-10-08T13:00:23.5193058Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 27, in test_rounds_half_up_on_odd_amounts
+2026-10-08T13:00:23.3774813Z     self.assertEqual(prorate(997, 15, 30), 499)
+2026-10-08T13:00:23.2030840Z AssertionError: 498 != 499
+2026-10-08T13:00:23.1553117Z 
+2026-10-08T13:00:23.4336279Z ======================================================================
+2026-10-08T13:00:23.2935556Z ERROR: test_change_on_the_first_day_of_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_change_on_the_first_day_of_a_31_day_cycle)
+2026-10-08T13:00:24.5742166Z ----------------------------------------------------------------------
+2026-10-08T13:00:24.1587869Z Traceback (most recent call last):
+2026-10-08T13:00:24.4995480Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 48, in test_change_on_the_first_day_of_a_31_day_cycle
+2026-10-08T13:00:24.5508066Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 8, 1), date(2026, 8, 1), date(2026, 9, 1)), 8000)
+2026-10-08T13:00:24.2315258Z   File "/home/runner/work/ledgerline/ledgerline/billing/proration.py", line 40, in upgrade_charge
+2026-10-08T13:00:24.3830907Z     charge = prorate(new.price_cents, remaining, CYCLE_DAYS)
+2026-10-08T13:00:25.6194083Z   File "/home/runner/work/ledgerline/ledgerline/billing/proration.py", line 30, in prorate
+2026-10-08T13:00:25.2998331Z     raise ValueError("used_days is outside the cycle")
+2026-10-08T13:00:25.3732188Z ValueError: used_days is outside the cycle
+2026-10-08T13:00:25.7231522Z 
+2026-10-08T13:00:25.1314661Z ======================================================================
+2026-10-08T13:00:25.3100779Z FAIL: test_upgrade_in_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_upgrade_in_a_31_day_cycle)
+2026-10-08T13:00:25.1514403Z ----------------------------------------------------------------------
+2026-10-08T13:00:26.4424894Z Traceback (most recent call last):
+2026-10-08T13:00:26.9199240Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 41, in test_upgrade_in_a_31_day_cycle
+2026-10-08T13:00:26.9805178Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 10, 16), date(2026, 10, 1), date(2026, 11, 1)), 4129)
+2026-10-08T13:00:26.4286437Z AssertionError: 4267 != 4129
+2026-10-08T13:00:26.4755186Z 
+2026-10-08T13:00:27.4888082Z ======================================================================
+2026-10-08T13:00:27.3714957Z FAIL: test_upgrade_in_february (tests.test_proration.UpgradeChargeTest.test_upgrade_in_february)
+2026-10-08T13:00:27.8634993Z ----------------------------------------------------------------------
+2026-10-08T13:00:27.8140274Z Traceback (most recent call last):
+2026-10-08T13:00:27.1841377Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 45, in test_upgrade_in_february
+2026-10-08T13:00:27.4313624Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 2, 15), date(2026, 2, 1), date(2026, 3, 1)), 4000)
+2026-10-08T13:00:28.4904902Z AssertionError: 3734 != 4000
+2026-10-08T13:00:28.5242156Z 
+2026-10-08T13:00:28.6337261Z ----------------------------------------------------------------------
+2026-10-08T13:00:28.5383811Z Ran 46 tests in 4.490s
+2026-10-08T13:00:28.4923602Z 
+2026-10-08T13:00:28.6862125Z FAILED (failures=5, errors=1)
+2026-10-08T13:00:28.6815928Z ##[endgroup]
+2026-10-08T13:00:29.1060026Z ##[group]Run coverage report -m
+2026-10-08T13:00:29.9128882Z Name                     Stmts   Miss  Cover   Missing
+2026-10-08T13:00:29.1341464Z ------------------------------------------------------
+2026-10-08T13:00:29.6103232Z billing/__init__.py           43      2    95%   48, 45
+2026-10-08T13:00:29.9791661Z billing/discounts.py          41      2    95%   31, 29
+2026-10-08T13:00:29.6846222Z billing/dunning.py            45      3    93%   65, 72, 12
+2026-10-08T13:00:29.1263918Z billing/export.py             50      8    84%   59, 21, 13, 27, 79, 25, 24, 22
+2026-10-08T13:00:29.3315559Z billing/invoice.py            46      6    86%   50, 53, 68, 16, 46, 26
+2026-10-08T13:00:29.8909859Z billing/money.py              24      4    83%   57, 58, 20, 11
+2026-10-08T13:00:30.5375216Z billing/plans.py              58      9    84%   58, 47, 73, 29, 42, 67, 43, 53, 45
+2026-10-08T13:00:30.5863770Z billing/proration.py          45      7    84%   58, 42, 25, 61, 75, 16, 73
+2026-10-08T13:00:30.7449414Z billing/sequence.py           32      5    84%   24, 15, 28, 13, 10
+2026-10-08T13:00:30.1881814Z billing/tax.py                24      0   100%   
+2026-10-08T13:00:30.1543748Z billing/webhooks.py           40      3    92%   17, 37, 63
+2026-10-08T13:00:30.8734556Z ------------------------------------------------------
+2026-10-08T13:00:31.4419152Z TOTAL                      448     49    89%
+2026-10-08T13:00:31.7594899Z ##[endgroup]
+2026-10-08T13:00:31.3118326Z ##[error]Process completed with exit code 1.
+2026-10-08T13:00:31.3388325Z ##[group]Run actions/upload-artifact@v4 (name: coverage-3.11.9)
+2026-10-08T13:00:31.1239481Z With the provided path, there will be 1 file uploaded
+2026-10-08T13:00:31.5780202Z Artifact name is valid!
+2026-10-08T13:00:31.2629533Z Artifact coverage-3.11.9.zip successfully finalized. Artifact ID 1951262730
+2026-10-08T13:00:31.6363430Z ##[endgroup]
+2026-10-08T13:00:32.4219469Z Post job cleanup.
+2026-10-08T13:00:32.3149055Z Cleaning up orphan processes
+2026-10-08T13:00:32.4764009Z ##[group]Run nightly / test (python 3.12.6)
+2026-10-08T13:00:32.5020405Z Current runner version: '2.319.1'
+2026-10-08T13:00:32.5142809Z Operating System: Ubuntu 24.04.1 LTS
+2026-10-08T13:00:32.4539453Z Runner Image: ubuntu-24.04 Version: 20260929.1
+2026-10-08T13:00:33.4016621Z GITHUB_TOKEN Permissions Actions: write
+2026-10-08T13:00:33.9069089Z GITHUB_TOKEN Permissions Checks: write
+2026-10-08T13:00:33.7415779Z GITHUB_TOKEN Permissions Contents: read
+2026-10-08T13:00:33.8767374Z GITHUB_TOKEN Permissions Metadata: read
+2026-10-08T13:00:33.7452182Z GITHUB_TOKEN Permissions PullRequests: read
+2026-10-08T13:00:33.2124824Z GITHUB_TOKEN Permissions Statuses: write
+2026-10-08T13:00:33.2929581Z Secret source: Actions
+2026-10-08T13:00:34.7695277Z Prepare workflow directory
+2026-10-08T13:00:34.3459852Z Prepare all required actions
+2026-10-08T13:00:34.2576673Z Getting action download info
+2026-10-08T13:00:34.1624256Z Download action repository 'actions/checkout@v4' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-10-08T13:00:34.9805082Z Download action repository 'actions/setup-python@v5' (SHA:0b93645e9fea7318ecaed2b359559ac225c90a2b)
+2026-10-08T13:00:34.8968934Z Download action repository 'actions/cache@v4' (SHA:6849a6489940f00c2f30c0fb92c6274307ccb58a)
+2026-10-08T13:00:34.1429342Z ##[endgroup]
+2026-10-08T13:00:34.9709782Z ##[group]Run actions/checkout@v4
+2026-10-08T13:00:35.8111749Z   repository: tidewater/ledgerline
+2026-10-08T13:00:35.5109320Z   ref: refs/heads/main
+2026-10-08T13:00:35.9706028Z   fetch-depth: 1
+2026-10-08T13:00:35.6592135Z   lfs: false
+2026-10-08T13:00:35.9545457Z   submodules: false
+2026-10-08T13:00:35.5020385Z   set-safe-directory: true
+2026-10-08T13:00:35.6568728Z Syncing repository: tidewater/ledgerline
+2026-10-08T13:00:36.9743412Z Determining the checkout info
+2026-10-08T13:00:36.8994401Z /usr/bin/git sparse-checkout disable
+2026-10-08T13:00:36.3069260Z /usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-08T13:00:36.9044411Z Checking out the ref
+2026-10-08T13:00:36.1297937Z /usr/bin/git log -1 --format=%H
+2026-10-08T13:00:36.1080778Z 4e1c9b07d2a85f3f6c0e8a91b3d74f2a6c5e1d08
+2026-10-08T13:00:36.5798695Z ##[endgroup]
+2026-10-08T13:00:36.5422541Z ##[group]Run actions/setup-python@v5 (python-version: 3.12.6)
+2026-10-08T13:00:37.1925907Z Successfully set up CPython (3.12.6)
+2026-10-08T13:00:37.8764211Z ##[endgroup]
+2026-10-08T13:00:37.2669275Z ##[group]Run pip install --upgrade pip coverage ruff
+2026-10-08T13:00:37.5314829Z Collecting pip
+2026-10-08T13:00:37.7422753Z   Downloading pip-24.2-py3-none-any.whl.metadata (9.0 kB)
+2026-10-08T13:00:37.4913713Z   Downloading pip-24.2-py3-none-any.whl (1.8 MB)
+2026-10-08T13:00:37.8832212Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 56.6 MB/s eta 0:00:00
+2026-10-08T13:00:38.4662653Z Collecting coverage
+2026-10-08T13:00:38.1841310Z   Downloading coverage-7.6.1-py3-none-any.whl.metadata (28.6 kB)
+2026-10-08T13:00:38.8131167Z   Downloading coverage-7.6.1-py3-none-any.whl (0.2 MB)
+2026-10-08T13:00:38.8222516Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.2/0.2 MB 43.4 MB/s eta 0:00:00
+2026-10-08T13:00:38.1230215Z Collecting ruff
+2026-10-08T13:00:38.6811470Z   Downloading ruff-0.6.9-py3-none-any.whl.metadata (12.6 kB)
+2026-10-08T13:00:38.6020878Z   Downloading ruff-0.6.9-py3-none-any.whl (10.9 MB)
+2026-10-08T13:00:39.2323480Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.9/10.9 MB 69.7 MB/s eta 0:00:00
+2026-10-08T13:00:39.9328435Z Installing collected packages: ruff, pip, coverage
+2026-10-08T13:00:39.5538335Z Successfully installed coverage-7.6.1 pip-24.2 ruff-0.6.9
+2026-10-08T13:00:39.6449150Z ##[endgroup]
+2026-10-08T13:00:39.8728245Z ##[group]Run ruff check billing tests
+2026-10-08T13:00:39.6654465Z All checks passed!
+2026-10-08T13:00:40.3897254Z ##[endgroup]
+2026-10-08T13:00:40.6456255Z ##[group]Run python -m compileall -q billing tests
+2026-10-08T13:00:40.5794437Z ##[endgroup]
+2026-10-08T13:00:40.9951157Z ##[group]Run coverage run -m unittest discover -s tests -t . -v
+2026-10-08T13:00:40.5748852Z test_retries_then_none (tests.test_dunning.DunningTest.test_retries_then_none) ... ok (0.008s)
+2026-10-08T13:00:41.2928213Z test_schedule_from_config (tests.test_dunning.DunningTest.test_schedule_from_config) ... ok (0.003s)
+2026-10-08T13:00:41.1933208Z /home/runner/work/ledgerline/billing/dunning.py:12: ResourceWarning: unclosed file <_io.TextIOWrapper name='config/billing.json'>
+2026-10-08T13:00:41.2372920Z test_suspends_after_two_weeks (tests.test_dunning.DunningTest.test_suspends_after_two_weeks) ... ok (0.306s)
+2026-10-08T13:00:41.9538721Z test_a_coupon_is_one_kind (tests.test_discounts.CouponTest.test_a_coupon_is_one_kind) ... ok (0.003s)
+2026-10-08T13:00:41.4933643Z test_amount_off_never_exceeds_the_lines (tests.test_discounts.CouponTest.test_amount_off_never_exceeds_the_lines) ... ok (0.060s)
+2026-10-08T13:00:41.9149141Z test_one_coupon_only_the_best (tests.test_discounts.CouponTest.test_one_coupon_only_the_best) ... ok (0.008s)
+2026-10-08T13:00:41.2083966Z test_percent_off (tests.test_discounts.CouponTest.test_percent_off) ... ok (0.001s)
+2026-10-08T13:00:42.4238770Z test_csv_escapes_commas_in_customer_names (tests.test_export.ExportTest.test_csv_escapes_commas_in_customer_names) ... FAIL (1.114s)
+2026-10-08T13:00:42.6969340Z test_header_and_one_row (tests.test_export.ExportTest.test_header_and_one_row) ... ok (1.206s)
+2026-10-08T13:00:42.9787416Z test_gst_after_a_negative_line (tests.test_invoice.BuildInvoiceTest.test_gst_after_a_negative_line) ... ok (0.009s)
+2026-10-08T13:00:42.5211476Z test_gst_on_the_net_total (tests.test_invoice.BuildInvoiceTest.test_gst_on_the_net_total) ... ok (0.005s)
+2026-10-08T13:00:42.4592591Z test_numbers_follow_each_other (tests.test_invoice.BuildInvoiceTest.test_numbers_follow_each_other) ... ok (0.002s)
+2026-10-08T13:00:43.5229471Z test_refuses_empty_and_negative (tests.test_invoice.BuildInvoiceTest.test_refuses_empty_and_negative) ... ok (0.003s)
+2026-10-08T13:00:43.7597932Z test_paid_then_refundable (tests.test_invoice.StatusTest.test_paid_then_refundable) ... ok (0.378s)
+2026-10-08T13:00:43.4157907Z test_summary_is_plain_data (tests.test_invoice.StatusTest.test_summary_is_plain_data) ... ok (0.007s)
+2026-10-08T13:00:43.5859070Z test_parts_add_up (tests.test_money.AllocateTest.test_parts_add_up) ... ok (0.006s)
+2026-10-08T13:00:43.5988865Z test_formats (tests.test_money.FmtTest.test_formats) ... ok (0.001s)
+2026-10-08T13:00:43.8087492Z test_below_half_goes_down (tests.test_money.RoundHalfUpTest.test_below_half_goes_down) ... ok (0.002s)
+2026-10-08T13:00:44.3847260Z test_halves_go_up (tests.test_money.RoundHalfUpTest.test_halves_go_up) ... ok (0.003s)
+2026-10-08T13:00:44.6613032Z test_halves_of_negatives_go_away_from_zero (tests.test_money.RoundHalfUpTest.test_halves_of_negatives_go_away_from_zero) ... ok (0.006s)
+2026-10-08T13:00:44.3832142Z test_refuses_a_zero_denominator (tests.test_money.RoundHalfUpTest.test_refuses_a_zero_denominator) ... ok (0.009s)
+2026-10-08T13:00:44.6163100Z test_refuses_floats (tests.test_money.ToCentsTest.test_refuses_floats) ... ok (0.002s)
+2026-10-08T13:00:44.1865151Z test_strings_and_decimals (tests.test_money.ToCentsTest.test_strings_and_decimals) ... ok (0.007s)
+2026-10-08T13:00:45.7428080Z test_days_between (tests.test_proration.HelpersTest.test_days_between) ... ok (0.007s)
+2026-10-08T13:00:45.6622777Z test_proration_line (tests.test_proration.HelpersTest.test_proration_line) ... ok (0.003s)
+2026-10-08T13:00:45.6671657Z test_exact_division (tests.test_proration.ProrateTest.test_exact_division) ... ok (0.003s)
+2026-10-08T13:00:45.8429501Z test_full_cycle_is_the_whole_amount (tests.test_proration.ProrateTest.test_full_cycle_is_the_whole_amount) ... ok (0.007s)
+2026-10-08T13:00:45.2524971Z test_nothing_used_is_zero (tests.test_proration.ProrateTest.test_nothing_used_is_zero) ... ok (0.008s)
+2026-10-08T13:00:45.4039678Z test_refuses_days_outside_the_cycle (tests.test_proration.ProrateTest.test_refuses_days_outside_the_cycle) ... ok (0.006s)
+2026-10-08T13:00:45.5265782Z test_rounds_half_up (tests.test_proration.ProrateTest.test_rounds_half_up) ... FAIL (0.001s)
+2026-10-08T13:00:46.3262831Z test_rounds_half_up_on_odd_amounts (tests.test_proration.ProrateTest.test_rounds_half_up_on_odd_amounts) ... FAIL (0.005s)
+2026-10-08T13:00:46.4241157Z test_change_on_the_first_day_of_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_change_on_the_first_day_of_a_31_day_cycle) ... ERROR (0.003s)
+2026-10-08T13:00:46.7488009Z test_downgrade_is_a_credit (tests.test_proration.UpgradeChargeTest.test_downgrade_is_a_credit) ... ok (0.005s)
+2026-10-08T13:00:46.7400467Z test_refuses_a_change_outside_the_cycle (tests.test_proration.UpgradeChargeTest.test_refuses_a_change_outside_the_cycle) ... ok (0.008s)
+2026-10-08T13:00:46.6431205Z test_upgrade_in_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_upgrade_in_a_31_day_cycle) ... FAIL (0.008s)
+2026-10-08T13:00:46.1519284Z test_upgrade_in_february (tests.test_proration.UpgradeChargeTest.test_upgrade_in_february) ... FAIL (0.001s)
+2026-10-08T13:00:47.8455933Z test_gst_inside_a_gross_amount (tests.test_tax.GstTest.test_gst_inside_a_gross_amount) ... ok (0.006s)
+2026-10-08T13:00:47.9525495Z test_gst_on_a_net_amount (tests.test_tax.GstTest.test_gst_on_a_net_amount) ... ok (0.004s)
+2026-10-08T13:00:47.8475718Z test_nz_and_au_rates (tests.test_tax.GstTest.test_nz_and_au_rates) ... ok (0.341s)
+2026-10-08T13:00:47.1293574Z test_invoice_paid_shape (tests.test_webhooks.EventTest.test_invoice_paid_shape) ... ok (0.004s)
+2026-10-08T13:00:47.2468220Z test_rejects_a_malformed_header (tests.test_webhooks.SignatureTest.test_rejects_a_malformed_header) ... ok (0.002s)
+2026-10-08T13:00:47.8337132Z test_rejects_a_tampered_body (tests.test_webhooks.SignatureTest.test_rejects_a_tampered_body) ... ok (0.008s)
+2026-10-08T13:00:47.7950963Z test_rejects_an_old_delivery (tests.test_webhooks.SignatureTest.test_rejects_an_old_delivery) ... ok (0.370s)
+2026-10-08T13:00:48.7410295Z test_round_trip (tests.test_webhooks.SignatureTest.test_round_trip) ... ok (0.009s)
+2026-10-08T13:00:48.7542954Z test_tolerates_whitespace_a_proxy_adds (tests.test_webhooks.SignatureTest.test_tolerates_whitespace_a_proxy_adds) ... ok (0.006s)
+2026-10-08T13:00:48.4797055Z ======================================================================
+2026-10-08T13:00:48.7932571Z FAIL: test_csv_escapes_commas_in_customer_names (tests.test_export.ExportTest.test_csv_escapes_commas_in_customer_names)
+2026-10-08T13:00:48.8409069Z ----------------------------------------------------------------------
+2026-10-08T13:00:48.5658575Z Traceback (most recent call last):
+2026-10-08T13:00:49.6236869Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_export.py", line 24, in test_csv_escapes_commas_in_customer_names
+2026-10-08T13:00:49.5358686Z     self.assertEqual(rows[1][2], "Smith, Tane & Co")
+2026-10-08T13:00:49.7522069Z AssertionError: 'Smith' != 'Smith, Tane & Co'
+2026-10-08T13:00:49.3585020Z - Smith
+2026-10-08T13:00:49.7469720Z + Smith, Tane & Co
+2026-10-08T13:00:50.7084145Z 
+2026-10-08T13:00:50.9929643Z ======================================================================
+2026-10-08T13:00:50.8214084Z FAIL: test_rounds_half_up (tests.test_proration.ProrateTest.test_rounds_half_up)
+2026-10-08T13:00:50.8766337Z ----------------------------------------------------------------------
+2026-10-08T13:00:50.7501771Z Traceback (most recent call last):
+2026-10-08T13:00:50.4021899Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 23, in test_rounds_half_up
+2026-10-08T13:00:50.5465895Z     self.assertEqual(prorate(999, 15, 30), 500)
+2026-10-08T13:00:50.9175230Z AssertionError: 499 != 500
+2026-10-08T13:00:50.8579514Z 
+2026-10-08T13:00:50.8504996Z ======================================================================
+2026-10-08T13:00:50.2798309Z FAIL: test_rounds_half_up_on_odd_amounts (tests.test_proration.ProrateTest.test_rounds_half_up_on_odd_amounts)
+2026-10-08T13:00:51.9462782Z ----------------------------------------------------------------------
+2026-10-08T13:00:51.5459041Z Traceback (most recent call last):
+2026-10-08T13:00:51.3907472Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 27, in test_rounds_half_up_on_odd_amounts
+2026-10-08T13:00:51.2857158Z     self.assertEqual(prorate(997, 15, 30), 499)
+2026-10-08T13:00:51.6138352Z AssertionError: 498 != 499
+2026-10-08T13:00:51.8706645Z 
+2026-10-08T13:00:52.7778587Z ======================================================================
+2026-10-08T13:00:52.6015490Z ERROR: test_change_on_the_first_day_of_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_change_on_the_first_day_of_a_31_day_cycle)
+2026-10-08T13:00:52.6282102Z ----------------------------------------------------------------------
+2026-10-08T13:00:52.9617337Z Traceback (most recent call last):
+2026-10-08T13:00:52.5304768Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 48, in test_change_on_the_first_day_of_a_31_day_cycle
+2026-10-08T13:00:52.4335021Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 8, 1), date(2026, 8, 1), date(2026, 9, 1)), 8000)
+2026-10-08T13:00:52.2530103Z   File "/home/runner/work/ledgerline/ledgerline/billing/proration.py", line 40, in upgrade_charge
+2026-10-08T13:00:52.4711473Z     charge = prorate(new.price_cents, remaining, CYCLE_DAYS)
+2026-10-08T13:00:53.7824454Z   File "/home/runner/work/ledgerline/ledgerline/billing/proration.py", line 30, in prorate
+2026-10-08T13:00:53.3656502Z     raise ValueError("used_days is outside the cycle")
+2026-10-08T13:00:53.9041547Z ValueError: used_days is outside the cycle
+2026-10-08T13:00:53.2743463Z 
+2026-10-08T13:00:53.9652804Z ======================================================================
+2026-10-08T13:00:53.1158830Z FAIL: test_upgrade_in_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_upgrade_in_a_31_day_cycle)
+2026-10-08T13:00:54.4511588Z ----------------------------------------------------------------------
+2026-10-08T13:00:54.3092960Z Traceback (most recent call last):
+2026-10-08T13:00:54.2301377Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 41, in test_upgrade_in_a_31_day_cycle
+2026-10-08T13:00:54.3239815Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 10, 16), date(2026, 10, 1), date(2026, 11, 1)), 4129)
+2026-10-08T13:00:54.2869939Z AssertionError: 4267 != 4129
+2026-10-08T13:00:54.1180587Z 
+2026-10-08T13:00:54.6918323Z ======================================================================
+2026-10-08T13:00:54.2103112Z FAIL: test_upgrade_in_february (tests.test_proration.UpgradeChargeTest.test_upgrade_in_february)
+2026-10-08T13:00:55.5021641Z ----------------------------------------------------------------------
+2026-10-08T13:00:55.2521488Z Traceback (most recent call last):
+2026-10-08T13:00:55.6771132Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 45, in test_upgrade_in_february
+2026-10-08T13:00:55.3405751Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 2, 15), date(2026, 2, 1), date(2026, 3, 1)), 4000)
+2026-10-08T13:00:55.6344580Z AssertionError: 3734 != 4000
+2026-10-08T13:00:55.4916264Z 
+2026-10-08T13:00:56.4712630Z ----------------------------------------------------------------------
+2026-10-08T13:00:56.6124744Z Ran 46 tests in 4.670s
+2026-10-08T13:00:56.4003131Z 
+2026-10-08T13:00:56.3917337Z FAILED (failures=5, errors=1)
+2026-10-08T13:00:56.9991790Z ##[endgroup]
+2026-10-08T13:00:56.7366857Z ##[group]Run coverage report -m
+2026-10-08T13:00:57.2247586Z Name                     Stmts   Miss  Cover   Missing
+2026-10-08T13:00:57.9223422Z ------------------------------------------------------
+2026-10-08T13:00:57.5460524Z billing/__init__.py           41      2    95%   76, 20
+2026-10-08T13:00:57.4381624Z billing/discounts.py          39      4    89%   18, 68, 49, 76
+2026-10-08T13:00:57.3433291Z billing/dunning.py            60      1    98%   18
+2026-10-08T13:00:57.4314251Z billing/export.py             60      7    88%   42, 70, 63, 45, 16, 22, 34
+2026-10-08T13:00:57.5304121Z billing/invoice.py            37      0   100%   
+2026-10-08T13:00:58.1044265Z billing/money.py              13      2    84%   11, 21
+2026-10-08T13:00:58.5830601Z billing/plans.py              30      5    83%   11, 47, 20, 51, 42
+2026-10-08T13:00:58.3763202Z billing/proration.py          46      6    86%   72, 46, 20, 36, 79, 74
+2026-10-08T13:00:58.8508339Z billing/sequence.py           53      4    92%   48, 37, 13, 53
+2026-10-08T13:00:58.1744315Z billing/tax.py                18      1    94%   59
+2026-10-08T13:00:58.8584361Z billing/webhooks.py            9      1    88%   21
+2026-10-08T13:00:58.5722559Z ------------------------------------------------------
+2026-10-08T13:00:59.6089609Z TOTAL                      406     33    91%
+2026-10-08T13:00:59.4274494Z ##[endgroup]
+2026-10-08T13:00:59.8797086Z ##[error]Process completed with exit code 1.
+2026-10-08T13:00:59.2496921Z ##[group]Run actions/upload-artifact@v4 (name: coverage-3.12.6)
+2026-10-08T13:00:59.9731928Z With the provided path, there will be 1 file uploaded
+2026-10-08T13:00:59.3660327Z Artifact name is valid!
+2026-10-08T13:01:00.7618427Z Artifact coverage-3.12.6.zip successfully finalized. Artifact ID 1922980384
+2026-10-08T13:01:00.7327943Z ##[endgroup]
+2026-10-08T13:01:00.7645576Z Post job cleanup.
+2026-10-08T13:01:00.7746349Z Cleaning up orphan processes
+2026-10-08T13:01:00.4942541Z ##[group]Run nightly / test (python 3.13.0)
+2026-10-08T13:01:00.4256072Z Current runner version: '2.319.1'
+2026-10-08T13:01:00.3506060Z Operating System: Ubuntu 24.04.1 LTS
+2026-10-08T13:01:00.4362692Z Runner Image: ubuntu-24.04 Version: 20260929.1
+2026-10-08T13:01:00.7254289Z GITHUB_TOKEN Permissions Actions: write
+2026-10-08T13:01:01.9702724Z GITHUB_TOKEN Permissions Checks: write
+2026-10-08T13:01:01.7066787Z GITHUB_TOKEN Permissions Contents: read
+2026-10-08T13:01:01.9469303Z GITHUB_TOKEN Permissions Metadata: read
+2026-10-08T13:01:01.2616678Z GITHUB_TOKEN Permissions PullRequests: read
+2026-10-08T13:01:01.4010498Z GITHUB_TOKEN Permissions Statuses: write
+2026-10-08T13:01:02.3275736Z Secret source: Actions
+2026-10-08T13:01:02.3495944Z Prepare workflow directory
+2026-10-08T13:01:02.6332257Z Prepare all required actions
+2026-10-08T13:01:02.1690461Z Getting action download info
+2026-10-08T13:01:02.7632802Z Download action repository 'actions/checkout@v4' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-10-08T13:01:02.4156014Z Download action repository 'actions/setup-python@v5' (SHA:0b93645e9fea7318ecaed2b359559ac225c90a2b)
+2026-10-08T13:01:03.9028594Z Download action repository 'actions/cache@v4' (SHA:6849a6489940f00c2f30c0fb92c6274307ccb58a)
+2026-10-08T13:01:03.7952395Z ##[endgroup]
+2026-10-08T13:01:03.1529306Z ##[group]Run actions/checkout@v4
+2026-10-08T13:01:03.5250274Z   repository: tidewater/ledgerline
+2026-10-08T13:01:03.9025688Z   ref: refs/heads/main
+2026-10-08T13:01:03.6180899Z   fetch-depth: 1
+2026-10-08T13:01:03.9392890Z   lfs: false
+2026-10-08T13:01:03.7176846Z   submodules: false
+2026-10-08T13:01:04.9686780Z   set-safe-directory: true
+2026-10-08T13:01:04.6145983Z Syncing repository: tidewater/ledgerline
+2026-10-08T13:01:04.9570366Z Determining the checkout info
+2026-10-08T13:01:04.4348027Z /usr/bin/git sparse-checkout disable
+2026-10-08T13:01:04.3443936Z /usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-08T13:01:04.3944909Z Checking out the ref
+2026-10-08T13:01:04.9140706Z /usr/bin/git log -1 --format=%H
+2026-10-08T13:01:04.9240114Z 4e1c9b07d2a85f3f6c0e8a91b3d74f2a6c5e1d08
+2026-10-08T13:01:04.7798746Z ##[endgroup]
+2026-10-08T13:01:04.9996323Z ##[group]Run actions/setup-python@v5 (python-version: 3.13.0)
+2026-10-08T13:01:05.7927208Z Successfully set up CPython (3.13.0)
+2026-10-08T13:01:05.1876979Z ##[endgroup]
+2026-10-08T13:01:05.1008744Z ##[group]Run pip install --upgrade pip coverage ruff
+2026-10-08T13:01:05.5830318Z Collecting pip
+2026-10-08T13:01:05.3504022Z   Downloading pip-24.2-py3-none-any.whl.metadata (26.7 kB)
+2026-10-08T13:01:06.3852347Z   Downloading pip-24.2-py3-none-any.whl (1.8 MB)
+2026-10-08T13:01:06.1190540Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 48.8 MB/s eta 0:00:00
+2026-10-08T13:01:06.8805890Z Collecting coverage
+2026-10-08T13:01:06.3222831Z   Downloading coverage-7.6.1-py3-none-any.whl.metadata (22.3 kB)
+2026-10-08T13:01:06.3948765Z   Downloading coverage-7.6.1-py3-none-any.whl (0.2 MB)
+2026-10-08T13:01:06.7920144Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0.2/0.2 MB 81.4 MB/s eta 0:00:00
+2026-10-08T13:01:07.6657081Z Collecting ruff
+2026-10-08T13:01:07.9598403Z   Downloading ruff-0.6.9-py3-none-any.whl.metadata (29.8 kB)
+2026-10-08T13:01:07.5845627Z   Downloading ruff-0.6.9-py3-none-any.whl (10.9 MB)
+2026-10-08T13:01:07.7968745Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.9/10.9 MB 84.1 MB/s eta 0:00:00
+2026-10-08T13:01:07.3358928Z Installing collected packages: ruff, pip, coverage
+2026-10-08T13:01:07.5527414Z Successfully installed coverage-7.6.1 pip-24.2 ruff-0.6.9
+2026-10-08T13:01:07.6764548Z ##[endgroup]
+2026-10-08T13:01:08.8082165Z ##[group]Run ruff check billing tests
+2026-10-08T13:01:08.2897793Z All checks passed!
+2026-10-08T13:01:08.5450528Z ##[endgroup]
+2026-10-08T13:01:08.2095733Z ##[group]Run python -m compileall -q billing tests
+2026-10-08T13:01:08.1820999Z ##[endgroup]
+2026-10-08T13:01:08.7444446Z ##[group]Run coverage run -m unittest discover -s tests -t . -v
+2026-10-08T13:01:09.8225498Z test_retries_then_none (tests.test_dunning.DunningTest.test_retries_then_none) ... ok (0.009s)
+2026-10-08T13:01:09.4605554Z test_schedule_from_config (tests.test_dunning.DunningTest.test_schedule_from_config) ... ok (0.004s)
+2026-10-08T13:01:09.8531634Z test_suspends_after_two_weeks (tests.test_dunning.DunningTest.test_suspends_after_two_weeks) ... ok (0.002s)
+2026-10-08T13:01:09.2820906Z test_a_coupon_is_one_kind (tests.test_discounts.CouponTest.test_a_coupon_is_one_kind) ... ok (0.006s)
+2026-10-08T13:01:10.8876825Z test_amount_off_never_exceeds_the_lines (tests.test_discounts.CouponTest.test_amount_off_never_exceeds_the_lines) ... ok (0.004s)
+2026-10-08T13:01:10.7673027Z test_one_coupon_only_the_best (tests.test_discounts.CouponTest.test_one_coupon_only_the_best) ... ok (0.009s)
+2026-10-08T13:01:10.7554673Z test_percent_off (tests.test_discounts.CouponTest.test_percent_off) ... ok (0.007s)
+2026-10-08T13:01:10.6654363Z test_csv_escapes_commas_in_customer_names (tests.test_export.ExportTest.test_csv_escapes_commas_in_customer_names) ... FAIL (1.430s)
+2026-10-08T13:01:10.6626350Z test_header_and_one_row (tests.test_export.ExportTest.test_header_and_one_row) ... ok (1.001s)
+2026-10-08T13:01:10.8404141Z test_gst_after_a_negative_line (tests.test_invoice.BuildInvoiceTest.test_gst_after_a_negative_line) ... ok (0.003s)
+2026-10-08T13:01:11.9847840Z test_gst_on_the_net_total (tests.test_invoice.BuildInvoiceTest.test_gst_on_the_net_total) ... ok (0.003s)
+2026-10-08T13:01:11.9607606Z test_numbers_follow_each_other (tests.test_invoice.BuildInvoiceTest.test_numbers_follow_each_other) ... ok (0.008s)
+2026-10-08T13:01:11.3887874Z test_refuses_empty_and_negative (tests.test_invoice.BuildInvoiceTest.test_refuses_empty_and_negative) ... ok (0.008s)
+2026-10-08T13:01:11.4935027Z test_paid_then_refundable (tests.test_invoice.StatusTest.test_paid_then_refundable) ... ok (0.009s)
+2026-10-08T13:01:11.6076236Z test_summary_is_plain_data (tests.test_invoice.StatusTest.test_summary_is_plain_data) ... ok (0.354s)
+2026-10-08T13:01:11.3514702Z test_parts_add_up (tests.test_money.AllocateTest.test_parts_add_up) ... ok (0.006s)
+2026-10-08T13:01:11.1366658Z test_formats (tests.test_money.FmtTest.test_formats) ... ok (0.008s)
+2026-10-08T13:01:11.1877488Z test_below_half_goes_down (tests.test_money.RoundHalfUpTest.test_below_half_goes_down) ... ok (0.005s)
+2026-10-08T13:01:11.8738233Z test_halves_go_up (tests.test_money.RoundHalfUpTest.test_halves_go_up) ... ok (0.008s)
+2026-10-08T13:01:12.3398497Z test_halves_of_negatives_go_away_from_zero (tests.test_money.RoundHalfUpTest.test_halves_of_negatives_go_away_from_zero) ... ok (0.008s)
+2026-10-08T13:01:12.3542647Z test_refuses_a_zero_denominator (tests.test_money.RoundHalfUpTest.test_refuses_a_zero_denominator) ... ok (0.009s)
+2026-10-08T13:01:12.1909693Z test_refuses_floats (tests.test_money.ToCentsTest.test_refuses_floats) ... ok (0.001s)
+2026-10-08T13:01:12.9330022Z test_strings_and_decimals (tests.test_money.ToCentsTest.test_strings_and_decimals) ... ok (0.005s)
+2026-10-08T13:01:12.5523095Z test_days_between (tests.test_proration.HelpersTest.test_days_between) ... ok (0.007s)
+2026-10-08T13:01:13.1595050Z test_proration_line (tests.test_proration.HelpersTest.test_proration_line) ... ok (0.133s)
+2026-10-08T13:01:13.5433460Z test_exact_division (tests.test_proration.ProrateTest.test_exact_division) ... ok (0.003s)
+2026-10-08T13:01:13.1779885Z test_full_cycle_is_the_whole_amount (tests.test_proration.ProrateTest.test_full_cycle_is_the_whole_amount) ... ok (0.006s)
+2026-10-08T13:01:13.1469299Z test_nothing_used_is_zero (tests.test_proration.ProrateTest.test_nothing_used_is_zero) ... ok (0.002s)
+2026-10-08T13:01:14.4726461Z test_refuses_days_outside_the_cycle (tests.test_proration.ProrateTest.test_refuses_days_outside_the_cycle) ... ok (0.008s)
+2026-10-08T13:01:14.8609378Z test_rounds_half_up (tests.test_proration.ProrateTest.test_rounds_half_up) ... FAIL (0.004s)
+2026-10-08T13:01:14.4888745Z test_rounds_half_up_on_odd_amounts (tests.test_proration.ProrateTest.test_rounds_half_up_on_odd_amounts) ... FAIL (0.180s)
+2026-10-08T13:01:14.8493234Z test_change_on_the_first_day_of_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_change_on_the_first_day_of_a_31_day_cycle) ... ERROR (0.005s)
+2026-10-08T13:01:14.7622840Z test_downgrade_is_a_credit (tests.test_proration.UpgradeChargeTest.test_downgrade_is_a_credit) ... ok (0.002s)
+2026-10-08T13:01:14.8699377Z test_refuses_a_change_outside_the_cycle (tests.test_proration.UpgradeChargeTest.test_refuses_a_change_outside_the_cycle) ... ok (0.003s)
+2026-10-08T13:01:15.7710556Z test_upgrade_in_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_upgrade_in_a_31_day_cycle) ... FAIL (0.001s)
+2026-10-08T13:01:15.5975750Z test_upgrade_in_february (tests.test_proration.UpgradeChargeTest.test_upgrade_in_february) ... FAIL (0.008s)
+2026-10-08T13:01:15.1099555Z test_gst_inside_a_gross_amount (tests.test_tax.GstTest.test_gst_inside_a_gross_amount) ... ok (0.061s)
+2026-10-08T13:01:15.1796799Z test_gst_on_a_net_amount (tests.test_tax.GstTest.test_gst_on_a_net_amount) ... ok (0.006s)
+2026-10-08T13:01:15.7265767Z test_nz_and_au_rates (tests.test_tax.GstTest.test_nz_and_au_rates) ... ok (0.005s)
+2026-10-08T13:01:15.2572659Z test_invoice_paid_shape (tests.test_webhooks.EventTest.test_invoice_paid_shape) ... ok (0.006s)
+2026-10-08T13:01:15.3322111Z test_rejects_a_malformed_header (tests.test_webhooks.SignatureTest.test_rejects_a_malformed_header) ... ok (0.206s)
+2026-10-08T13:01:15.1920489Z test_rejects_a_tampered_body (tests.test_webhooks.SignatureTest.test_rejects_a_tampered_body) ... ok (0.001s)
+2026-10-08T13:01:15.4628372Z test_rejects_an_old_delivery (tests.test_webhooks.SignatureTest.test_rejects_an_old_delivery) ... ok (0.002s)
+2026-10-08T13:01:16.1098235Z test_round_trip (tests.test_webhooks.SignatureTest.test_round_trip) ... ok (0.008s)
+2026-10-08T13:01:16.3574445Z test_tolerates_whitespace_a_proxy_adds (tests.test_webhooks.SignatureTest.test_tolerates_whitespace_a_proxy_adds) ... ok (0.008s)
+2026-10-08T13:01:16.5113943Z ======================================================================
+2026-10-08T13:01:16.4454738Z FAIL: test_csv_escapes_commas_in_customer_names (tests.test_export.ExportTest.test_csv_escapes_commas_in_customer_names)
+2026-10-08T13:01:16.8145649Z ----------------------------------------------------------------------
+2026-10-08T13:01:16.4990709Z Traceback (most recent call last):
+2026-10-08T13:01:16.7829348Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_export.py", line 24, in test_csv_escapes_commas_in_customer_names
+2026-10-08T13:01:17.1701277Z     self.assertEqual(rows[1][2], "Smith, Tane & Co")
+2026-10-08T13:01:17.7965088Z AssertionError: 'Smith' != 'Smith, Tane & Co'
+2026-10-08T13:01:17.8653614Z - Smith
+2026-10-08T13:01:17.8158150Z + Smith, Tane & Co
+2026-10-08T13:01:17.2002895Z 
+2026-10-08T13:01:17.1681076Z ======================================================================
+2026-10-08T13:01:18.7811606Z FAIL: test_rounds_half_up (tests.test_proration.ProrateTest.test_rounds_half_up)
+2026-10-08T13:01:18.6763120Z ----------------------------------------------------------------------
+2026-10-08T13:01:18.6724396Z Traceback (most recent call last):
+2026-10-08T13:01:18.9915473Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 23, in test_rounds_half_up
+2026-10-08T13:01:18.6569117Z     self.assertEqual(prorate(999, 15, 30), 500)
+2026-10-08T13:01:18.5438965Z AssertionError: 499 != 500
+2026-10-08T13:01:18.2229652Z 
+2026-10-08T13:01:19.1900718Z ======================================================================
+2026-10-08T13:01:19.2775350Z FAIL: test_rounds_half_up_on_odd_amounts (tests.test_proration.ProrateTest.test_rounds_half_up_on_odd_amounts)
+2026-10-08T13:01:19.5251913Z ----------------------------------------------------------------------
+2026-10-08T13:01:19.5326939Z Traceback (most recent call last):
+2026-10-08T13:01:19.6734578Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 27, in test_rounds_half_up_on_odd_amounts
+2026-10-08T13:01:19.5124942Z     self.assertEqual(prorate(997, 15, 30), 499)
+2026-10-08T13:01:19.9405935Z AssertionError: 498 != 499
+2026-10-08T13:01:19.1281107Z 
+2026-10-08T13:01:19.1016339Z ======================================================================
+2026-10-08T13:01:20.2809796Z ERROR: test_change_on_the_first_day_of_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_change_on_the_first_day_of_a_31_day_cycle)
+2026-10-08T13:01:20.5636698Z ----------------------------------------------------------------------
+2026-10-08T13:01:20.8914116Z Traceback (most recent call last):
+2026-10-08T13:01:20.3989268Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 48, in test_change_on_the_first_day_of_a_31_day_cycle
+2026-10-08T13:01:20.9868240Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 8, 1), date(2026, 8, 1), date(2026, 9, 1)), 8000)
+2026-10-08T13:01:21.8536998Z   File "/home/runner/work/ledgerline/ledgerline/billing/proration.py", line 40, in upgrade_charge
+2026-10-08T13:01:21.1062503Z     charge = prorate(new.price_cents, remaining, CYCLE_DAYS)
+2026-10-08T13:01:21.1722550Z   File "/home/runner/work/ledgerline/ledgerline/billing/proration.py", line 30, in prorate
+2026-10-08T13:01:21.4589921Z     raise ValueError("used_days is outside the cycle")
+2026-10-08T13:01:21.1453267Z ValueError: used_days is outside the cycle
+2026-10-08T13:01:21.7532492Z 
+2026-10-08T13:01:22.4291257Z ======================================================================
+2026-10-08T13:01:22.5930582Z FAIL: test_upgrade_in_a_31_day_cycle (tests.test_proration.UpgradeChargeTest.test_upgrade_in_a_31_day_cycle)
+2026-10-08T13:01:22.4330851Z ----------------------------------------------------------------------
+2026-10-08T13:01:22.1041662Z Traceback (most recent call last):
+2026-10-08T13:01:22.9547186Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 41, in test_upgrade_in_a_31_day_cycle
+2026-10-08T13:01:22.9978849Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 10, 16), date(2026, 10, 1), date(2026, 11, 1)), 4129)
+2026-10-08T13:01:22.2055645Z AssertionError: 4267 != 4129
+2026-10-08T13:01:23.9275117Z 
+2026-10-08T13:01:23.3401738Z ======================================================================
+2026-10-08T13:01:23.4610239Z FAIL: test_upgrade_in_february (tests.test_proration.UpgradeChargeTest.test_upgrade_in_february)
+2026-10-08T13:01:23.3464872Z ----------------------------------------------------------------------
+2026-10-08T13:01:24.4622702Z Traceback (most recent call last):
+2026-10-08T13:01:24.9420939Z   File "/home/runner/work/ledgerline/ledgerline/tests/test_proration.py", line 45, in test_upgrade_in_february
+2026-10-08T13:01:24.8712564Z     self.assertEqual(upgrade_charge(STARTER, GROWTH, date(2026, 2, 15), date(2026, 2, 1), date(2026, 3, 1)), 4000)
+2026-10-08T13:01:24.3869311Z AssertionError: 3734 != 4000
+2026-10-08T13:01:24.4475070Z 
+2026-10-08T13:01:24.9506397Z ----------------------------------------------------------------------
+2026-10-08T13:01:24.8571135Z Ran 46 tests in 2.920s
+2026-10-08T13:01:24.9712906Z 
+2026-10-08T13:01:25.8270177Z FAILED (failures=5, errors=1)
+2026-10-08T13:01:25.4440766Z ##[endgroup]
+2026-10-08T13:01:25.5123430Z ##[group]Run coverage report -m
+2026-10-08T13:01:25.4445023Z Name                     Stmts   Miss  Cover   Missing
+2026-10-08T13:01:25.9628667Z ------------------------------------------------------
+2026-10-08T13:01:25.1892198Z billing/__init__.py           38      1    97%   75
+2026-10-08T13:01:25.4148597Z billing/discounts.py          27      3    88%   24, 51, 67
+2026-10-08T13:01:26.6671829Z billing/dunning.py            21      3    85%   34, 65, 11
+2026-10-08T13:01:26.1843554Z billing/export.py              5      0   100%   
+2026-10-08T13:01:26.4593952Z billing/invoice.py            43      7    83%   30, 55, 34, 78, 78, 10, 73
+2026-10-08T13:01:26.6981646Z billing/money.py               4      0   100%   
+2026-10-08T13:01:26.5491649Z billing/plans.py              32      4    87%   22, 69, 53, 72
+2026-10-08T13:01:26.9619386Z billing/proration.py          11      1    90%   59
+2026-10-08T13:01:26.9992328Z billing/sequence.py           49      7    85%   63, 48, 39, 79, 72, 60, 69
+2026-10-08T13:01:27.6173561Z billing/tax.py                 7      0   100%   
+2026-10-08T13:01:27.4774430Z billing/webhooks.py           35      5    85%   46, 49, 29, 47, 61
+2026-10-08T13:01:27.5115422Z ------------------------------------------------------
+2026-10-08T13:01:27.2656323Z TOTAL                      272     31    88%
+2026-10-08T13:01:27.6076834Z ##[endgroup]
+2026-10-08T13:01:28.7009896Z ##[error]Process completed with exit code 1.
+2026-10-08T13:01:28.7608689Z ##[group]Run actions/upload-artifact@v4 (name: coverage-3.13.0)
+2026-10-08T13:01:28.7203439Z With the provided path, there will be 1 file uploaded
+2026-10-08T13:01:28.4735007Z Artifact name is valid!
+2026-10-08T13:01:28.2043350Z Artifact coverage-3.13.0.zip successfully finalized. Artifact ID 1900819321
+2026-10-08T13:01:28.4415248Z ##[endgroup]
+2026-10-08T13:01:29.5986201Z Post job cleanup.
+2026-10-08T13:01:29.7010116Z Cleaning up orphan processes
+2026-10-08T13:01:29.3150524Z ##[group]Slowest tests (mean of the matrix)
+2026-10-08T13:01:29.5432246Z   1.246s  tests.test_export.ExportTest.test_csv_escapes_commas_in_customer_names
+2026-10-08T13:01:29.6748920Z   1.049s  tests.test_export.ExportTest.test_header_and_one_row
+2026-10-08T13:01:29.6615941Z   0.192s  tests.test_dunning.DunningTest.test_suspends_after_two_weeks
+2026-10-08T13:01:29.4715188Z   0.154s  tests.test_tax.GstTest.test_nz_and_au_rates
+2026-10-08T13:01:30.9623710Z   0.137s  tests.test_tax.GstTest.test_gst_inside_a_gross_amount
+2026-10-08T13:01:30.4221209Z   0.130s  tests.test_invoice.StatusTest.test_paid_then_refundable
+2026-10-08T13:01:30.6652388Z   0.128s  tests.test_money.FmtTest.test_formats
+2026-10-08T13:01:30.2030470Z   0.127s  tests.test_webhooks.SignatureTest.test_rejects_an_old_delivery
+2026-10-08T13:01:30.1850854Z   0.123s  tests.test_invoice.StatusTest.test_summary_is_plain_data
+2026-10-08T13:01:30.6778645Z   0.102s  tests.test_proration.UpgradeChargeTest.test_refuses_a_change_outside_the_cycle
+2026-10-08T13:01:30.6559305Z ##[endgroup]
+2026-10-08T13:01:30.2335725Z ##[group]Summary
+2026-10-08T13:01:31.4596921Z nightly: 3 jobs, 3 failed. Failing on every Python: tests.test_export (1), tests.test_proration (5).
+2026-10-08T13:01:31.5420409Z ##[endgroup]

@@ -64,7 +64,14 @@ export type Row = {
   decision_calls?: number
   /** Set on a case's shared-setup row: what building the session cost, once per case, before any arm. */
   setup?: true
+  /** The final step's context: its input tokens, cached or not (for compaction, what the question read). */
+  context_tokens?: number | null
+  /** What a compaction the mod recorded kept and dropped, in messages. */
+  compaction?: Compaction
 }
+
+/** One compaction as the mod records it in the bench ledger: messages before, kept and dropped, and why nothing went. */
+export type Compaction = { messages: number; kept: number; dropped: number; skip: string | null }
 
 /** What every row of one run shares. */
 export type RunMeta = Pick<Row, 'schema' | 'run' | 'feature' | 'level' | 'jevmod' | 'git' | 'date' | 'settings' | 'sweep'>
@@ -160,6 +167,10 @@ export type TaskCase = {
   setup: string[]
   /** Tools the headless run may use without asking. */
   allowedTools?: string[]
+  /** The scratch project is made a git repository with one commit first, as a real project is. */
+  git?: boolean
+  /** About what the shared setup costs, in dollars, for the estimate (else its prompts at the adapter's setup price). */
+  setupUsd?: number
 }
 
 export type Arm = {
@@ -174,10 +185,12 @@ export type Checked = { success: boolean; score: number; detail?: Record<string,
 
 /** What one arm of one case did, for the adapter's verify: what the runner can see from outside. */
 export type ArmRun = {
-  /** Entries the mod wrote to the arm's ledger: one per decision request it made. */
+  /** Decision entries the mod wrote to the arm's ledger: one per decision request it made. */
   ledgerEntries: number
   /** The final step's input tokens, cached or not: the context its model call read. null: no usage reported. */
   contextTokens: number | null
+  /** The last compaction the mod recorded in the arm's ledger, or null when it recorded none. */
+  compaction: Compaction | null
 }
 
 /** A feature's task-level bench: cases run end to end with `claude -p`, per arm. */
@@ -203,4 +216,8 @@ export interface TaskAdapter<C extends TaskCase = TaskCase> {
   setupUsdPerCall?: number
   /** About how many decision calls one jev-mod arm's steps make. */
   decisionCallsPerArm: number
+  /** The `--max-budget-usd` each `claude -p` gets when --max-usd-per-call is not given (else 2). */
+  maxUsdPerCall?: number
+  /** Lines the plan prints under its estimate: how the adapter priced its steps. */
+  estimateNote?(cases: readonly C[]): string[]
 }

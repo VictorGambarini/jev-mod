@@ -1,4 +1,4 @@
-import { dropConfidence } from '../../core/bench-overlay'
+import { dropConfidence, ledgerCompaction } from '../../core/bench-overlay'
 import { hostOf } from '../../core/host'
 import * as activity from '../../core/activity'
 import type { IO } from '../../core/io'
@@ -50,9 +50,11 @@ export function isOurs(e: { instructions?: string; agentId?: string; trigger?: s
 export async function compact(io: IO, messages: readonly any[]): Promise<{ messages: any[] } | { skip: string }> {
   pending = false
   const { units, toJev } = unitsOf(messages)
-  const done = (skip: string) => {
+  // a bench run's ledger gets what each compaction kept and dropped (core/bench-overlay.ts)
+  const done = async (skip: string) => {
     io.toast(`jev-mod compact: ${skip}.`)
     void activity.count(io, 'compact', 'skipped')
+    await ledgerCompaction(io, { messages: messages.length, kept: messages.length, dropped: 0, skip })
     return { skip }
   }
   if (toJev.length === 0) return done('nothing to judge')
@@ -83,6 +85,7 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
     toolUses: [],
   }
   void activity.count(io, 'compact', 'compacted')
+  await ledgerCompaction(io, { messages: messages.length, kept: kept.length, dropped: messages.length - kept.length, skip: null })
   io.toast(`jev-mod compact: dropped ${messages.length - kept.length} of ${messages.length} messages, kept ${kept.length}; nothing was summarised.`)
   return { messages: [note, ...kept] }
 }

@@ -8,13 +8,14 @@
 //
 // The shared setup's spend is a row of its own per case (`setup: true`), so a run's totals hold
 // it. After a case's arms ran, the adapter's verify may turn an arm that did not do its job (a
-// compaction that never happened) into an error: such an arm is never scored.
+// compaction that never happened) into an error: such an arm is never scored. Each arm's row holds
+// the context its final step read and, when the mod recorded one, what its compaction kept and dropped.
 
 import { PROVIDERS } from '../engine/keys'
 import { fs, proc, run, say, warn } from './node'
 import { overlayFor } from './plan'
 import { toLine } from './results'
-import { contextOf, parseClaude, setupRow, verifyArms, type Result } from './task-rows'
+import { contextOf, parseClaude, readLedger, setupRow, verifyArms, type Result } from './task-rows'
 import type { Arm, ArmRun, BackendRef, Row, RunMeta, TaskAdapter, TaskCase } from './types'
 
 export type TaskOptions = {
@@ -58,6 +59,11 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     const work = `${dir}/project`
     await f.mkdir(work, { recursive: true })
     if (c.fixture) await f.cp(`${o.repo}/${c.fixture}`, work, { recursive: true })
+    if (c.git) {
+      // a project under git, as a real one is: the session can diff its own changes
+      const git = (...args: string[]) => run('git', ['-c', 'user.name=bench', '-c', 'user.email=bench@example.invalid', ...args], { cwd: work, timeoutMs: 30_000 })
+      for (const args of [['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'fixture']]) await git(...args)
+    }
     const tools = c.allowedTools ?? []
     // the shared session, built with every feature that changes what the model sees off
     const setupOverlay = `${dir}/overlay-setup.json`
@@ -99,30 +105,34 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
         mine = r.session ?? mine
         if (step.final) { final = r.text; context = contextOf(r.tokens) }
       }
-      // the decision model's calls, as the mod wrote them to this arm's ledger
-      const entries = await f.readdir(ledger).catch(() => [] as string[])
-      for (const name of entries) {
-        try {
-          const e = JSON.parse(await f.readFile(`${ledger}/${name}`, 'utf8')) as { calls?: number; cost?: number; model?: string | null }
-          row.calls += e.calls ?? 0
-          row.cost_usd += e.cost ?? 0
-          if (e.model) row.answered_model = e.model
-        } catch { /* a half-written entry */ }
+      // the decision model's calls and the compaction, as the mod wrote them to this arm's ledger
+      const files: { name: string; text: string }[] = []
+      for (const name of await f.readdir(ledger).catch(() => [] as string[])) {
+        try { files.push({ name, text: await f.readFile(`${ledger}/${name}`, 'utf8') }) } catch { /* gone */ }
       }
+      const book = readLedger(files)
+      row.calls = book.calls
+      row.cost_usd = book.cost
+      if (book.model) row.answered_model = book.model
       row.decision_calls = row.calls
+      row.context_tokens = context
+      if (book.compaction) row.compaction = book.compaction
       if (row.outcome === 'ok') {
         const checked = await o.adapter.check(c, final, work)
         row.success = checked.success
         row.score = checked.score
         if (checked.detail) row.detail = checked.detail
       }
-      done.push({ arm, row, run: { ledgerEntries: entries.length, contextTokens: context } })
+      done.push({ arm, row, run: { ledgerEntries: book.decisions, contextTokens: context, compaction: book.compaction } })
     }
     verifyArms(o.adapter, c, done)
     for (const { arm, row } of done) {
       rows.push(row)
       await f.appendFile(o.out, toLine(row) + '\n')
-      say(`${c.id} · ${arm.id}: ${row.outcome === 'ok' ? `score ${row.score?.toFixed(2)}` : `error (${row.error})`}, $${row.claude_cost_usd!.toFixed(3)} Claude, $${row.cost_usd.toFixed(5)} decisions`)
+      const kept = row.compaction ? `, kept ${row.compaction.kept} of ${row.compaction.messages} messages` : ''
+      const read = row.context_tokens ? `, question read ${Math.round(row.context_tokens / 1000)}k tokens` : ''
+      say(`${c.id} · ${arm.id}: ${row.outcome === 'ok' ? `score ${row.score?.toFixed(2)}` : `error (${row.error})`}${read}${kept}, ` +
+        `$${row.claude_cost_usd!.toFixed(3)} Claude, $${row.cost_usd.toFixed(5)} decisions`)
     }
   }
   warn(`scratch folder kept for inspection: ${base}`)

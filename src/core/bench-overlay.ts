@@ -14,7 +14,7 @@ import type { IO } from './io'
 // neither takes its knobs from here. `compact.dropConfidence` is how sure a drop must be for
 // /jev-mod compact to act on it (the default is engine/compact.ts's DROP_CONFIDENCE). `ledger`
 // is a folder where each decision call's cost is written, one small file per call, for the
-// bench to add up. An overlay holding anything key-shaped (a field named like a key, token,
+// bench to add up, and where /jev-mod compact writes what each compaction kept and dropped. An overlay holding anything key-shaped (a field named like a key, token,
 // secret, password or header) is refused whole: a key never travels in it.
 
 export const OVERLAY_ENV = 'JEV_MOD_BENCH_OVERLAY'
@@ -85,4 +85,19 @@ export async function ledger(io: IO, entry: { feature?: string; calls: number; c
     await io.writeFile(`${folder}/${name}`, JSON.stringify({ at: Date.now(), feature: entry.feature ?? null, calls: entry.calls,
       cost: entry.cost, model: entry.model ?? null, error: entry.error }))
   } catch { /* the ledger is the bench's; a decision never fails for it */ }
+}
+
+/**
+ * Write what one /jev-mod compaction did (messages before, kept, dropped, and why nothing went
+ * when nothing did) to the overlay's ledger folder, when it names one: the bench's proof that a
+ * compaction happened. Never throws.
+ */
+export async function ledgerCompaction(io: IO, entry: { messages: number; kept: number; dropped: number; skip: string | null }): Promise<void> {
+  try {
+    const folder = (await readOverlay(io)).overlay?.ledger
+    if (!folder) return
+    const name = `compaction-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.json`
+    await io.writeFile(`${folder}/${name}`, JSON.stringify({ at: Date.now(), kind: 'compaction', messages: entry.messages,
+      kept: entry.kept, dropped: entry.dropped, skip: entry.skip }))
+  } catch { /* the ledger is the bench's; a compaction never fails for it */ }
 }

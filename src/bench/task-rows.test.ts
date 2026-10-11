@@ -1,7 +1,7 @@
 import { test, expect } from 'claude-code/testing'
 import { MARK } from '../features/compact'
 import { task as compactTask, TASKS } from '../features/compact/bench/task'
-import { contextOf, parseClaude, setupRow, verifyArms } from './task-rows'
+import { contextOf, parseClaude, readLedger, setupRow, verifyArms } from './task-rows'
 import type { Arm, ArmRun, Row, RunMeta } from './types'
 
 // The task runner's pure parts: the setup's own row, and the adapter's verdict on arms that did
@@ -29,40 +29,64 @@ test('a step\'s context is its input tokens, cached or not; none reported is unk
   expect(contextOf(parseClaude('{"result":"1. x","usage":{"input_tokens":3,"cache_read_input_tokens":9000}}').tokens)).toBe(9003)
 })
 
+const run = (ledgerEntries: number, contextTokens: number | null, dropped?: number): ArmRun =>
+  ({ ledgerEntries, contextTokens, compaction: dropped === undefined ? null : { messages: 300, kept: 300 - dropped, dropped, skip: dropped ? null : 'Jev marked no turn drop; nothing to remove' } })
+
 test('an arm that did not compact is an error, not_compacted, and loses its score', () => {
   const none = arm('no compaction', 'claude')
   const summarised = arm('claude', 'claude')
-  const jevEmpty = arm('jev-mod openrouter drop=0.6', 'jev-mod', 'openrouter')
-  const jevAsked = arm('jev-mod openrouter drop=0.7', 'jev-mod', 'openrouter')
-  const run = (ledgerEntries: number, contextTokens: number | null): ArmRun => ({ ledgerEntries, contextTokens })
+  const jevNever = arm('jev-mod openrouter drop=0.6', 'jev-mod', 'openrouter')
+  const jevNothing = arm('jev-mod openrouter drop=0.7', 'jev-mod', 'openrouter')
+  const jevLittle = arm('jev-mod openrouter drop=0.8', 'jev-mod', 'openrouter')
+  const jevCut = arm('jev-mod openrouter drop=0.9', 'jev-mod', 'openrouter')
   const done = [
-    { arm: summarised, row: okRow(summarised), run: run(0, 95_000) }, // as big as no compaction: it did not compact
-    { arm: none, row: okRow(none), run: run(0, 100_000) },
-    { arm: jevEmpty, row: okRow(jevEmpty), run: run(0, 100_000) },     // the decision model was never asked
-    { arm: jevAsked, row: okRow(jevAsked), run: run(2, 100_000) },     // asked; it may have dropped nothing, which is a result
+    { arm: summarised, row: okRow(summarised), run: run(0, 125_000) },       // as big as no compaction: it did not compact
+    { arm: none, row: okRow(none), run: run(0, 133_000) },
+    { arm: jevNever, row: okRow(jevNever), run: run(0, 133_000) },           // no record and the decision model never asked
+    { arm: jevNothing, row: okRow(jevNothing), run: run(4, 60_000, 0) },     // asked, but recorded nothing dropped
+    { arm: jevLittle, row: okRow(jevLittle), run: run(4, 124_000, 9) },      // dropped a few short messages: no real shrink
+    { arm: jevCut, row: okRow(jevCut), run: run(4, 80_000, 120) },           // a real compaction is scored
   ]
   verifyArms(compactTask, TASKS[0]!, done)
   expect(done.map(d => [d.row.outcome, d.row.error ?? null, d.row.score ?? null])).toEqual([
-    ['error', 'not_compacted', null], ['ok', null, 1], ['error', 'not_compacted', null], ['ok', null, 1]])
+    ['error', 'not_compacted', null], ['ok', null, 1], ['error', 'not_compacted', null], ['error', 'not_compacted', null],
+    ['error', 'not_compacted', null], ['ok', null, 1]])
 })
 
-test('a /compact arm whose context shrank is scored; without a no-compaction context it cannot be told and is scored', () => {
+test('a compacting arm whose context shrank is scored; without a no-compaction context only the mod\'s record can tell', () => {
   const summarised = arm('claude', 'claude')
   const none = arm('no compaction', 'claude')
-  const shrank = [{ arm: summarised, row: okRow(summarised), run: { ledgerEntries: 0, contextTokens: 30_000 } },
-    { arm: none, row: okRow(none), run: { ledgerEntries: 0, contextTokens: 100_000 } }]
+  const jev = arm('jev-mod openrouter drop=0.7', 'jev-mod', 'openrouter')
+  const shrank = [{ arm: summarised, row: okRow(summarised), run: run(0, 34_000) }, { arm: none, row: okRow(none), run: run(0, 133_000) }]
   verifyArms(compactTask, TASKS[0]!, shrank)
   expect(shrank[0]!.row.outcome).toBe('ok')
-  const unknown = [{ arm: summarised, row: okRow(summarised), run: { ledgerEntries: 0, contextTokens: 99_000 } }]
+  const unknown = [{ arm: summarised, row: okRow(summarised), run: run(0, 130_000) }, { arm: jev, row: okRow(jev), run: run(4, null, 50) }]
   verifyArms(compactTask, TASKS[0]!, unknown)
-  expect(unknown[0]!.row.outcome).toBe('ok')
+  expect(unknown.map(d => d.row.outcome)).toEqual(['ok', 'ok'])
 })
 
 test('a row that already failed keeps its own error', () => {
   const jev = arm('jev-mod openrouter drop=0.6', 'jev-mod', 'openrouter')
   const row = { ...okRow(jev), outcome: 'error' as const, error: 'claude exited 1' }
-  verifyArms(compactTask, TASKS[0]!, [{ arm: jev, row, run: { ledgerEntries: 0, contextTokens: null } }])
+  verifyArms(compactTask, TASKS[0]!, [{ arm: jev, row, run: run(0, null) }])
   expect(row.error).toBe('claude exited 1')
+})
+
+test('the ledger: decision calls are added up, the last compaction is what the arm did, a half-written file is passed over', () => {
+  const book = readLedger([
+    { name: '1700-a.json', text: JSON.stringify({ at: 1, feature: 'compact', calls: 1, cost: 0.0002, model: 'jev-1.13', error: null }) },
+    { name: '1701-b.json', text: JSON.stringify({ at: 2, feature: 'compact', calls: 2, cost: 0.0003, model: 'jev-1.13', error: null }) },
+    { name: 'compaction-1702-c.json', text: JSON.stringify({ at: 3, kind: 'compaction', messages: 310, kept: 140, dropped: 170, skip: null }) },
+    { name: '1703-d.json', text: '{"at": 4, "calls"' },
+  ])
+  expect(book.decisions).toBe(2)
+  expect(book.calls).toBe(3)
+  expect(Math.round(book.cost * 1e6)).toBe(500)
+  expect(book.model).toBe('jev-1.13')
+  expect(book.compaction).toEqual({ messages: 310, kept: 140, dropped: 170, skip: null })
+  expect(readLedger([]).compaction).toBe(null)
+  const skipped = readLedger([{ name: 'compaction-1.json', text: JSON.stringify({ at: 1, kind: 'compaction', messages: 12, kept: 12, dropped: 0, skip: 'nothing to judge' }) }])
+  expect([skipped.decisions, skipped.compaction?.skip]).toEqual([0, 'nothing to judge'])
 })
 
 test('a jev-mod arm compacts with /compact and the marker in one step; every question step refuses all tools', () => {

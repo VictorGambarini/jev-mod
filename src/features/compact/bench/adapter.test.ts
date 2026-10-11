@@ -4,7 +4,7 @@ import type { Row } from '../../../bench/types'
 import { ALWAYS_KEEP_LAST, unitsOf } from '../keep'
 import { adapter, keptAt } from './adapter'
 import { SESSIONS } from './cases'
-import { checkAnswers, questionPrompt, TASKS } from './task'
+import { answersOf, checkAnswers, questionPrompt, TASKS } from './task'
 
 const meta = { schema: 1 as const, run: 'r', feature: 'compact', level: 'decision' as const, jevmod: '0.10.0', git: 'abc', date: 'd', settings: {}, sweep: null }
 
@@ -75,30 +75,94 @@ test('the fake is told the gold label of each unit it is asked about', () => {
   })
 })
 
-// What a model that kept everything would answer, per case: each must score 1.
+// What a model that kept everything would answer, per case, in its own words: each must score 1.
 const GOLD: Record<string, string[]> = {
-  briefing: ['Mereana Tait', '14 March', 'HP-4471-Z', '$250', 'Priya', 'Release 2.3', 'nightly-reprice', 'Tomasz'],
-  'file-values': ['8157', '1800 ms', 'growth', '5', 'Aroha Ngata', '312', '600 ms', 'Sione Fifita'],
-  'decisions-and-rules': ['SQLite', 'We deploy to a single host', 'config.json', 'cents', '7', 'legacy_tax', 'm8', '100 cents'],
+  'proration-fix': [
+    'BIL-231.',
+    'tests.test_export test_csv_escapes_commas_in_customer_names; it is BIL-212 and Ana Folau is fixing it.',
+    'billing/money.py: it is vendored into the invoicing service and the invoicing team owns it.',
+    'Python\'s round() in prorate(); it rounds half to even (banker\'s rounding), so 498.5 became 498.',
+    'money.round_half_up(numerator, denominator).',
+    'The real number of days from cycle_start to cycle_end, because annual plans and trials have odd-length cycles.',
+    '`python3 -m unittest tests.test_proration -v`',
+    'test_bil_231_customer_c10482, expecting 3871 cents.',
+    'Release 2.14; cut-off Thursday 16 October.',
+    'Mereana Tait from product.',
+    'billing/proration.py, tests/test_proration.py and CHANGELOG.md.',
+    'After: GST is added once on the net total, after the proration line.',
+  ],
+  'credit-notes': [
+    'BIL-198',
+    'Credit notes must be their own document type because Xero imports them separately.',
+    'Hemi Walker',
+    'CN-000001',
+    'With tax.gst_portion() on the refunded amount, never by scaling the invoice\'s GST, which comes out a cent off (Hemi\'s IRD notes).',
+    'CreditNoteError, when the amount exceeds what is still refundable: the total less earlier credit notes.',
+    'A module-level itertools.count; with 4 gunicorn workers two would hand out the same number, and it restarts on deploy.',
+    'billing.sequence.Sequence("credit_note")',
+    'The signing code (encode, sign_payload, verify_signature): Tomasz Nowak has PR #412 under review.',
+    'credit_note.issued',
+    'The proration ones are BIL-231 (Rawiri) and the export one is BIL-212.',
+    'docs/credit-notes.md, for Hemi by Friday 24 October.',
+  ],
+  'webhook-signatures': [
+    'BIL-240',
+    'Kiri Wairua at Kauri Analytics.',
+    'verify_signature re-serialised the JSON with ensure_ascii on, so names with macrons (non-ASCII) no longer matched the signed bytes.',
+    'Clock skew (raise the tolerance); dropped because clock offsets were milliseconds and only names with macrons failed.',
+    '300 seconds, the change was reverted.',
+    'ensure_ascii=False (UTF-8 JSON): the wire format is a contract with partners.',
+    'sign_payload and verify_signature: the partner SDK is generated from them.',
+    'test_tolerates_whitespace_a_proxy_adds: the contract says proxies forward the body byte for byte.',
+    'No. Kiri\'s team replays them by event id, since automatic re-sends would double-post invoices.',
+    'docs/incidents/BIL-240-replay.txt',
+    'Wednesday 15 October at 5pm; Tomasz Nowak reviews.',
+    'python3 -m unittest tests.test_webhooks -v',
+  ],
 }
 
-test('task level: every case has its gold answers, and they score 1', () => {
+test('task level: three long cases, each with its gold answers scoring 1', () => {
   expect(TASKS.map(t => t.id).sort()).toEqual(Object.keys(GOLD).sort())
   for (const t of TASKS) {
+    expect(t.setup.length).toBeGreaterThanOrEqual(10)
+    expect(t.questions.length).toBeGreaterThanOrEqual(8)
+    expect(t.questions.length).toBeLessThanOrEqual(12)
+    expect(t.git).toBe(true)
     expect(questionPrompt(t)).toContain(`${t.questions.length}. ${t.questions[t.questions.length - 1]!.q}`)
     const gold = GOLD[t.id]!
     expect(gold.length).toBe(t.questions.length)
-    expect(checkAnswers(t, gold.map((a, i) => `${i + 1}. ${a}`).join('\n'))).toEqual({ success: true, score: 1, detail: { right: gold.map(() => true) } })
+    const got = checkAnswers(t, gold.map((a, i) => `${i + 1}. ${a}`).join('\n'))
+    expect(got.detail).toEqual({ right: gold.map(() => true) })
+    expect([got.success, got.score]).toEqual([true, 1])
   }
 })
 
-test('task level: the checker scores numbered answers, never the number itself, and a lossy answer scores below 1', () => {
-  const t = TASKS.find(c => c.id === 'decisions-and-rules')!
-  // a summary that kept the gist: the old plan, no reason, no counts
-  const lossy = checkAnswers(t, 'Here you go:\n1. Redis, then SQLite\n2. unknown\n**3.** config.json\n4. cents\n5. unknown\n6. legacy_tax\n7. unknown\n8. 100')
-  expect(lossy.success).toBe(false)
-  expect(lossy.score).toBe(0.5)
-  // "5." is the line's number, not the answer: the warnings count is 7
-  expect(checkAnswers(t, '5. unknown').detail).toEqual({ right: [false, false, false, false, false, false, false, false] })
+test('task level: a summary that kept the gist scores below 1: the owner, the reason, the deadline and the command are gone', () => {
+  const t = TASKS.find(c => c.id === 'proration-fix')!
+  const lossy = [
+    'BIL-231', 'An export test, BIL-212.', 'money.py', 'round(), but tests still failed.', 'round_half_up',
+    'From cycle_start to cycle_end.', 'unknown', 'test_bil_231_customer_c10482, 3871', 'Release 2.14', 'unknown',
+    'proration.py, test_proration.py, CHANGELOG.md', 'After.',
+  ]
+  const got = checkAnswers(t, lossy.map((a, i) => `${i + 1}. ${a}`).join('\n'))
+  expect(got.detail).toEqual({ right: [true, false, false, false, true, false, false, true, false, false, true, true] })
+  expect(got.score).toBe(5 / 12)
+  expect(got.success).toBe(false)
+})
+
+test('task level: an answer may run over several lines, bold or bulleted; a value starting a line is not an answer number', () => {
+  const t = TASKS.find(c => c.id === 'proration-fix')!
+  const text = [
+    'Here is what I have:', '', '**1.** BIL-231', '2) test_csv_escapes_commas_in_customer_names', '   Ticket BIL-212, Ana Folau has it.',
+    '- 3. `billing/money.py`', '  It is vendored into the invoicing service.', '4: unknown', '5. unknown', '6. unknown', '7. unknown',
+    '8. unknown', '9. The release:', '2.14 is the release; the cut-off is Thursday the 16th.', '10. Mereana', '11. unknown', '12. unknown',
+  ].join('\n')
+  const answers = answersOf(text, t.questions.length)
+  expect(answers[1]).toContain('BIL-212')
+  expect(answers[8]).toContain('2.14 is the release')
+  expect(checkAnswers(t, text).detail).toEqual({ right: [true, true, true, false, false, false, false, false, true, true, false, false] })
+  // a skipped answer is only that one wrong; the number itself never answers ("1." is not a ticket)
+  expect(checkAnswers(t, '1. BIL-231\n5. round_half_up').detail).toEqual({ right: t.questions.map((_, i) => i === 0 || i === 4) })
+  expect(checkAnswers(t, '9. unknown').detail).toEqual({ right: t.questions.map(() => false) })
   expect(checkAnswers(t, '').score).toBe(0)
 })

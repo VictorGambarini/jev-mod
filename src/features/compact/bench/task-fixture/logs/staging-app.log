@@ -1,0 +1,494 @@
+2026-10-06T00:14:16.213+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_9a8a72445400 type=invoice.paid customer=C-10423 attempt=1 status=200 ms=324
+2026-10-06T00:37:28.771+13:00 INFO  api      http.request req=5361ee47 method=GET path=/healthz status=200 ms=1
+2026-10-06T00:57:32.576+13:00 DEBUG worker   queue.depth notifier=32 biller=2
+2026-10-06T01:15:11.333+13:00 INFO  api      http.request req=cde873c8 method=GET path=/healthz status=200 ms=4
+2026-10-06T01:25:13.842+13:00 INFO  biller   invoice.built req=a4efe4aa number=INV-051871 customer=C-10225 name="Pōhutukawa Coast Motel" region=AU net=12900 gst=1290
+2026-10-06T01:49:27.257+13:00 INFO  api      http.request req=df90f419 method=GET path=/healthz status=200 ms=2
+2026-10-06T02:07:47.162+13:00 INFO  api      http.request req=25916e6f method=GET path=/healthz status=200 ms=2
+2026-10-06T02:16:34.018+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_0d04aa8d6ec6 type=invoice.paid customer=C-10593 attempt=1 status=200 ms=510
+2026-10-06T02:28:02.466+13:00 INFO  collector payment.cleared req=1e6df3f4 invoice=INV-051279 customer=C-10235 amount=5635 provider_ref=ch_e95a8279c4db782e
+2026-10-06T02:56:11.327+13:00 INFO  collector payment.cleared req=0457f28e invoice=INV-051210 customer=C-10585 amount=14835 provider_ref=ch_22e36d43d61da214
+2026-10-06T03:04:34.216+13:00 INFO  ntp      clock.offset ms=7
+2026-10-06T03:19:36.000+13:00 INFO  ntp      clock.offset ms=1
+2026-10-06T03:31:25.416+13:00 WARN  collector payment.failed req=8aa798cd invoice=INV-051005 customer=C-11492 failure_code=card_declined
+2026-10-06T03:55:06.151+13:00 DEBUG worker   queue.depth notifier=8 biller=0
+2026-10-06T04:16:36.897+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_515944078887 type=invoice.paid customer=C-11656 attempt=1 status=200 ms=437
+2026-10-06T04:25:56.999+13:00 DEBUG worker   queue.depth notifier=21 biller=2
+2026-10-06T04:40:25.490+13:00 INFO  api      http.request req=1f1d8900 method=GET path=/healthz status=200 ms=1
+2026-10-06T05:02:52.239+13:00 INFO  biller   invoice.built req=fd6434d6 number=INV-051872 customer=C-10476 name="Harbour Legal NZ" region=AU net=12900 gst=1290
+2026-10-06T05:21:43.071+13:00 INFO  api      http.request req=47d57c06 method=GET path=/healthz status=200 ms=4
+2026-10-06T05:28:54.551+13:00 DEBUG worker   queue.depth notifier=5 biller=0
+2026-10-06T05:52:04.275+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_41f25b1a58b3 type=invoice.paid customer=C-11089 attempt=1 status=200 ms=408
+2026-10-06T06:04:21.558+13:00 INFO  api      http.request req=ef0c2cd9 method=GET path=/healthz status=200 ms=3
+2026-10-06T06:30:10.842+13:00 INFO  api      http.request req=86b05c9e method=GET path=/healthz status=200 ms=2
+2026-10-06T06:54:53.197+13:00 INFO  collector payment.cleared req=fef9362c invoice=INV-051829 customer=C-11908 amount=40135 provider_ref=ch_26fc60e2acbec16d
+2026-10-06T07:03:13.102+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_92a0686a3d0a type=invoice.paid customer=C-10128 attempt=1 status=200 ms=390
+2026-10-06T07:25:53.676+13:00 INFO  cache    cache.stats hits=26675 misses=782 evictions=39
+2026-10-06T07:38:39.386+13:00 INFO  api      http.request req=d33bb0e5 method=GET path=/v1/subscriptions/C-10142 status=200 ms=37
+2026-10-06T07:48:28.313+13:00 INFO  api      http.request req=4bb0cb22 method=GET path=/v1/invoices status=200 ms=72
+2026-10-06T07:51:48.280+13:00 INFO  api      http.request req=d75bf585 method=GET path=/healthz status=200 ms=4
+2026-10-06T08:03:30.543+13:00 INFO  api      http.request req=3468e8ce method=GET path=/healthz status=200 ms=1
+2026-10-06T08:06:44.809+13:00 INFO  api      http.request req=0d6b0071 method=GET path=/healthz status=200 ms=4
+2026-10-06T08:13:15.260+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_b824d06334b1 type=invoice.paid customer=C-11632 attempt=1 status=200 ms=121
+2026-10-06T08:32:07.116+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_1945f7a4dda2 type=invoice.paid customer=C-11478 attempt=1 status=200 ms=174
+2026-10-06T08:41:51.543+13:00 INFO  api      http.request req=fbe555f6 method=GET path=/v1/subscriptions/C-11089 status=404 ms=82
+2026-10-06T08:50:55.030+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_c33c686e7e82 type=invoice.paid customer=C-11708 attempt=1 status=200 ms=268
+2026-10-06T09:15:41.210+13:00 INFO  api      http.request req=8d462941 method=POST path=/v1/invoices status=404 ms=60
+2026-10-06T09:41:11.554+13:00 INFO  collector payment.cleared req=c27ccc48 invoice=INV-051135 customer=C-10458 amount=14835 provider_ref=ch_e27f74dac656cb88
+2026-10-06T09:49:34.859+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_6b315dfdd9d0 type=invoice.paid customer=C-10938 attempt=1 status=200 ms=364
+2026-10-06T09:55:36.407+13:00 INFO  api      http.request req=f67ec69f method=GET path=/healthz status=200 ms=4
+2026-10-06T10:03:18.205+13:00 DEBUG worker   queue.depth notifier=1 biller=3
+2026-10-06T10:09:42.518+13:00 INFO  api      http.request req=7d291a95 method=GET path=/v1/plans status=201 ms=113
+2026-10-06T10:16:24.612+13:00 INFO  api      http.request req=2f549ab7 method=GET path=/healthz status=200 ms=2
+2026-10-06T10:37:17.682+13:00 DEBUG worker   queue.depth notifier=15 biller=1
+2026-10-06T11:05:27.063+13:00 DEBUG worker   queue.depth notifier=27 biller=2
+2026-10-06T11:26:09.934+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_be35eca17a99 type=invoice.paid customer=C-11129 attempt=1 status=200 ms=129
+2026-10-06T11:44:10.516+13:00 WARN  collector payment.failed req=e3b7d71e invoice=INV-051509 customer=C-10411 failure_code=expired_card
+2026-10-06T12:07:04.798+13:00 INFO  collector payment.cleared req=7dab0c6a invoice=INV-051207 customer=C-10249 amount=5635 provider_ref=ch_44aa91983efef741
+2026-10-06T12:20:42.181+13:00 INFO  api      http.request req=554c9511 method=GET path=/healthz status=200 ms=1
+2026-10-06T12:37:42.875+13:00 INFO  biller   invoice.built req=eabae075 number=INV-051873 customer=C-11771 name="Wharf Engineering Ltd" region=NZ net=4900 gst=735
+2026-10-06T12:54:34.864+13:00 WARN  collector payment.failed req=4a22b2eb invoice=INV-051145 customer=C-10878 failure_code=insufficient_funds
+2026-10-06T13:05:06.373+13:00 INFO  api      http.request req=711f54f2 method=GET path=/healthz status=200 ms=3
+2026-10-06T13:17:30.879+13:00 WARN  db       slow_query ms=990 table=invoices rows=55744
+2026-10-06T13:19:12.397+13:00 INFO  api      http.request req=518d20c7 method=POST path=/v1/customers/C-11558 status=200 ms=231
+2026-10-06T13:26:28.706+13:00 INFO  collector payment.cleared req=92a1a43d invoice=INV-051760 customer=C-11985 amount=14835 provider_ref=ch_bc38c6920b99462b
+2026-10-06T13:37:21.799+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_09eaf162401f type=invoice.paid customer=C-10905 attempt=1 status=200 ms=505
+2026-10-06T13:40:45.137+13:00 INFO  collector payment.cleared req=1cb8ee4e invoice=INV-051372 customer=C-10101 amount=5635 provider_ref=ch_b24b9d9227e895fe
+2026-10-06T14:04:14.793+13:00 INFO  api      http.request req=4f57d8f3 method=GET path=/healthz status=200 ms=3
+2026-10-06T14:07:28.644+13:00 INFO  biller   invoice.built req=25e63004 number=INV-051874 customer=C-10601 name="Rimu Systems" region=NZ net=12900 gst=1935
+2026-10-06T14:13:40.421+13:00 INFO  api      http.request req=39b36743 method=GET path=/healthz status=200 ms=4
+2026-10-06T14:32:59.570+13:00 INFO  biller   invoice.built req=4d388566 number=INV-051875 customer=C-10535 name="Pohutukawa Coffee" region=NZ net=4900 gst=735
+2026-10-06T14:58:19.345+13:00 INFO  biller   invoice.built req=0e09d5cd number=INV-051876 customer=C-11912 name="Riverbend Bakery Co" region=NZ net=34900 gst=5235
+2026-10-06T15:12:34.433+13:00 INFO  collector payment.cleared req=00a764d6 invoice=INV-051663 customer=C-11804 amount=14835 provider_ref=ch_5f29c1f8cefab2e8
+2026-10-06T15:26:35.698+13:00 INFO  api      http.request req=6e2e2325 method=GET path=/healthz status=200 ms=2
+2026-10-06T15:47:43.026+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_eeca2dcce3a8 type=invoice.paid customer=C-10964 attempt=1 status=200 ms=405
+2026-10-06T16:04:51.337+13:00 WARN  collector payment.failed req=a6967e9c invoice=INV-051142 customer=C-11696 failure_code=expired_card
+2026-10-06T16:28:40.809+13:00 INFO  api      http.request req=d2283b65 method=GET path=/v1/plans status=404 ms=199
+2026-10-06T16:47:19.786+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_64bec9d2795a type=invoice.paid customer=C-11668 attempt=1 status=200 ms=424
+2026-10-06T17:12:26.440+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_c691c1452842 type=invoice.paid customer=C-11276 attempt=1 status=200 ms=273
+2026-10-06T17:18:26.587+13:00 WARN  collector payment.failed req=4f4fb919 invoice=INV-051481 customer=C-10142 failure_code=expired_card
+2026-10-06T17:24:21.353+13:00 INFO  api      http.request req=c102f5a9 method=GET path=/healthz status=200 ms=3
+2026-10-06T17:38:45.098+13:00 INFO  collector payment.cleared req=c4599e48 invoice=INV-051384 customer=C-10670 amount=14835 provider_ref=ch_a7337a0012eeab00
+2026-10-06T17:50:57.869+13:00 INFO  collector payment.cleared req=b8e9a1c1 invoice=INV-051795 customer=C-11527 amount=5635 provider_ref=ch_112d16f4e0c60ccd
+2026-10-06T17:55:07.485+13:00 WARN  db       slow_query ms=1936 table=webhook_deliveries rows=24459
+2026-10-06T18:06:23.380+13:00 INFO  ntp      clock.offset ms=-1
+2026-10-06T18:33:55.096+13:00 INFO  cache    cache.stats hits=19668 misses=746 evictions=11
+2026-10-06T18:54:52.857+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_a80abcfad314 type=invoice.paid customer=C-10790 attempt=1 status=200 ms=324
+2026-10-06T19:07:52.652+13:00 INFO  collector payment.cleared req=5b503817 invoice=INV-051458 customer=C-10299 amount=5635 provider_ref=ch_92ae4c039bda491c
+2026-10-06T19:11:48.280+13:00 INFO  api      http.request req=20d9b020 method=GET path=/healthz status=200 ms=4
+2026-10-06T19:20:18.691+13:00 INFO  collector payment.cleared req=5176a61a invoice=INV-051050 customer=C-10137 amount=40135 provider_ref=ch_0ab8c4f976bd9208
+2026-10-06T19:27:38.818+13:00 INFO  collector payment.cleared req=1a948421 invoice=INV-051090 customer=C-11446 amount=5635 provider_ref=ch_ffbe536582a81852
+2026-10-06T19:43:08.777+13:00 INFO  collector payment.cleared req=08da2b5a invoice=INV-051416 customer=C-10448 amount=40135 provider_ref=ch_e78bf7b7a8930124
+2026-10-06T19:55:54.388+13:00 INFO  biller   invoice.built req=e3cc3124 number=INV-051877 customer=C-11619 name="Kereru Media Ltd" region=NZ net=12900 gst=1935
+2026-10-06T20:12:42.267+13:00 INFO  api      http.request req=fdaa0193 method=POST path=/v1/invoices status=200 ms=43
+2026-10-06T20:16:01.669+13:00 DEBUG worker   queue.depth notifier=32 biller=1
+2026-10-06T20:36:27.440+13:00 INFO  exporter export.written rows=613 file=exports/2026-10-06.csv ms=1512
+2026-10-06T20:42:15.688+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_46a3f56b2561 type=invoice.paid customer=C-10376 attempt=1 status=401 ms=214 error="partner rejected signature"
+2026-10-06T20:43:15.071+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_46a3f56b2561 type=invoice.paid customer=C-10376 attempt=2 status=401 ms=537 error="partner rejected signature"
+2026-10-06T20:47:15.022+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_46a3f56b2561 type=invoice.paid customer=C-10376 attempt=3 status=401 ms=189 error="partner rejected signature"
+2026-10-06T20:49:27.546+13:00 INFO  api      http.request req=47361564 method=GET path=/healthz status=200 ms=3
+2026-10-06T21:12:15.006+13:00 ERROR notifier webhook.gave_up partner=flaxroot-books event=evt_46a3f56b2561 type=invoice.paid customer=C-10376 attempts=4
+2026-10-06T21:12:15.006+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_46a3f56b2561 type=invoice.paid customer=C-10376 attempt=4 status=401 ms=467 error="partner rejected signature"
+2026-10-06T21:15:29.671+13:00 INFO  api      proration.line req=849e53a6 customer=C-11100 from=scale to=scale days_left=7 cycle_days=30 amount=0
+2026-10-06T21:28:24.887+13:00 DEBUG worker   queue.depth notifier=36 biller=5
+2026-10-06T21:34:35.071+13:00 INFO  api      proration.line req=9b6543bf customer=C-11812 from=starter to=growth days_left=12 cycle_days=30 amount=3200
+2026-10-06T21:51:49.868+13:00 INFO  api      proration.line req=451d794f customer=C-11460 from=scale to=scale days_left=21 cycle_days=30 amount=0
+2026-10-06T22:18:40.391+13:00 INFO  biller   invoice.built req=1ced4324 number=INV-051878 customer=C-10773 name="Wharf Consulting" region=NZ net=4900 gst=735
+2026-10-06T22:26:45.621+13:00 INFO  api      http.request req=2d102124 method=GET path=/healthz status=200 ms=4
+2026-10-06T22:37:50.446+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_8dfe03f9356a type=invoice.paid customer=C-11039 attempt=1 status=200 ms=591
+2026-10-06T22:51:11.900+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_f02c5d2dacd1 type=invoice.paid customer=C-10608 attempt=1 status=200 ms=403
+2026-10-06T23:11:58.297+13:00 WARN  db       slow_query ms=2170 table=webhook_deliveries rows=58559
+2026-10-06T23:35:16.627+13:00 INFO  collector payment.cleared req=401ef10b invoice=INV-051717 customer=C-10551 amount=14835 provider_ref=ch_75d7f4275cacf295
+2026-10-07T00:00:22.928+13:00 INFO  biller   invoice.built req=df0428e2 number=INV-051879 customer=C-11830 name="Wattle Design Group" region=NZ net=4900 gst=735
+2026-10-07T00:01:59.038+13:00 DEBUG worker   queue.depth notifier=22 biller=1
+2026-10-07T00:17:43.328+13:00 INFO  biller   invoice.built req=93646a2d number=INV-051880 customer=C-10801 name="Redfern Systems Ltd" region=NZ net=34900 gst=5235
+2026-10-07T00:23:18.217+13:00 INFO  dunning  dunning.retry customer=C-11496 attempt=4 next_in_days=5
+2026-10-07T00:31:06.818+13:00 INFO  collector payment.cleared req=bce78516 invoice=INV-051260 customer=C-11441 amount=5635 provider_ref=ch_f05b40d949284a8f
+2026-10-07T00:49:32.035+13:00 INFO  collector payment.cleared req=61d2b677 invoice=INV-051836 customer=C-11358 amount=40135 provider_ref=ch_f6236941ab1455cb
+2026-10-07T00:52:06.800+13:00 INFO  biller   invoice.built req=165da1c9 number=INV-051881 customer=C-10617 name="Northshore Bakery" region=NZ net=4900 gst=735
+2026-10-07T00:57:20.955+13:00 DEBUG worker   queue.depth notifier=7 biller=1
+2026-10-07T01:13:56.169+13:00 INFO  collector payment.cleared req=214990fe invoice=INV-051455 customer=C-12005 amount=14835 provider_ref=ch_859efb100c0e2fdf
+2026-10-07T01:40:13.373+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_131951815b9c type=invoice.paid customer=C-10139 attempt=1 status=200 ms=165
+2026-10-07T01:54:11.178+13:00 INFO  api      http.request req=e6145cb5 method=GET path=/healthz status=200 ms=3
+2026-10-07T02:06:19.292+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_2debb96d5060 type=invoice.paid customer=C-11756 attempt=1 status=200 ms=220
+2026-10-07T02:34:39.334+13:00 INFO  collector payment.cleared req=1950b78d invoice=INV-051207 customer=C-10286 amount=14835 provider_ref=ch_016526628a284b2e
+2026-10-07T02:49:54.772+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_fa0be825b4b5 type=invoice.paid customer=C-10269 attempt=1 status=200 ms=240
+2026-10-07T02:54:07.526+13:00 WARN  collector payment.failed req=0338cd88 invoice=INV-051600 customer=C-11882 failure_code=expired_card
+2026-10-07T03:02:46.196+13:00 DEBUG worker   queue.depth notifier=23 biller=4
+2026-10-07T03:28:08.324+13:00 DEBUG worker   queue.depth notifier=3 biller=0
+2026-10-07T03:56:09.832+13:00 INFO  collector payment.cleared req=cb44bd52 invoice=INV-051586 customer=C-11265 amount=14835 provider_ref=ch_a0c961b55f9a1207
+2026-10-07T04:16:44.022+13:00 INFO  biller   invoice.built req=c2eb0a84 number=INV-051882 customer=C-11715 name="Kowhai Legal Group" region=NZ net=4900 gst=735
+2026-10-07T04:24:15.659+13:00 DEBUG worker   queue.depth notifier=17 biller=4
+2026-10-07T04:42:01.217+13:00 INFO  ntp      clock.offset ms=4
+2026-10-07T05:01:12.665+13:00 INFO  api      http.request req=a7d266c5 method=GET path=/v1/plans status=200 ms=56
+2026-10-07T05:03:40.258+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_271e62596d65 type=invoice.paid customer=C-10713 attempt=1 status=200 ms=324
+2026-10-07T05:26:40.224+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_199ef46bfc77 type=invoice.paid customer=C-10593 attempt=1 status=200 ms=590
+2026-10-07T05:54:10.062+13:00 INFO  api      http.request req=c8fd2f63 method=POST path=/v1/invoices status=201 ms=95
+2026-10-07T06:00:31.194+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_40122c652c8d type=invoice.paid customer=C-10950 attempt=1 status=200 ms=548
+2026-10-07T06:07:28.899+13:00 WARN  db       slow_query ms=1448 table=webhook_deliveries rows=81558
+2026-10-07T06:23:55.848+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_664ff2f8031a type=invoice.paid customer=C-10915 attempt=1 status=200 ms=372
+2026-10-07T06:49:28.192+13:00 INFO  collector payment.cleared req=77a5a35e invoice=INV-051745 customer=C-10917 amount=14835 provider_ref=ch_301b81e65243fb89
+2026-10-07T07:13:21.702+13:00 INFO  api      http.request req=c78a72e6 method=GET path=/healthz status=200 ms=2
+2026-10-07T07:32:59.162+13:00 WARN  collector payment.failed req=29323806 invoice=INV-051344 customer=C-10639 failure_code=expired_card
+2026-10-07T07:42:44.043+13:00 DEBUG worker   queue.depth notifier=8 biller=4
+2026-10-07T07:55:24.960+13:00 WARN  collector payment.failed req=0198abfe invoice=INV-051050 customer=C-10534 failure_code=insufficient_funds
+2026-10-07T07:58:00.623+13:00 DEBUG worker   queue.depth notifier=12 biller=3
+2026-10-07T08:24:01.791+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_6946f3e405d1 type=invoice.paid customer=C-10123 attempt=1 status=200 ms=496
+2026-10-07T08:31:32.976+13:00 INFO  api      http.request req=e69a4e67 method=GET path=/healthz status=200 ms=3
+2026-10-07T08:54:07.038+13:00 INFO  collector payment.cleared req=cee2e403 invoice=INV-051178 customer=C-11933 amount=40135 provider_ref=ch_1ec3239e0a1cd384
+2026-10-07T08:55:53.721+13:00 DEBUG worker   queue.depth notifier=9 biller=2
+2026-10-07T09:03:00.971+13:00 INFO  dunning  dunning.retry customer=C-10204 attempt=1 next_in_days=3
+2026-10-07T09:12:44.118+13:00 INFO  deploy   release version=2.13.2 sha=4e1c9b0 by=ci
+2026-10-07T09:17:07.515+13:00 INFO  api      http.request req=0de6cb92 method=GET path=/healthz status=200 ms=4
+2026-10-07T09:43:16.891+13:00 INFO  biller   invoice.built req=a4266a1e number=INV-051883 customer=C-10848 name="Matai Media Ltd" region=AU net=12900 gst=1290
+2026-10-07T10:02:19.877+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_bb5eaa281b32 type=invoice.paid customer=C-10776 attempt=1 status=200 ms=580
+2026-10-07T10:30:35.188+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_b5d5628a251f type=invoice.paid customer=C-10420 attempt=1 status=200 ms=197
+2026-10-07T10:41:38.972+13:00 INFO  biller   invoice.built req=c5a1a281 number=INV-051884 customer=C-10735 name="Harbour Logistics" region=NZ net=34900 gst=5235
+2026-10-07T11:07:28.352+13:00 INFO  api      http.request req=18223e16 method=GET path=/healthz status=200 ms=1
+2026-10-07T11:26:04.761+13:00 WARN  db       slow_query ms=1161 table=webhook_deliveries rows=65236
+2026-10-07T11:36:42.110+13:00 INFO  collector payment.cleared req=05f5a797 invoice=INV-051344 customer=C-11761 amount=5635 provider_ref=ch_71200dc5c1c6f729
+2026-10-07T12:04:50.687+13:00 INFO  api      proration.line req=54ae8e53 customer=C-10258 from=starter to=growth days_left=12 cycle_days=30 amount=3200
+2026-10-07T12:23:01.791+13:00 DEBUG worker   queue.depth notifier=2 biller=4
+2026-10-07T12:39:50.391+13:00 INFO  api      proration.line req=6d873c06 customer=C-10817 from=scale to=scale days_left=29 cycle_days=30 amount=0
+2026-10-07T12:55:57.355+13:00 INFO  api      http.request req=7344dcfc method=GET path=/healthz status=200 ms=2
+2026-10-07T13:17:59.524+13:00 DEBUG worker   queue.depth notifier=23 biller=2
+2026-10-07T13:39:23.624+13:00 DEBUG worker   queue.depth notifier=24 biller=1
+2026-10-07T14:03:20.669+13:00 WARN  collector payment.failed req=0dd6954a invoice=INV-051642 customer=C-10837 failure_code=expired_card
+2026-10-07T14:29:13.412+13:00 INFO  collector payment.cleared req=65e2d1e1 invoice=INV-051012 customer=C-10975 amount=14835 provider_ref=ch_b48a677f9a499309
+2026-10-07T14:48:26.242+13:00 INFO  dunning  dunning.retry customer=C-11084 attempt=2 next_in_days=5
+2026-10-07T14:56:29.659+13:00 INFO  api      http.request req=71a3a124 method=GET path=/healthz status=200 ms=3
+2026-10-07T15:07:16.716+13:00 INFO  collector payment.cleared req=23e0166c invoice=INV-051787 customer=C-11098 amount=14835 provider_ref=ch_f92e051b05c6810d
+2026-10-07T15:13:54.773+13:00 WARN  db       slow_query ms=1138 table=webhook_deliveries rows=8961
+2026-10-07T15:30:36.639+13:00 INFO  api      http.request req=a2092f84 method=GET path=/healthz status=200 ms=3
+2026-10-07T15:50:20.272+13:00 WARN  collector payment.failed req=047daa05 invoice=INV-051683 customer=C-11980 failure_code=expired_card
+2026-10-07T16:00:05.984+13:00 INFO  api      http.request req=c8d6ccdb method=GET path=/healthz status=200 ms=3
+2026-10-07T16:09:31.097+13:00 INFO  biller   invoice.built req=207efe67 number=INV-051885 customer=C-10921 name="Wharf Media NZ" region=NZ net=4900 gst=735
+2026-10-07T16:33:40.360+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_db68080d97cd type=invoice.paid customer=C-10174 attempt=1 status=200 ms=208
+2026-10-07T16:51:57.788+13:00 INFO  api      http.request req=310f6316 method=GET path=/healthz status=200 ms=2
+2026-10-07T17:05:53.890+13:00 DEBUG worker   queue.depth notifier=39 biller=2
+2026-10-07T17:15:55.805+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_1de39630f8a5 type=invoice.paid customer=C-10492 attempt=1 status=200 ms=145
+2026-10-07T17:41:39.100+13:00 INFO  dunning  dunning.retry customer=C-12002 attempt=2 next_in_days=7
+2026-10-07T17:59:05.972+13:00 INFO  dunning  dunning.retry customer=C-11819 attempt=2 next_in_days=5
+2026-10-07T18:23:51.703+13:00 INFO  api      http.request req=1d2cb275 method=GET path=/healthz status=200 ms=4
+2026-10-07T18:39:40.091+13:00 INFO  api      http.request req=1a86c6c8 method=GET path=/v1/subscriptions/C-11482 status=201 ms=87
+2026-10-07T18:53:14.315+13:00 DEBUG worker   queue.depth notifier=5 biller=0
+2026-10-07T19:21:28.903+13:00 INFO  collector payment.cleared req=2436df68 invoice=INV-051840 customer=C-10644 amount=5635 provider_ref=ch_afc08d32d1f03c46
+2026-10-07T19:40:02.988+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_c06697b8a1c3 type=invoice.paid customer=C-11420 attempt=1 status=200 ms=371
+2026-10-07T20:07:57.732+13:00 DEBUG worker   queue.depth notifier=25 biller=5
+2026-10-07T20:11:49.738+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_565cb1249d61 type=invoice.paid customer=C-10267 attempt=1 status=401 ms=388 error="partner rejected signature"
+2026-10-07T20:12:49.127+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_565cb1249d61 type=invoice.paid customer=C-10267 attempt=2 status=401 ms=509 error="partner rejected signature"
+2026-10-07T20:16:49.845+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_565cb1249d61 type=invoice.paid customer=C-10267 attempt=3 status=401 ms=213 error="partner rejected signature"
+2026-10-07T20:27:58.395+13:00 DEBUG worker   queue.depth notifier=7 biller=4
+2026-10-07T20:38:50.647+13:00 DEBUG worker   queue.depth notifier=32 biller=0
+2026-10-07T20:41:49.809+13:00 ERROR notifier webhook.gave_up partner=kauri-analytics event=evt_565cb1249d61 type=invoice.paid customer=C-10267 attempts=4
+2026-10-07T20:41:49.809+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_565cb1249d61 type=invoice.paid customer=C-10267 attempt=4 status=401 ms=528 error="partner rejected signature"
+2026-10-07T21:01:20.086+13:00 INFO  dunning  dunning.retry customer=C-10961 attempt=3 next_in_days=1
+2026-10-07T21:28:06.562+13:00 DEBUG worker   queue.depth notifier=22 biller=5
+2026-10-07T21:42:25.825+13:00 INFO  dunning  dunning.retry customer=C-11536 attempt=3 next_in_days=7
+2026-10-07T21:58:50.663+13:00 INFO  api      http.request req=3880a40a method=POST path=/v1/customers/C-10567 status=201 ms=190
+2026-10-07T22:01:30.648+13:00 INFO  api      http.request req=4a03fd39 method=GET path=/healthz status=200 ms=4
+2026-10-07T22:15:46.893+13:00 INFO  collector payment.cleared req=827d9597 invoice=INV-051634 customer=C-11780 amount=5635 provider_ref=ch_6785dd4701fbed3f
+2026-10-07T22:40:33.181+13:00 INFO  api      http.request req=76922fda method=GET path=/v1/subscriptions/C-11668 status=200 ms=17
+2026-10-07T22:48:16.403+13:00 INFO  api      http.request req=423c64e5 method=GET path=/healthz status=200 ms=4
+2026-10-07T23:07:32.567+13:00 INFO  api      http.request req=b8013b7b method=GET path=/healthz status=200 ms=3
+2026-10-07T23:15:14.866+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_145ae7530cbc type=invoice.paid customer=C-10246 attempt=1 status=200 ms=171
+2026-10-07T23:28:29.843+13:00 INFO  api      http.request req=760b4f93 method=GET path=/healthz status=200 ms=4
+2026-10-07T23:55:45.036+13:00 INFO  collector payment.cleared req=8f2a3347 invoice=INV-051850 customer=C-10688 amount=5635 provider_ref=ch_cf31f35d9d9c26be
+2026-10-08T00:10:13.463+13:00 INFO  collector payment.cleared req=1ee10963 invoice=INV-051660 customer=C-10887 amount=14835 provider_ref=ch_afdf5a925aa3666a
+2026-10-08T00:25:10.186+13:00 DEBUG worker   queue.depth notifier=28 biller=3
+2026-10-08T00:32:49.961+13:00 INFO  api      http.request req=86f29fb6 method=GET path=/v1/customers/C-10324 status=200 ms=75
+2026-10-08T00:51:14.877+13:00 INFO  api      http.request req=71a79322 method=GET path=/healthz status=200 ms=2
+2026-10-08T01:01:06.275+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_22f3f0ce1626 type=invoice.paid customer=C-11147 attempt=1 status=200 ms=161
+2026-10-08T01:21:00.463+13:00 INFO  api      proration.line req=cc438049 customer=C-10161 from=starter to=growth days_left=5 cycle_days=30 amount=1334
+2026-10-08T01:42:14.718+13:00 INFO  api      http.request req=6f63b54b method=GET path=/healthz status=200 ms=1
+2026-10-08T01:58:54.021+13:00 INFO  collector payment.cleared req=e86a727c invoice=INV-051187 customer=C-10363 amount=5635 provider_ref=ch_8f2c011836efe48f
+2026-10-08T02:20:25.283+13:00 DEBUG worker   queue.depth notifier=14 biller=3
+2026-10-08T02:44:36.362+13:00 INFO  exporter export.written rows=550 file=exports/2026-10-08.csv ms=3130
+2026-10-08T03:11:56.122+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_31053a52df48 type=invoice.paid customer=C-11867 attempt=1 status=200 ms=468
+2026-10-08T03:32:16.900+13:00 DEBUG worker   queue.depth notifier=35 biller=1
+2026-10-08T03:34:12.725+13:00 INFO  collector payment.cleared req=88d64689 invoice=INV-051115 customer=C-10339 amount=5635 provider_ref=ch_3afe3bf313f94ae1
+2026-10-08T03:58:08.466+13:00 INFO  dunning  dunning.retry customer=C-11637 attempt=1 next_in_days=5
+2026-10-08T04:24:50.547+13:00 INFO  biller   invoice.built req=35313162 number=INV-051886 customer=C-10570 name="Southern Labs" region=NZ net=12900 gst=1935
+2026-10-08T04:35:27.198+13:00 INFO  api      http.request req=9cab0a64 method=GET path=/healthz status=200 ms=1
+2026-10-08T04:51:59.390+13:00 DEBUG worker   queue.depth notifier=21 biller=5
+2026-10-08T04:55:33.188+13:00 INFO  biller   invoice.built req=dee2d2d5 number=INV-051887 customer=C-11174 name="Pohutukawa Design Group" region=NZ net=12900 gst=1935
+2026-10-08T05:02:30.113+13:00 INFO  dunning  dunning.retry customer=C-11273 attempt=2 next_in_days=1
+2026-10-08T05:13:34.464+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_bb4d0f69cc9a type=invoice.paid customer=C-11686 attempt=1 status=200 ms=270
+2026-10-08T05:30:29.991+13:00 INFO  dunning  dunning.retry customer=C-11919 attempt=1 next_in_days=7
+2026-10-08T05:40:09.333+13:00 WARN  db       slow_query ms=1521 table=webhook_deliveries rows=24715
+2026-10-08T05:45:02.834+13:00 DEBUG worker   queue.depth notifier=24 biller=5
+2026-10-08T05:51:12.509+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_8c8a900d0948 type=invoice.paid customer=C-10317 attempt=1 status=401 ms=235 error="partner rejected signature"
+2026-10-08T05:52:12.440+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_8c8a900d0948 type=invoice.paid customer=C-10317 attempt=2 status=401 ms=167 error="partner rejected signature"
+2026-10-08T05:56:12.369+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_8c8a900d0948 type=invoice.paid customer=C-10317 attempt=3 status=401 ms=82 error="partner rejected signature"
+2026-10-08T06:09:57.096+13:00 INFO  collector payment.cleared req=7edb4352 invoice=INV-051190 customer=C-11524 amount=14835 provider_ref=ch_cda3b8a1983a6e0a
+2026-10-08T06:21:12.070+13:00 ERROR notifier webhook.gave_up partner=harbourview-crm event=evt_8c8a900d0948 type=invoice.paid customer=C-10317 attempts=4
+2026-10-08T06:21:12.070+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_8c8a900d0948 type=invoice.paid customer=C-10317 attempt=4 status=401 ms=280 error="partner rejected signature"
+2026-10-08T06:28:25.205+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_5f6e3f15759f type=invoice.paid customer=C-11499 attempt=1 status=200 ms=476
+2026-10-08T06:39:46.545+13:00 INFO  dunning  dunning.retry customer=C-10604 attempt=3 next_in_days=5
+2026-10-08T06:50:54.617+13:00 INFO  api      http.request req=0145333c method=GET path=/v1/invoices status=200 ms=214
+2026-10-08T07:10:28.288+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_1de837c98abb type=invoice.paid customer=C-10848 attempt=1 status=200 ms=160
+2026-10-08T07:19:32.889+13:00 INFO  collector payment.cleared req=9c8f0745 invoice=INV-051629 customer=C-11329 amount=5635 provider_ref=ch_24d0e6494308cc54
+2026-10-08T07:23:07.387+13:00 INFO  api      http.request req=f9400dec method=GET path=/healthz status=200 ms=2
+2026-10-08T07:30:43.657+13:00 INFO  dunning  dunning.retry customer=C-10310 attempt=2 next_in_days=3
+2026-10-08T07:51:48.741+13:00 INFO  biller   invoice.built req=f22f2116 number=INV-051888 customer=C-11143 name="Northshore Accounting Ltd" region=NZ net=4900 gst=735
+2026-10-08T08:07:00.555+13:00 INFO  api      http.request req=87072170 method=GET path=/healthz status=200 ms=3
+2026-10-08T08:12:54.777+13:00 INFO  biller   invoice.built req=5b6dcd85 number=INV-051889 customer=C-11179 name="Harbour Bakery NZ" region=NZ net=12900 gst=1935
+2026-10-08T08:28:03.563+13:00 INFO  collector payment.cleared req=1ca31fa2 invoice=INV-051060 customer=C-11724 amount=40135 provider_ref=ch_3578993589bd52b8
+2026-10-08T08:41:34.062+13:00 INFO  collector payment.cleared req=0ba98471 invoice=INV-051025 customer=C-10735 amount=40135 provider_ref=ch_c740895713ea39b8
+2026-10-08T09:02:00.024+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_ae4430dae40c type=invoice.paid customer=C-11562 attempt=1 status=200 ms=478
+2026-10-08T09:21:50.354+13:00 DEBUG worker   queue.depth notifier=2 biller=0
+2026-10-08T09:31:43.117+13:00 INFO  api      http.request req=eb6d9373 method=GET path=/v1/plans status=200 ms=22
+2026-10-08T09:55:18.404+13:00 INFO  api      http.request req=796bc0e4 method=GET path=/v1/invoices status=200 ms=97
+2026-10-08T10:23:11.893+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_005b768aa7f0 type=invoice.paid customer=C-10148 attempt=1 status=200 ms=512
+2026-10-08T10:25:45.782+13:00 INFO  dunning  dunning.retry customer=C-10542 attempt=4 next_in_days=5
+2026-10-08T10:31:15.421+13:00 WARN  collector payment.failed req=09b5e421 invoice=INV-051183 customer=C-12005 failure_code=expired_card
+2026-10-08T10:58:23.796+13:00 INFO  api      proration.line req=de58f121 customer=C-11949 from=growth to=scale days_left=15 cycle_days=30 amount=11000
+2026-10-08T11:21:49.078+13:00 DEBUG worker   queue.depth notifier=29 biller=0
+2026-10-08T11:25:37.948+13:00 INFO  api      http.request req=4e74d72c method=GET path=/healthz status=200 ms=2
+2026-10-08T11:31:00.535+13:00 INFO  dunning  dunning.retry customer=C-10980 attempt=3 next_in_days=7
+2026-10-08T11:33:10.768+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_48b42f9e30a6 type=invoice.paid customer=C-10688 attempt=1 status=200 ms=311
+2026-10-08T11:51:45.120+13:00 WARN  db       slow_query ms=1256 table=payments rows=29077
+2026-10-08T11:53:22.899+13:00 INFO  biller   invoice.built req=f863189a number=INV-051890 customer=C-11104 name="Riverbend Design" region=NZ net=12900 gst=1935
+2026-10-08T12:20:05.171+13:00 INFO  api      http.request req=c9685d9d method=GET path=/healthz status=200 ms=2
+2026-10-08T12:46:09.569+13:00 INFO  collector payment.cleared req=5bd08a66 invoice=INV-051741 customer=C-10506 amount=14835 provider_ref=ch_41d68cf21cfefcd0
+2026-10-08T13:08:23.981+13:00 INFO  api      http.request req=5eebcea8 method=GET path=/healthz status=200 ms=1
+2026-10-08T13:31:15.329+13:00 DEBUG worker   queue.depth notifier=4 biller=2
+2026-10-08T13:49:32.928+13:00 DEBUG worker   queue.depth notifier=38 biller=3
+2026-10-08T14:01:38.942+13:00 INFO  biller   invoice.built req=0718865c number=INV-051891 customer=C-11739 name="Harbour Labs" region=AU net=12900 gst=1290
+2026-10-08T14:22:59.437+13:00 WARN  collector payment.failed req=c9f952d3 invoice=INV-051379 customer=C-11144 failure_code=insufficient_funds
+2026-10-08T14:34:44.379+13:00 WARN  collector payment.failed req=dce8d17c invoice=INV-051536 customer=C-11870 failure_code=insufficient_funds
+2026-10-08T14:41:37.173+13:00 INFO  api      http.request req=d58d3b7e method=GET path=/healthz status=200 ms=4
+2026-10-08T14:45:27.322+13:00 DEBUG worker   queue.depth notifier=16 biller=4
+2026-10-08T14:59:58.623+13:00 INFO  biller   invoice.built req=66f21b63 number=INV-051892 customer=C-11870 name="Harbour Engineering Group" region=AU net=4900 gst=490
+2026-10-08T15:13:27.309+13:00 INFO  biller   invoice.built req=53c94ca6 number=INV-051893 customer=C-11257 name="Coastline Coffee" region=NZ net=4900 gst=735
+2026-10-08T15:33:16.108+13:00 INFO  cache    cache.stats hits=17158 misses=699 evictions=9
+2026-10-08T15:52:10.450+13:00 WARN  collector payment.failed req=1a086602 invoice=INV-051754 customer=C-10856 failure_code=card_declined
+2026-10-08T16:19:56.972+13:00 DEBUG worker   queue.depth notifier=13 biller=3
+2026-10-08T16:36:50.500+13:00 INFO  dunning  dunning.retry customer=C-11492 attempt=2 next_in_days=7
+2026-10-08T16:57:46.038+13:00 INFO  api      proration.line req=0a443d8e customer=C-10980 from=growth to=scale days_left=12 cycle_days=30 amount=8800
+2026-10-08T17:11:23.742+13:00 INFO  api      http.request req=5fde9521 method=GET path=/v1/invoices status=201 ms=36
+2026-10-08T17:32:28.763+13:00 WARN  collector payment.failed req=9ddd8f2b invoice=INV-051427 customer=C-10163 failure_code=card_declined
+2026-10-08T18:00:11.066+13:00 INFO  api      http.request req=3c05c7ee method=GET path=/healthz status=200 ms=2
+2026-10-08T18:23:38.318+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_5c524e645604 type=invoice.paid customer=C-10333 attempt=1 status=200 ms=401
+2026-10-08T18:40:06.959+13:00 INFO  api      proration.line req=78fa8afe customer=C-10269 from=growth to=scale days_left=4 cycle_days=30 amount=2933
+2026-10-08T19:08:08.987+13:00 INFO  collector payment.cleared req=fa6efa2e invoice=INV-051201 customer=C-11722 amount=5635 provider_ref=ch_a5f907d4156c06fa
+2026-10-08T19:16:42.267+13:00 INFO  api      http.request req=e84efd88 method=GET path=/healthz status=200 ms=1
+2026-10-08T19:44:12.434+13:00 INFO  api      http.request req=9a5a4dc1 method=GET path=/healthz status=200 ms=4
+2026-10-08T19:57:34.491+13:00 INFO  api      http.request req=da54f5c0 method=GET path=/healthz status=200 ms=3
+2026-10-08T20:04:15.775+13:00 INFO  collector payment.cleared req=de1833db invoice=INV-051578 customer=C-10611 amount=14835 provider_ref=ch_fa8b874e6d52cb9d
+2026-10-08T20:15:12.050+13:00 WARN  collector payment.failed req=8b14f537 invoice=INV-051079 customer=C-11456 failure_code=expired_card
+2026-10-08T20:26:44.211+13:00 INFO  api      http.request req=d2b75acc method=GET path=/healthz status=200 ms=1
+2026-10-08T20:28:21.849+13:00 INFO  api      http.request req=3b824883 method=GET path=/healthz status=200 ms=1
+2026-10-08T20:42:06.745+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_8a51bd40d722 type=invoice.paid customer=C-11739 attempt=1 status=200 ms=343
+2026-10-08T20:44:01.845+13:00 DEBUG worker   queue.depth notifier=3 biller=5
+2026-10-08T20:54:39.723+13:00 WARN  db       slow_query ms=799 table=payments rows=87571
+2026-10-08T21:19:45.994+13:00 INFO  collector payment.cleared req=e7fef576 invoice=INV-051694 customer=C-11216 amount=5635 provider_ref=ch_31d25aa670d20413
+2026-10-08T21:31:06.413+13:00 WARN  collector payment.failed req=f08fe5cf invoice=INV-051208 customer=C-11414 failure_code=insufficient_funds
+2026-10-08T21:43:08.041+13:00 DEBUG worker   queue.depth notifier=7 biller=2
+2026-10-08T21:57:45.356+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_33c18e2ba562 type=invoice.paid customer=C-10972 attempt=1 status=200 ms=574
+2026-10-08T21:59:34.897+13:00 DEBUG worker   queue.depth notifier=32 biller=5
+2026-10-08T22:14:04.789+13:00 INFO  api      proration.line req=2bb6a7ec customer=C-10630 from=growth to=scale days_left=28 cycle_days=30 amount=20533
+2026-10-08T22:39:56.363+13:00 INFO  biller   invoice.built req=6ac9c0f8 number=INV-051894 customer=C-12005 name="Riverbend Labs" region=NZ net=12900 gst=1935
+2026-10-08T23:05:57.397+13:00 DEBUG worker   queue.depth notifier=19 biller=4
+2026-10-08T23:31:04.618+13:00 INFO  biller   invoice.built req=e47c3a33 number=INV-051895 customer=C-11122 name="Kahikatea Physio Ltd" region=NZ net=34900 gst=5235
+2026-10-08T23:33:30.603+13:00 INFO  api      http.request req=a69baad0 method=POST path=/v1/invoices status=404 ms=8
+2026-10-08T23:39:05.578+13:00 INFO  biller   invoice.built req=1dde17fe number=INV-051896 customer=C-11471 name="Kereru Ventures Ltd" region=AU net=4900 gst=490
+2026-10-08T23:46:20.439+13:00 WARN  collector payment.failed req=bc912ef1 invoice=INV-051746 customer=C-10493 failure_code=insufficient_funds
+2026-10-09T00:12:24.317+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_e90a31cf2826 type=invoice.paid customer=C-10234 attempt=1 status=401 ms=345 error="partner rejected signature"
+2026-10-09T00:13:24.618+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_e90a31cf2826 type=invoice.paid customer=C-10234 attempt=2 status=401 ms=306 error="partner rejected signature"
+2026-10-09T00:17:24.915+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_e90a31cf2826 type=invoice.paid customer=C-10234 attempt=3 status=401 ms=132 error="partner rejected signature"
+2026-10-09T00:37:50.006+13:00 WARN  collector payment.failed req=b80cb40f invoice=INV-051022 customer=C-10995 failure_code=expired_card
+2026-10-09T00:42:24.642+13:00 ERROR notifier webhook.gave_up partner=flaxroot-books event=evt_e90a31cf2826 type=invoice.paid customer=C-10234 attempts=4
+2026-10-09T00:42:24.642+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_e90a31cf2826 type=invoice.paid customer=C-10234 attempt=4 status=401 ms=500 error="partner rejected signature"
+2026-10-09T00:59:43.476+13:00 INFO  biller   invoice.built req=02400a66 number=INV-051897 customer=C-11764 name="Northshore Consulting Ltd" region=NZ net=4900 gst=735
+2026-10-09T01:17:31.942+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_f5d943bf58a2 type=invoice.paid customer=C-11576 attempt=1 status=200 ms=388
+2026-10-09T01:26:52.736+13:00 DEBUG worker   queue.depth notifier=4 biller=3
+2026-10-09T01:51:41.984+13:00 WARN  db       slow_query ms=1845 table=payments rows=47075
+2026-10-09T02:13:16.997+13:00 INFO  api      http.request req=56537180 method=GET path=/healthz status=200 ms=2
+2026-10-09T02:20:59.558+13:00 INFO  collector payment.cleared req=c0ee849a invoice=INV-051345 customer=C-11172 amount=14835 provider_ref=ch_e7ec6c1a15d6c9e2
+2026-10-09T02:24:03.973+13:00 DEBUG worker   queue.depth notifier=32 biller=2
+2026-10-09T02:27:58.670+13:00 INFO  biller   invoice.built req=7e6693b1 number=INV-051898 customer=C-11265 name="Northshore Physio Ltd" region=AU net=12900 gst=1290
+2026-10-09T02:52:38.061+13:00 INFO  collector payment.cleared req=15152530 invoice=INV-051207 customer=C-10814 amount=5635 provider_ref=ch_7c747501781b6c0a
+2026-10-09T03:01:15.108+13:00 INFO  api      http.request req=01b0fdb0 method=GET path=/healthz status=200 ms=2
+2026-10-09T03:04:01.946+13:00 WARN  collector payment.failed req=ca8dca65 invoice=INV-051236 customer=C-11156 failure_code=insufficient_funds
+2026-10-09T03:12:57.522+13:00 DEBUG worker   queue.depth notifier=3 biller=0
+2026-10-09T03:25:01.868+13:00 INFO  api      http.request req=2822927c method=GET path=/healthz status=200 ms=1
+2026-10-09T03:47:26.051+13:00 INFO  api      http.request req=fa437f75 method=GET path=/healthz status=200 ms=4
+2026-10-09T04:07:30.615+13:00 INFO  biller   invoice.built req=d10fe737 number=INV-051899 customer=C-11567 name="Summit Bakery" region=AU net=4900 gst=490
+2026-10-09T04:30:52.762+13:00 INFO  biller   invoice.built req=6a9879f8 number=INV-051900 customer=C-11417 name="Coastline Accounting" region=NZ net=12900 gst=1935
+2026-10-09T04:36:35.960+13:00 INFO  collector payment.cleared req=cfa7fde1 invoice=INV-051015 customer=C-11976 amount=5635 provider_ref=ch_1f80b645398e3b12
+2026-10-09T05:04:49.855+13:00 DEBUG worker   queue.depth notifier=10 biller=0
+2026-10-09T05:11:36.088+13:00 INFO  api      http.request req=2aa75139 method=GET path=/healthz status=200 ms=4
+2026-10-09T05:22:26.516+13:00 INFO  ntp      clock.offset ms=7
+2026-10-09T05:49:45.201+13:00 INFO  api      http.request req=8975d143 method=GET path=/healthz status=200 ms=4
+2026-10-09T06:08:04.013+13:00 DEBUG worker   queue.depth notifier=27 biller=1
+2026-10-09T06:18:45.208+13:00 INFO  dunning  dunning.retry customer=C-10806 attempt=3 next_in_days=7
+2026-10-09T06:44:50.193+13:00 INFO  api      http.request req=4b74df0a method=POST path=/v1/invoices status=404 ms=179
+2026-10-09T06:51:31.772+13:00 WARN  collector payment.failed req=c124f516 invoice=INV-051375 customer=C-10598 failure_code=card_declined
+2026-10-09T06:58:29.603+13:00 INFO  biller   invoice.built req=828fc7dc number=INV-051901 customer=C-11232 name="Northshore Accounting NZ" region=NZ net=12900 gst=1935
+2026-10-09T07:19:14.683+13:00 INFO  collector payment.cleared req=228b3dff invoice=INV-051108 customer=C-11092 amount=14835 provider_ref=ch_95a63473132b524a
+2026-10-09T07:37:54.454+13:00 INFO  collector payment.cleared req=e5c5850d invoice=INV-051814 customer=C-10563 amount=5635 provider_ref=ch_1929754c7684c3a3
+2026-10-09T07:44:49.683+13:00 INFO  dunning  dunning.retry customer=C-10209 attempt=3 next_in_days=7
+2026-10-09T07:53:41.515+13:00 INFO  api      http.request req=40cda5c2 method=GET path=/v1/customers/C-11236 status=200 ms=70
+2026-10-09T08:16:03.292+13:00 INFO  collector payment.cleared req=66fd68f6 invoice=INV-051158 customer=C-11311 amount=5635 provider_ref=ch_a65e781025579715
+2026-10-09T08:24:44.979+13:00 INFO  api      http.request req=4685f570 method=GET path=/healthz status=200 ms=1
+2026-10-09T08:32:06.028+13:00 DEBUG worker   queue.depth notifier=32 biller=0
+2026-10-09T08:36:17.174+13:00 DEBUG worker   queue.depth notifier=39 biller=5
+2026-10-09T08:46:32.852+13:00 INFO  api      http.request req=5a3fcf74 method=GET path=/healthz status=200 ms=2
+2026-10-09T08:48:33.416+13:00 INFO  collector payment.cleared req=ea31ba7c invoice=INV-051016 customer=C-11894 amount=14835 provider_ref=ch_5933bee1dbea5788
+2026-10-09T08:54:17.809+13:00 WARN  collector payment.failed req=b5d022b7 invoice=INV-051224 customer=C-11987 failure_code=expired_card
+2026-10-09T09:21:44.213+13:00 WARN  collector payment.failed req=bc8f2190 invoice=INV-051112 customer=C-10744 failure_code=card_declined
+2026-10-09T09:32:06.703+13:00 INFO  api      http.request req=bdfa11d9 method=GET path=/healthz status=200 ms=4
+2026-10-09T09:42:58.009+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_b4f2aa54d950 type=invoice.paid customer=C-10702 attempt=1 status=200 ms=525
+2026-10-09T10:09:26.821+13:00 INFO  api      http.request req=06c753dc method=GET path=/healthz status=200 ms=1
+2026-10-09T10:18:05.600+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_38f65532f103 type=invoice.paid customer=C-10125 attempt=1 status=200 ms=376
+2026-10-09T10:42:47.812+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_ffa2d50e2894 type=invoice.paid customer=C-11021 attempt=1 status=200 ms=110
+2026-10-09T10:53:20.264+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_86e9ff09557a type=invoice.paid customer=C-10275 attempt=1 status=401 ms=370 error="partner rejected signature"
+2026-10-09T10:54:20.660+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_86e9ff09557a type=invoice.paid customer=C-10275 attempt=2 status=401 ms=487 error="partner rejected signature"
+2026-10-09T10:58:20.796+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_86e9ff09557a type=invoice.paid customer=C-10275 attempt=3 status=401 ms=283 error="partner rejected signature"
+2026-10-09T11:11:12.754+13:00 DEBUG worker   queue.depth notifier=14 biller=1
+2026-10-09T11:12:51.640+13:00 INFO  ntp      clock.offset ms=-1
+2026-10-09T11:18:45.558+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_a953be0d86a3 type=invoice.paid customer=C-10197 attempt=1 status=200 ms=513
+2026-10-09T11:23:20.798+13:00 ERROR notifier webhook.gave_up partner=kauri-analytics event=evt_86e9ff09557a type=invoice.paid customer=C-10275 attempts=4
+2026-10-09T11:23:20.798+13:00 WARN  notifier webhook.delivery partner=kauri-analytics event=evt_86e9ff09557a type=invoice.paid customer=C-10275 attempt=4 status=401 ms=172 error="partner rejected signature"
+2026-10-09T11:36:39.562+13:00 INFO  api      http.request req=31e00122 method=GET path=/healthz status=200 ms=2
+2026-10-09T11:50:29.049+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_947fe525594f type=invoice.paid customer=C-11181 attempt=1 status=200 ms=88
+2026-10-09T12:03:50.026+13:00 INFO  api      http.request req=add7b32f method=GET path=/healthz status=200 ms=3
+2026-10-09T12:16:24.306+13:00 WARN  db       slow_query ms=1842 table=webhook_deliveries rows=67787
+2026-10-09T12:19:19.597+13:00 INFO  collector payment.cleared req=defd46ef invoice=INV-051826 customer=C-11060 amount=5635 provider_ref=ch_51494fa4eeeda7d1
+2026-10-09T12:24:01.798+13:00 INFO  api      http.request req=38fbb65d method=GET path=/healthz status=200 ms=2
+2026-10-09T12:37:30.957+13:00 INFO  ntp      clock.offset ms=2
+2026-10-09T13:02:46.168+13:00 INFO  api      http.request req=54a4e45f method=GET path=/v1/customers/C-11784 status=404 ms=236
+2026-10-09T13:23:34.728+13:00 INFO  api      http.request req=3f137069 method=GET path=/v1/customers/C-11204 status=404 ms=209
+2026-10-09T13:43:14.506+13:00 INFO  collector payment.cleared req=4da1b5bc invoice=INV-051501 customer=C-10878 amount=5635 provider_ref=ch_8649a8c3e906d971
+2026-10-09T14:01:25.765+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_d406ddceab5b type=invoice.paid customer=C-10319 attempt=1 status=200 ms=589
+2026-10-09T14:24:31.437+13:00 INFO  api      http.request req=a13567fd method=GET path=/v1/subscriptions/C-11673 status=200 ms=140
+2026-10-09T14:27:22.352+13:00 WARN  collector payment.failed req=37f492a2 invoice=INV-051537 customer=C-10501 failure_code=card_declined
+2026-10-09T14:40:44.390+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_6fcc64b13c77 type=invoice.paid customer=C-10225 attempt=1 status=401 ms=88 error="partner rejected signature"
+2026-10-09T14:41:44.356+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_6fcc64b13c77 type=invoice.paid customer=C-10225 attempt=2 status=401 ms=389 error="partner rejected signature"
+2026-10-09T14:45:44.514+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_6fcc64b13c77 type=invoice.paid customer=C-10225 attempt=3 status=401 ms=425 error="partner rejected signature"
+2026-10-09T14:54:24.005+13:00 INFO  api      http.request req=fa5ff941 method=GET path=/healthz status=200 ms=4
+2026-10-09T15:06:44.325+13:00 INFO  api      http.request req=25ab3a92 method=GET path=/healthz status=200 ms=3
+2026-10-09T15:10:44.395+13:00 ERROR notifier webhook.gave_up partner=flaxroot-books event=evt_6fcc64b13c77 type=invoice.paid customer=C-10225 attempts=4
+2026-10-09T15:10:44.395+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_6fcc64b13c77 type=invoice.paid customer=C-10225 attempt=4 status=401 ms=195 error="partner rejected signature"
+2026-10-09T15:33:36.141+13:00 INFO  api      http.request req=e38edc06 method=GET path=/healthz status=200 ms=1
+2026-10-09T15:53:12.246+13:00 WARN  db       slow_query ms=2047 table=webhook_deliveries rows=40778
+2026-10-09T16:08:39.819+13:00 INFO  api      http.request req=a14bc3dd method=GET path=/healthz status=200 ms=1
+2026-10-09T16:20:05.741+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_8152ade87524 type=invoice.paid customer=C-10113 attempt=1 status=200 ms=311
+2026-10-09T16:22:37.097+13:00 INFO  biller   invoice.built req=0fb8879b number=INV-051902 customer=C-10905 name="Redfern Engineering" region=NZ net=34900 gst=5235
+2026-10-09T16:35:49.536+13:00 WARN  collector payment.failed req=a2456684 invoice=INV-051678 customer=C-10151 failure_code=expired_card
+2026-10-09T16:45:00.227+13:00 INFO  api      http.request req=c9e2baae method=GET path=/v1/customers/C-11579 status=201 ms=188
+2026-10-09T17:03:42.299+13:00 INFO  api      http.request req=002a8a41 method=GET path=/healthz status=200 ms=4
+2026-10-09T17:09:15.616+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_fa5830d33b31 type=invoice.paid customer=C-11044 attempt=1 status=200 ms=422
+2026-10-09T17:12:12.079+13:00 INFO  collector payment.cleared req=fcacf34d invoice=INV-051453 customer=C-11903 amount=5635 provider_ref=ch_0db20bb24408e80e
+2026-10-09T17:36:37.778+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_4add261aeb34 type=invoice.paid customer=C-11633 attempt=1 status=200 ms=472
+2026-10-09T17:43:31.570+13:00 INFO  api      http.request req=96a50c07 method=GET path=/healthz status=200 ms=3
+2026-10-09T17:58:30.837+13:00 WARN  collector payment.failed req=37796c60 invoice=INV-051802 customer=C-10755 failure_code=card_declined
+2026-10-09T18:07:23.509+13:00 INFO  api      http.request req=535d764d method=GET path=/healthz status=200 ms=1
+2026-10-09T18:33:43.081+13:00 INFO  api      http.request req=de446c23 method=GET path=/healthz status=200 ms=1
+2026-10-09T18:58:59.023+13:00 INFO  cache    cache.stats hits=17633 misses=767 evictions=15
+2026-10-09T19:20:31.740+13:00 INFO  collector payment.cleared req=828e5c7f invoice=INV-051109 customer=C-11039 amount=5635 provider_ref=ch_117d98c0d2ec222e
+2026-10-09T19:28:15.238+13:00 DEBUG worker   queue.depth notifier=29 biller=5
+2026-10-09T19:44:35.582+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_322f865d4fda type=invoice.paid customer=C-11911 attempt=1 status=200 ms=470
+2026-10-09T19:59:14.905+13:00 INFO  api      http.request req=83ba246a method=GET path=/healthz status=200 ms=1
+2026-10-09T20:05:07.523+13:00 INFO  api      http.request req=a54d5337 method=GET path=/healthz status=200 ms=1
+2026-10-09T20:27:40.333+13:00 INFO  api      http.request req=fb9ede86 method=GET path=/v1/subscriptions/C-11039 status=200 ms=90
+2026-10-09T20:43:06.962+13:00 WARN  db       slow_query ms=1136 table=payments rows=31445
+2026-10-09T21:06:10.342+13:00 INFO  collector payment.cleared req=9318ec3d invoice=INV-051407 customer=C-11812 amount=5635 provider_ref=ch_adc110d2f848b23b
+2026-10-09T21:11:06.104+13:00 INFO  collector payment.cleared req=5460e0ab invoice=INV-051571 customer=C-10617 amount=5635 provider_ref=ch_91072113b3b54462
+2026-10-09T21:26:43.480+13:00 INFO  collector payment.cleared req=e49059d7 invoice=INV-051152 customer=C-11985 amount=14835 provider_ref=ch_f56066ca87c6f700
+2026-10-09T21:47:24.132+13:00 INFO  api      proration.line req=87e21a08 customer=C-11804 from=growth to=scale days_left=22 cycle_days=30 amount=16133
+2026-10-09T21:48:56.516+13:00 INFO  collector payment.cleared req=9cf7faa2 invoice=INV-051296 customer=C-10554 amount=5635 provider_ref=ch_4fda119f5fd06889
+2026-10-09T21:53:50.190+13:00 INFO  collector payment.cleared req=f4dc7f30 invoice=INV-051531 customer=C-10771 amount=5635 provider_ref=ch_aedb98ef51dafa7d
+2026-10-09T22:21:38.000+13:00 INFO  api      http.request req=d2675bbd method=GET path=/healthz status=200 ms=3
+2026-10-09T22:28:28.644+13:00 INFO  api      http.request req=57fe39ef method=GET path=/healthz status=200 ms=2
+2026-10-09T22:44:41.305+13:00 INFO  biller   invoice.built req=c2d70bad number=INV-051903 customer=C-11200 name="Summit Studio" region=AU net=4900 gst=490
+2026-10-09T23:09:37.443+13:00 INFO  api      http.request req=86061b8a method=GET path=/healthz status=200 ms=2
+2026-10-09T23:27:15.700+13:00 INFO  collector payment.cleared req=758f1c14 invoice=INV-051898 customer=C-10195 amount=14835 provider_ref=ch_8cea0670d4451670
+2026-10-09T23:46:01.838+13:00 INFO  api      http.request req=77860437 method=GET path=/healthz status=200 ms=3
+2026-10-10T00:11:09.412+13:00 INFO  biller   invoice.built req=5272830f number=INV-051904 customer=C-11995 name="Southern Labs NZ" region=AU net=34900 gst=3490
+2026-10-10T00:22:29.149+13:00 INFO  api      http.request req=255b212f method=GET path=/healthz status=200 ms=2
+2026-10-10T00:37:37.663+13:00 INFO  api      proration.line req=f58079c6 customer=C-10685 from=growth to=scale days_left=21 cycle_days=30 amount=15400
+2026-10-10T00:48:57.494+13:00 INFO  api      http.request req=fc0b54b8 method=GET path=/healthz status=200 ms=1
+2026-10-10T01:02:51.178+13:00 INFO  biller   invoice.built req=605836fb number=INV-051905 customer=C-10261 name="Tasman Coffee" region=NZ net=4900 gst=735
+2026-10-10T01:10:01.613+13:00 INFO  biller   invoice.built req=b5f10035 number=INV-051906 customer=C-11974 name="Kereru Analytics Co" region=NZ net=12900 gst=1935
+2026-10-10T01:18:37.508+13:00 INFO  biller   invoice.built req=5acbe7c5 number=INV-051907 customer=C-10635 name="Rimu Bakery" region=NZ net=4900 gst=735
+2026-10-10T01:29:05.092+13:00 INFO  collector payment.cleared req=81bb2bf0 invoice=INV-051087 customer=C-10559 amount=40135 provider_ref=ch_9046bc70f54bd91c
+2026-10-10T01:45:37.669+13:00 INFO  api      http.request req=165d8cf1 method=GET path=/healthz status=200 ms=4
+2026-10-10T01:50:20.112+13:00 INFO  api      http.request req=f102dc55 method=GET path=/healthz status=200 ms=1
+2026-10-10T01:58:01.125+13:00 INFO  collector payment.cleared req=eb290978 invoice=INV-051644 customer=C-11462 amount=5635 provider_ref=ch_c9949c0b507f914a
+2026-10-10T02:13:46.412+13:00 INFO  api      http.request req=b4003b79 method=GET path=/v1/customers/C-10492 status=404 ms=16
+2026-10-10T02:31:38.501+13:00 INFO  api      http.request req=10e52772 method=GET path=/healthz status=200 ms=2
+2026-10-10T02:52:13.178+13:00 INFO  biller   invoice.built req=8c55286b number=INV-051908 customer=C-11927 name="Summit Bakery Co" region=AU net=4900 gst=490
+2026-10-10T03:09:43.501+13:00 INFO  api      http.request req=75e46058 method=GET path=/healthz status=200 ms=4
+2026-10-10T03:21:32.259+13:00 DEBUG worker   queue.depth notifier=1 biller=5
+2026-10-10T03:35:44.242+13:00 INFO  ntp      clock.offset ms=7
+2026-10-10T03:51:56.025+13:00 INFO  biller   invoice.built req=b9654ae1 number=INV-051909 customer=C-11375 name="Southern Ventures NZ" region=NZ net=12900 gst=1935
+2026-10-10T04:10:55.277+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_a19dbe80dae2 type=invoice.paid customer=C-11804 attempt=1 status=200 ms=251
+2026-10-10T04:13:32.847+13:00 DEBUG worker   queue.depth notifier=2 biller=5
+2026-10-10T04:21:10.025+13:00 DEBUG worker   queue.depth notifier=5 biller=2
+2026-10-10T04:38:33.070+13:00 INFO  api      http.request req=1fc42395 method=GET path=/v1/plans status=200 ms=112
+2026-10-10T05:02:15.700+13:00 INFO  api      http.request req=11b13a46 method=POST path=/v1/subscriptions/C-11998 status=200 ms=129
+2026-10-10T05:15:20.998+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_ad19f564c6e8 type=invoice.paid customer=C-10220 attempt=1 status=401 ms=309 error="partner rejected signature"
+2026-10-10T05:16:20.846+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_ad19f564c6e8 type=invoice.paid customer=C-10220 attempt=2 status=401 ms=498 error="partner rejected signature"
+2026-10-10T05:20:20.305+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_ad19f564c6e8 type=invoice.paid customer=C-10220 attempt=3 status=401 ms=213 error="partner rejected signature"
+2026-10-10T05:33:18.753+13:00 INFO  api      http.request req=08f08ca2 method=GET path=/healthz status=200 ms=3
+2026-10-10T05:45:20.488+13:00 ERROR notifier webhook.gave_up partner=harbourview-crm event=evt_ad19f564c6e8 type=invoice.paid customer=C-10220 attempts=4
+2026-10-10T05:45:20.488+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_ad19f564c6e8 type=invoice.paid customer=C-10220 attempt=4 status=401 ms=449 error="partner rejected signature"
+2026-10-10T05:56:05.848+13:00 INFO  biller   invoice.built req=384d83ad number=INV-051910 customer=C-10991 name="Matai Partners Co" region=AU net=4900 gst=490
+2026-10-10T06:09:37.108+13:00 WARN  db       slow_query ms=2319 table=webhook_deliveries rows=60594
+2026-10-10T06:25:19.734+13:00 INFO  api      proration.line req=bccaf2db customer=C-10696 from=starter to=growth days_left=19 cycle_days=30 amount=5067
+2026-10-10T06:41:23.141+13:00 WARN  db       slow_query ms=881 table=webhook_deliveries rows=49355
+2026-10-10T06:58:42.519+13:00 INFO  api      http.request req=8f93007e method=GET path=/healthz status=200 ms=1
+2026-10-10T07:23:23.781+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_99fa72047263 type=invoice.paid customer=C-10354 attempt=1 status=401 ms=329 error="partner rejected signature"
+2026-10-10T07:24:23.488+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_99fa72047263 type=invoice.paid customer=C-10354 attempt=2 status=401 ms=489 error="partner rejected signature"
+2026-10-10T07:28:23.151+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_99fa72047263 type=invoice.paid customer=C-10354 attempt=3 status=401 ms=127 error="partner rejected signature"
+2026-10-10T07:46:54.592+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_0d380d753165 type=invoice.paid customer=C-11165 attempt=1 status=200 ms=526
+2026-10-10T07:53:23.874+13:00 ERROR notifier webhook.gave_up partner=harbourview-crm event=evt_99fa72047263 type=invoice.paid customer=C-10354 attempts=4
+2026-10-10T07:53:23.874+13:00 WARN  notifier webhook.delivery partner=harbourview-crm event=evt_99fa72047263 type=invoice.paid customer=C-10354 attempt=4 status=401 ms=264 error="partner rejected signature"
+2026-10-10T08:07:31.304+13:00 WARN  db       slow_query ms=1324 table=webhook_deliveries rows=41261
+2026-10-10T08:15:39.551+13:00 INFO  api      http.request req=fcb1b439 method=GET path=/healthz status=200 ms=2
+2026-10-10T08:23:15.548+13:00 INFO  api      http.request req=0884b8e1 method=GET path=/healthz status=200 ms=4
+2026-10-10T08:29:59.678+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_96bdfea054e7 type=invoice.paid customer=C-11942 attempt=1 status=200 ms=117
+2026-10-10T08:40:55.050+13:00 INFO  api      proration.line req=70dcdfab customer=C-11417 from=growth to=scale days_left=18 cycle_days=30 amount=13200
+2026-10-10T09:07:14.626+13:00 INFO  biller   invoice.built req=dcaff6d2 number=INV-051911 customer=C-10921 name="Wharf Media NZ" region=NZ net=4900 gst=735
+2026-10-10T09:34:55.917+13:00 DEBUG worker   queue.depth notifier=33 biller=4
+2026-10-10T09:50:25.211+13:00 INFO  notifier webhook.delivery partner=flaxroot-books event=evt_737af9ab126c type=invoice.paid customer=C-11643 attempt=1 status=200 ms=479
+2026-10-10T10:15:19.785+13:00 DEBUG worker   queue.depth notifier=32 biller=1
+2026-10-10T10:40:41.878+13:00 INFO  collector payment.cleared req=3ed2f86e invoice=INV-051629 customer=C-10423 amount=5635 provider_ref=ch_c35c7347128a8dcd
+2026-10-10T10:54:05.188+13:00 INFO  biller   invoice.built req=e64bcdd4 number=INV-051912 customer=C-11029 name="Tasman Health" region=NZ net=4900 gst=735
+2026-10-10T11:05:08.658+13:00 WARN  collector payment.failed req=0acfaa28 invoice=INV-051099 customer=C-10680 failure_code=card_declined
+2026-10-10T11:13:02.550+13:00 INFO  api      http.request req=b92df0b2 method=POST path=/v1/plans status=200 ms=65
+2026-10-10T11:17:01.026+13:00 INFO  collector payment.cleared req=f518e0b3 invoice=INV-051560 customer=C-11830 amount=5635 provider_ref=ch_0be3417b69caa744
+2026-10-10T11:38:42.750+13:00 WARN  collector payment.failed req=4accc022 invoice=INV-051160 customer=C-11241 failure_code=expired_card
+2026-10-10T12:03:17.992+13:00 INFO  collector payment.cleared req=2015c65b invoice=INV-051135 customer=C-10846 amount=5635 provider_ref=ch_08373bf7ca8de85b
+2026-10-10T12:15:47.634+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_5efe7b71ef09 type=invoice.paid customer=C-10184 attempt=1 status=200 ms=223
+2026-10-10T12:20:54.736+13:00 INFO  collector payment.cleared req=3019b939 invoice=INV-051502 customer=C-10848 amount=14835 provider_ref=ch_29cb1f1335aec1bb
+2026-10-10T12:46:35.835+13:00 INFO  api      http.request req=940d2aa4 method=GET path=/v1/plans status=200 ms=164
+2026-10-10T12:56:14.138+13:00 INFO  notifier webhook.delivery partner=harbourview-crm event=evt_eeac5b7d8299 type=invoice.paid customer=C-11455 attempt=1 status=200 ms=448
+2026-10-10T13:06:35.353+13:00 WARN  collector payment.failed req=93ec5ab5 invoice=INV-051757 customer=C-10130 failure_code=card_declined
+2026-10-10T13:31:52.451+13:00 INFO  collector payment.cleared req=79ceeeb7 invoice=INV-051490 customer=C-10567 amount=5635 provider_ref=ch_86907f5b197b018f
+2026-10-10T13:56:48.636+13:00 INFO  collector payment.cleared req=16e093b2 invoice=INV-051823 customer=C-10574 amount=5635 provider_ref=ch_e6a0176345fae635
+2026-10-10T14:01:02.060+13:00 DEBUG worker   queue.depth notifier=33 biller=4
+2026-10-10T14:08:58.591+13:00 INFO  biller   invoice.built req=5beec6af number=INV-051913 customer=C-10912 name="Totara Freight Ltd" region=NZ net=12900 gst=1935
+2026-10-10T14:18:17.811+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_d35ab9c45642 type=invoice.paid customer=C-10401 attempt=1 status=200 ms=155
+2026-10-10T14:42:19.714+13:00 INFO  api      http.request req=3c3fc1d4 method=GET path=/healthz status=200 ms=4
+2026-10-10T14:45:08.278+13:00 INFO  cache    cache.stats hits=13459 misses=158 evictions=18
+2026-10-10T14:50:13.693+13:00 INFO  notifier webhook.delivery partner=kauri-analytics event=evt_1603f1593db2 type=invoice.paid customer=C-11169 attempt=1 status=200 ms=545
+2026-10-10T15:01:18.446+13:00 WARN  collector payment.failed req=0115aac9 invoice=INV-051247 customer=C-11857 failure_code=card_declined
+2026-10-10T15:15:37.863+13:00 INFO  api      http.request req=4c179e93 method=GET path=/healthz status=200 ms=2
+2026-10-10T15:37:51.742+13:00 DEBUG worker   queue.depth notifier=23 biller=5
+2026-10-10T15:55:48.150+13:00 DEBUG worker   queue.depth notifier=13 biller=1
+2026-10-10T15:59:40.634+13:00 INFO  biller   invoice.built req=7162e964 number=INV-051914 customer=C-10279 name="Bluegum Accounting" region=NZ net=4900 gst=735
+2026-10-10T16:02:28.720+13:00 INFO  cache    cache.stats hits=13597 misses=582 evictions=33
+2026-10-10T16:20:35.685+13:00 WARN  collector payment.failed req=f927ecb9 invoice=INV-051113 customer=C-11420 failure_code=expired_card
+2026-10-10T16:39:36.456+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_384d296d5fd5 type=invoice.paid customer=C-10258 attempt=1 status=401 ms=126 error="partner rejected signature"
+2026-10-10T16:40:36.487+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_384d296d5fd5 type=invoice.paid customer=C-10258 attempt=2 status=401 ms=393 error="partner rejected signature"
+2026-10-10T16:44:36.133+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_384d296d5fd5 type=invoice.paid customer=C-10258 attempt=3 status=401 ms=165 error="partner rejected signature"
+2026-10-10T16:53:33.211+13:00 INFO  api      http.request req=f1399cf2 method=GET path=/healthz status=200 ms=1
+2026-10-10T16:58:33.714+13:00 INFO  biller   invoice.built req=89b6956c number=INV-051915 customer=C-11517 name="Totara Analytics Group" region=AU net=4900 gst=490
+2026-10-10T17:09:36.010+13:00 ERROR notifier webhook.gave_up partner=flaxroot-books event=evt_384d296d5fd5 type=invoice.paid customer=C-10258 attempts=4
+2026-10-10T17:09:36.010+13:00 WARN  notifier webhook.delivery partner=flaxroot-books event=evt_384d296d5fd5 type=invoice.paid customer=C-10258 attempt=4 status=401 ms=182 error="partner rejected signature"
+2026-10-10T17:23:23.125+13:00 INFO  biller   invoice.built req=67518b87 number=INV-051916 customer=C-10961 name="Kowhai Dental" region=NZ net=12900 gst=1935
+2026-10-10T17:50:52.523+13:00 INFO  api      http.request req=bb45341c method=GET path=/v1/subscriptions/C-10168 status=200 ms=107
+2026-10-10T18:11:20.934+13:00 INFO  api      http.request req=2f759d31 method=GET path=/healthz status=200 ms=2

@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { task as compactTask, TASKS } from '../features/compact/bench/task'
+import { setupUsd, task as compactTask, TASKS } from '../features/compact/bench/task'
 import { FEATURES } from '../core/registry'
 import { parseOverlay } from '../core/bench-overlay'
 import { armsFor, guard, overlayFor, plan } from './plan'
@@ -22,17 +22,35 @@ test('the plan counts every Claude call: shared setup once per case, then each a
   expect(p.text).toContain(`${p.claudeCalls} headless Claude calls`)
 })
 
-test('without --usd-per-call each step is priced on its own, and the estimate includes the shared setup', () => {
+test('without --usd-per-call each step and each case\'s setup is priced on its own, and the plan says how', () => {
+  const cases = compactTask.cases()
   const arms = armsFor(compactTask, ['openrouter'], { name: 'drop', values: [0.6, 0.7, 0.8, 0.9] }, {})
-  const p = plan(compactTask, TASKS, arms)
-  const setupCalls = TASKS.reduce((n, t) => n + t.setup.length, 0)
-  expect(p.setupCalls).toBe(setupCalls)
-  expect(Math.round(p.setupUsd * 1e6)).toBe(Math.round(setupCalls * compactTask.setupUsdPerCall! * 1e6))
-  // per case: /compact then the question; the question alone; each jev-mod arm's own compaction then the question
-  expect(Math.round(p.armsUsd * 1e6)).toBe(Math.round(TASKS.length * ((0.7 + 0.5) + 0.5 + 4 * (0.02 + 0.5)) * 1e6))
+  const p = plan(compactTask, cases, arms)
+  expect(p.setupCalls).toBe(cases.reduce((n, t) => n + t.setup.length, 0))
+  // each case's setup is priced from its own conversation, not per call
+  expect(Math.round(p.setupUsd * 1e6)).toBe(Math.round(cases.reduce((n, t) => n + setupUsd(t), 0) * 1e6))
+  const steps = cases.flatMap(t => arms.flatMap(a => compactTask.steps(t, a)))
+  expect(Math.round(p.armsUsd * 1e6)).toBe(Math.round(steps.reduce((n, st) => n + st.usd!, 0) * 1e6))
   expect(Math.round(p.usd * 1e6)).toBe(Math.round((p.setupUsd + p.armsUsd + p.decisionCalls * 0.0005) * 1e6))
   expect(p.text).toContain(`setup $${p.setupUsd.toFixed(2)}`)
   expect(p.text).toContain('priced per step')
+  expect(p.text).toContain('tokens of conversation per case')
+  // --usd-per-call prices every call alike and drops the adapter's note
+  const flat = plan(compactTask, cases, arms, 1)
+  expect(flat.setupUsd).toBe(flat.setupCalls)
+  expect(flat.text).not.toContain('tokens of conversation per case')
+})
+
+test('a long case costs more to ask on the full context than after a compaction, and its setup costs the most', () => {
+  const [t] = compactTask.cases()
+  const [, none, jev] = armsFor(compactTask, ['openrouter'], { name: 'drop', values: [0.7] }, {})
+  const full = compactTask.steps(t!, none!)[0]!.usd!
+  const after = compactTask.steps(t!, jev!)[1]!.usd!
+  expect(after).toBeLessThan(full)
+  expect(setupUsd(t!)).toBeGreaterThan(full)
+  // a question on ~130k tokens is more than the default $2 cap on one call; the adapter raises it
+  expect(full).toBeGreaterThan(2)
+  expect(compactTask.maxUsdPerCall!).toBeGreaterThan(full)
 })
 
 test('without --yes nothing runs: the guard returns the plan and says how to start it', () => {

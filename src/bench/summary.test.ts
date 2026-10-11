@@ -101,8 +101,9 @@ test('task level: the setup is no arm, a failed run is never scored, and the spe
   const rows = [
     task('setup', { setup: true, claude_cost_usd: 2, cost_usd: 0, wall_ms: 60_000 }),
     task('no compaction', { success: true, score: 1 }),
-    task('jev-mod typesafe drop=0.7', { success: true, score: 1 }),
-    task('jev-mod typesafe drop=0.7', { outcome: 'error', error: 'not_compacted', claude_cost_usd: 0.4 }),
+    task('jev-mod typesafe drop=0.7', { success: true, score: 1, context_tokens: 60_000, compaction: { messages: 300, kept: 120, dropped: 180, skip: null } }),
+    task('jev-mod typesafe drop=0.7', { outcome: 'error', error: 'not_compacted', claude_cost_usd: 0.4, context_tokens: 130_000,
+      compaction: { messages: 300, kept: 300, dropped: 0, skip: 'Jev marked no turn drop; nothing to remove' } }),
   ]
   const s = summarise(gate, rows, false)
   expect(s.arms.map(a => a.key)).toEqual(['no compaction', 'jev-mod typesafe drop=0.7'])
@@ -112,6 +113,13 @@ test('task level: the setup is no arm, a failed run is never scored, and the spe
   expect(Math.round(s.spend!.claude * 1000)).toBe(3400)
   const md = markdown(gate, s, {})
   expect(md).toContain('| jev-mod typesafe drop=0.7 | 2 (failed: 1 not_compacted) |')
+  // what the question read and what the compaction kept count every run: a failed one is the reason it failed
+  expect([jev.context, jev.compaction]).toEqual([95_000, { messages: 300, kept: 210, dropped: 90 }])
+  expect(md).toContain('| 95.0k | 210 / 90 of 300 |')
+  expect(s.arms[0]!.compaction).toBe(null)
+  const svg = plots(gate, s).task!
+  expect(svg).toContain('question context')
+  expect(svg).toContain('messages dropped')
   expect(md).toContain('Spend in all: $3.400 Claude, of which the shared setup $2.000 (1 case(s), 60.0 s)')
 })
 

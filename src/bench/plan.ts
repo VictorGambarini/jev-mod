@@ -23,7 +23,8 @@ export type Plan = { cases: number; arms: number; claudeCalls: number; setupCall
 
 /**
  * The calls and their estimated cost. `usdPerCall`, when given (--usd-per-call), prices every
- * Claude call alike; otherwise each step's own `usd`, the adapter's setup price, or its usdPerCall.
+ * Claude call alike; otherwise each step's own `usd`, the case's setup price (or the adapter's per
+ * setup call), or its usdPerCall. The adapter's estimate note says how it priced them.
  */
 export function plan(adapter: TaskAdapter, cases: readonly TaskCase[], arms: readonly Arm[], usdPerCall: number | null = null,
   decisionUsdPerCall = 0.0005): Plan {
@@ -34,7 +35,7 @@ export function plan(adapter: TaskAdapter, cases: readonly TaskCase[], arms: rea
   let armsUsd = 0
   for (const c of cases) {
     setupCalls += c.setup.length
-    setupUsd += c.setup.length * (usdPerCall ?? adapter.setupUsdPerCall ?? adapter.usdPerCall)
+    setupUsd += usdPerCall !== null ? c.setup.length * usdPerCall : c.setupUsd ?? c.setup.length * (adapter.setupUsdPerCall ?? adapter.usdPerCall)
     for (const arm of arms) {
       for (const step of adapter.steps(c, arm)) {
         armCalls++
@@ -53,6 +54,7 @@ export function plan(adapter: TaskAdapter, cases: readonly TaskCase[], arms: rea
     `  about ${decisionCalls} decision-model calls`,
     `  estimate: about $${usd.toFixed(2)} in all: setup $${setupUsd.toFixed(2)}, arms $${armsUsd.toFixed(2)}, ` +
       `decisions $${(decisionCalls * decisionUsdPerCall).toFixed(2)} (Claude priced ${priced}; set --usd-per-call to change it)`,
+    ...(usdPerCall === null ? adapter.estimateNote?.(cases) ?? [] : []),
   ].join('\n')
   return { cases: cases.length, arms: arms.length, claudeCalls, setupCalls, decisionCalls, setupUsd, armsUsd, usd, text }
 }

@@ -1,7 +1,7 @@
 // The task level's pure parts: what one `claude -p` printed, the setup's own row, and the
 // adapter's verdict on arms that did not do their job. task.ts runs Claude; tests use these.
 
-import type { Arm, ArmRun, Row, RunMeta, TaskAdapter, TaskCase } from './types'
+import type { Arm, ArmRun, Compaction, Row, RunMeta, TaskAdapter, TaskCase } from './types'
 
 export type Result = { ok: boolean; error?: string; text: string; session: string | null; cost: number; ms: number;
   tokens: { input: number; output: number; cache_read: number; cache_write: number } }
@@ -31,6 +31,36 @@ const zero = (): Tokens => ({ input: 0, output: 0, cache_read: 0, cache_write: 0
 export function contextOf(t: Tokens): number | null {
   const n = t.input + t.cache_read + t.cache_write
   return n > 0 ? n : null
+}
+
+export type Ledger = { decisions: number; calls: number; cost: number; model: string | null; compaction: Compaction | null }
+
+/**
+ * An arm's ledger folder, its files' text by name: the decision calls (their count, calls, cost
+ * and model) and the last compaction the mod recorded (core/bench-overlay.ts). A half-written
+ * file is passed over.
+ */
+export function readLedger(files: readonly { name: string; text: string }[]): Ledger {
+  const out: Ledger = { decisions: 0, calls: 0, cost: 0, model: null, compaction: null }
+  let last = -Infinity
+  for (const { text } of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
+    let e: Record<string, any>
+    try { e = JSON.parse(text) } catch { continue }
+    if (!e || typeof e !== 'object') continue
+    if (e.kind === 'compaction') {
+      const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+      if ((e.at ?? 0) >= last) {
+        last = e.at ?? 0
+        out.compaction = { messages: n(e.messages), kept: n(e.kept), dropped: n(e.dropped), skip: typeof e.skip === 'string' ? e.skip : null }
+      }
+      continue
+    }
+    out.decisions++
+    out.calls += typeof e.calls === 'number' ? e.calls : 0
+    out.cost += typeof e.cost === 'number' ? e.cost : 0
+    if (typeof e.model === 'string' && e.model) out.model = e.model
+  }
+  return out
 }
 
 /** A case's shared-setup row: what its calls cost, never scored. */

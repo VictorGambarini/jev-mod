@@ -15,7 +15,7 @@ import {
   actionKey, allowed, allowedHosts, bandText, botCheck, BOT_POLL_MS, BOT_WAIT_MS, buildTable, confirmRequest, describe, doneRequest,
   eventText, fieldName, fingerprint, goalNames, MAX_EVENTS, MAX_ROWS, ranked, render, reveal, riskOf, safeLabel, said, scrub, shortHref,
   stepRequest, yes,
-  type Action, type Observation, type Outcome, type Page, type PageEvent, type Signals, type Status, type Step,
+  type Action, type Values, type Observation, type Outcome, type Page, type PageEvent, type Signals, type Status, type Step,
 } from './rules'
 
 // browser: a tool the model calls (mcp__jev-mod__browse) to drive a web page toward a goal, when
@@ -47,6 +47,17 @@ export const EARLY_STOP = 0.85
 export const STUCK_WITH_DEAD = 0.6
 /** The CDP endpoint attach uses when JEV_MOD_BROWSER_CDP names none. */
 export const DEFAULT_CDP = 'http://127.0.0.1:9222'
+
+/** Whether the last `repeats` steps each changed nothing (or could not click). */
+export function stalled(steps: readonly Step[], repeats: number): boolean {
+  const last = steps.slice(-repeats)
+  return last.length >= repeats && last.every(l => /\(no visible change\)|did not click:/.test(l.line))
+}
+
+/** Stuck: sure of it, or fairly sure while the last steps changed nothing. Too early to tell before two steps. */
+export function judgedStuck(stuck: number, steps: number, dead: boolean): boolean {
+  return steps >= 2 && (stuck >= EARLY_STOP || (stuck >= STUCK_WITH_DEAD && dead))
+}
 
 export const SPEC = {
   name: TOOL,
@@ -184,20 +195,23 @@ async function askJev(ctx: Ctx, state: Record<string, unknown>, questions: Recor
   }
 }
 
+/** The page as the decision model may read it, before screening: values out, redacted. Text null for a page that looks sensitive. */
+export function pageOf(obs: Observation, values: Values, textChars: number): Page {
+  const raw = obs.text ?? ''
+  if (obs.sensitive || isSensitive(raw)) {
+    return { url: obs.url, title: obs.title, text: null,
+      withheld: obs.sensitive ? 'the page has a password, card or one-time-code field' : 'the page text looks like it holds secrets' }
+  }
+  const cut = [...raw].slice(0, textChars).join('')
+  return { url: obs.url, title: obs.title, text: redact(scrub(cut, values), textChars + 200) }
+}
+
 /** The page's text as the decision model may read it: values out, redacted, screened. Null for a page that looks sensitive. */
 async function prepare(ctx: Ctx, s: Session, obs: Observation): Promise<Page> {
   const fp = fingerprint(obs)
   if (s.page?.fp === fp) return s.page.page
-  const values = s.values
-  const raw = obs.text ?? ''
-  let page: Page
-  if (obs.sensitive || isSensitive(raw)) {
-    page = { url: obs.url, title: obs.title, text: null,
-      withheld: obs.sensitive ? 'the page has a password, card or one-time-code field' : 'the page text looks like it holds secrets' }
-  } else {
-    const cut = [...raw].slice(0, ctx.textChars).join('')
-    page = { url: obs.url, title: obs.title, text: await screen(ctx, redact(scrub(cut, values), ctx.textChars + 200)) }
-  }
+  const plain = pageOf(obs, s.values, ctx.textChars)
+  const page: Page = plain.text === null ? plain : { ...plain, text: await screen(ctx, plain.text) }
   s.page = { fp, page }
   return page
 }
@@ -441,8 +455,8 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
 
     // Stuck: sure of it, or fairly sure while the last steps changed nothing. Too early to tell before two steps.
     const lastDead = s.steps.slice(-(ctx.deadRepeats ?? 2))
-    const dead = lastDead.length >= (ctx.deadRepeats ?? 2) && lastDead.every(l => /\(no visible change\)|did not click:/.test(l.line))
-    if (s.steps.length >= 2 && (stuck >= EARLY_STOP || (stuck >= STUCK_WITH_DEAD && dead))) {
+    const dead = stalled(s.steps, ctx.deadRepeats ?? 2)
+    if (judgedStuck(stuck, s.steps.length, dead)) {
       s.signals.stuck++
       const { top, options } = approvable(answer, table)
       s.pending = { kind: 'stuck', approvable: new Map(options.map(o => [o.id, o.action])) }

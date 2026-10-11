@@ -1,9 +1,11 @@
 // The features that have a bench, and where each keeps its cases, results and plots. A new
 // bench is one line here (README.md, "Write a bench").
 
+import { adapter as browser } from '../features/browser/bench/adapter'
 import { adapter as compact } from '../features/compact/bench/adapter'
 import { task as compactTask } from '../features/compact/bench/task'
 import { adapter as accessGate } from '../features/access-gate/bench/adapter'
+import { adapter as reviewTriage } from '../features/review-triage/bench/adapter'
 import { adapter as rulesGate } from '../features/rules-gate/bench/adapter'
 import { adapter as screening } from '../features/screening/bench/adapter'
 import { adapter as stopGate } from '../features/stop-gate/bench/adapter'
@@ -30,6 +32,8 @@ export const BENCHES: Record<string, Bench> = {
   routing: { decision: routing },
   skills: { decision: skills },
   'find-files': { decision: findFiles },
+  browser: { decision: browser },
+  'review-triage': { decision: reviewTriage },
 }
 
 /** The feature's bench folder, relative to the repo root. */

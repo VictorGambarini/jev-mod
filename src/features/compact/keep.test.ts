@@ -124,7 +124,7 @@ test('a tool pair is sent redacted and capped: the call, the head and tail of th
   const sent = toJev[0]!.content
   expect(sent.startsWith('tool call Bash: npm test\nresult: first line of output')).toBe(true)
   expect(sent).toMatch(/\n… \d+ chars not shown …\n/)
-  expect(sent.endsWith('last line: email [email]')).toBe(true)
+  expect(sent.endsWith('last line: email bob@example.com')).toBe(true) // contact details are kept by default
   expect([...sent].length).toBeLessThanOrEqual(700)
   expect(JSON.stringify(toJev)).not.toContain(key)
 })

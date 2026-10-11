@@ -59,6 +59,25 @@ export async function paths(io: IO): Promise<Partial<Record<Scope, string>>> {
   return { user: `${await modDir(io)}/config.json`, ...(root ? { project: `${root}/.claude/jev-mod.json` } : {}) }
 }
 
+/**
+ * Whether what goes to the decision model has its emails and phone numbers masked too (secrets
+ * always are): the person's redact_contacts setting (/config), or a project's top-level
+ * "redactContacts": true. It guards the person, so a project may turn it on, never off.
+ */
+export async function redactContactsSetting(io: IO): Promise<boolean> {
+  const set = io.option('redact_contacts')
+  if (set === true || set === 'true') return true
+  const path = (await paths(io)).project
+  const text = path ? await hostOf(io).readFile(path) : undefined
+  if (text === undefined) return false
+  try {
+    const file = JSON.parse(text)
+    return isObject(file) && file.redactContacts === true
+  } catch {
+    return false
+  }
+}
+
 /** Whether the user's config file exists yet: it is written by the first save from /jev-mod or the dashboard. */
 export async function configured(io: IO): Promise<boolean> {
   const path = (await paths(io)).user
@@ -222,6 +241,13 @@ export function problems(snap: Snapshot, features: readonly Feature[] = FEATURES
     if (!isObject(file) || (file.features !== undefined && !isObject(file.features))) {
       out.push(`${scope} config: "features" must be an object of feature settings`)
       continue
+    }
+    if ('redactContacts' in file && typeof file.redactContacts !== 'boolean') {
+      out.push(`${scope} config: redactContacts must be true or false`)
+    } else if (scope === 'project' && file.redactContacts === false) {
+      out.push('project config may not turn redactContacts off: it guards you, so a project may only turn it on; it is passed over')
+    } else if (scope === 'user' && 'redactContacts' in file) {
+      out.push('user config: redactContacts is set in /config (redact_contacts), not here; it is passed over')
     }
     for (const [id, settings] of Object.entries(isObject(file.features) ? file.features : {})) {
       const f = feature(id, features)

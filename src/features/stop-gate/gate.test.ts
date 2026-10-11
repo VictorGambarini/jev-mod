@@ -6,7 +6,7 @@ import {
   stopShortNote, unfinishedStep, unverifiedNote, isRequest, keepIds, mayNudge, nudge, nudged, questionsOf, requestIndex,
   readClaims, RESULT_CHARS, RESULTS_SHARE, stateOf, TAG, type Message,
 } from './gate'
-import { isSensitive, redact } from '../../engine/privacy'
+import { isSensitive, redact, setRedactContacts } from '../../engine/privacy'
 
 const user = (text: string): Message => ({ role: 'user', text })
 const said = (text: string, ...toolUses: Message['toolUses'] & object[]): Message => ({ role: 'assistant', text, toolUses })
@@ -256,7 +256,7 @@ test('editing only docs or memory after the checks still counts as checked', () 
   expect(evidence([user('go'), said('', bash('npm test', 'ok'), edit('/p/src/a.ts'), edit('/p/README.md'))], 6000).checks_after_last_edit).toBe(false)
 })
 
-test('short git hashes and run ids stay readable to Jev; secrets, bare full hashes and phones are still masked', () => {
+test('short git hashes and run ids stay readable to Jev; secrets and bare full hashes are still masked, phones with redact_contacts on', () => {
   const keep = keepIds(redact)
   const sha = 'c39353a9f1e2d3c4b5a69788776655443322110f'
   const out = keep(`completed\tsuccess\tc39353a fix\tCI\tmain\nrun https://github.com/o/r/actions/runs/9876543210\nrun 12345678901 and job #4567890123\n`
@@ -270,14 +270,16 @@ test('short git hashes and run ids stay readable to Jev; secrets, bare full hash
   // a full-length hex with no git label is masked as before: it could be a token
   expect(keep(`token ${sha} here`, 4000)).toBe('token [hex] here')
   expect(keep('c39353a9f1e2d3c4b5', 4000)).toBe('c39353a9f1e2d3c4b5') // longer than a short hash: left to redact
-  // a phone in a tab-separated line is masked, as redact masks it
-  expect(keep('completed\tsuccess\tc39353a\t4155550134\t1m', 4000)).toContain('[phone]')
+  // a phone in a tab-separated line is kept by default, and masked as redact masks it with redact_contacts on
+  expect(keep('completed\tsuccess\tc39353a\t4155550134\t1m', 4000)).toBe('completed\tsuccess\tc39353a\t4155550134\t1m')
+  setRedactContacts(true)
+  try { expect(keep('completed\tsuccess\tc39353a\t4155550134\t1m', 4000)).toContain('[phone]') } finally { setRedactContacts(false) }
   const secret = keep(`GITHUB_TOKEN=${sha} and GH_TOKEN=c39353a and ghp_abcdefghijklmnopqrstuvwxyz0123 and call 415 555 0134 and AKIAABCDEFGHIJKLMNOP`, 4000)
   expect(secret).not.toContain(sha)
   expect(secret).toContain('GH_TOKEN=[secret]')
   expect(secret).not.toContain('ghp_')
   expect(secret).not.toContain('AKIA')
-  expect(secret).toContain('[phone]')
+  expect(secret).toContain('call 415 555 0134')
   expect([...keep('c39353a '.repeat(100), 100)].length).toBeLessThan(120)
 })
 
@@ -457,7 +459,7 @@ test('a long result keeps its head and tail, up to RESULT_CHARS, and is redacted
   expect(out.endsWith('TAIL')).toBe(true)
   expect(ev.cut).toBe(true)
   const state = stateOf('go', 'Done.', ['Done.'], ev, keepIds(redact))
-  expect(state.evidence.tool_results[0]!.output).toContain('[phone]')
+  expect(state.evidence.tool_results[0]!.output).toContain('call 415 555 0134 TAIL') // contact details are kept by default
 })
 
 test('big results cannot crowd out commands: they hold at most their share of the budget while commands remain', () => {

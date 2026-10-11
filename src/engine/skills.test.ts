@@ -5,6 +5,12 @@ import runs from '../../test/parity/fixtures/skills'
 import type { Host } from './client'
 import { pyRound } from './pyre'
 import { discover, frontMatter, looksTrivial, pick, type Skill, type SkillFiles } from './skills'
+import { setRedactContacts } from './privacy'
+
+// The captured requests come from jev-skills, which masks contact details: these runs ask for that
+// (the redact_contacts setting on). Each test file runs in its own process, so this stays here.
+setRedactContacts(true)
+
 
 type TextFixture = { trivial: { turn: string; trivial: boolean }[]; front_matter: { text: string; fields: Record<string, string> }[] }
 type Exchange = { request: string; reply?: string; fail?: string }

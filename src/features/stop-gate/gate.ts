@@ -330,7 +330,7 @@ export function stateOf(request: string, final: string, found: readonly string[]
   }
 }
 
-// Git hashes and CI run ids, held aside from `redact`: its digest and phone rules would turn a
+// Git hashes and CI run ids, held aside from `redact`: its digest and phone rules (the latter with redact_contacts on) would turn a
 // full hash into [hex] and a run id into [phone], and the claim could not be matched to them. A short hash (7-12 hex, with a
 // digit and a letter, so no phone number is one) is kept anywhere; a full 40-character one only
 // after "commit " or a "sha", "headSha" or "oid" key, since bare it could be a token. A run id

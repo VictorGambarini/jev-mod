@@ -166,8 +166,17 @@ default.
 
 `/config` keeps what has to live there: the keys, the provider, *jev-mod on* (untick it to turn
 everything off), and *Private* (send nothing: no routing or suggestions; fetched text is
-screened locally only; long output is folded locally only). Its *Routing*, *Skill suggestions*, *Screening* and *jev-mod band* fields
+screened locally only; long output is folded locally only), and *Mask contact details*
+(`redact_contacts`, off by default). Its *Routing*, *Skill suggestions*, *Screening* and *jev-mod band* fields
 still work when the files do not set that feature, and will go in a later release.
+
+**What the decision model sees.** Every feature redacts what it sends (`src/engine/privacy.ts`):
+secrets are always masked (keys and tokens, `NAME_TOKEN=` and `password =` values, private key
+blocks, unlabelled high-entropy credentials, card numbers that pass Luhn), and text that looks like
+it holds one is not sent at all. Emails and phone numbers are kept by default: they come from the
+conversation, so Claude already has them. Tick *Mask contact details* in `/config` to send them as
+`[email]` and `[phone]`; a project's `.claude/jev-mod.json` may turn that on with
+`"redactContacts": true`, never off.
 
 ## Decision backends
 

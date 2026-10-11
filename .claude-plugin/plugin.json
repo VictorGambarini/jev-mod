@@ -81,6 +81,12 @@
       "default": false,
       "description": "Send nothing to the decision backend: no routing or skill suggestions, and fetched text is screened with local patterns only."
     },
+    "redact_contacts": {
+      "type": "boolean",
+      "title": "Mask contact details",
+      "default": false,
+      "description": "Mask email addresses and phone numbers ([email], [phone]) in what goes to the decision backend. Off: they go as Claude already has them. Secrets (keys, tokens, passwords, card numbers) are masked either way. A project's .claude/jev-mod.json may turn this on with \"redactContacts\": true, never off."
+    },
     "band": {
       "type": "string",
       "title": "jev-mod band",

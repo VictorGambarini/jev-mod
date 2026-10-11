@@ -79,3 +79,41 @@ Recommended per backend:
 
 - openrouter · typesafe/jev-1.13-20260917: smallConfidence 0.7 (accuracy 81.5%; today's 0.7: 81.5%)
 <!-- bench:end -->
+
+### Task level: real coding prompts, routed or not
+
+`bench/task.ts`: ten prompts a person would type in parcelkit (`bench/task-fixture/`), a small NZ
+courier codebase in Python with its own unittest suite. Four are trivial (fix a typo in an error
+message, rename a function everywhere, fix a one-line unit conversion, look up a price without
+changing anything), three medium (an `--express` option, a `--by-zone` report, public holidays in
+delivery estimates: two or three files and tests each) and three hard (GST a cent off from
+banker's rounding in two places, weekend and after-cutoff ETAs wrong from a bug in `dates.py` and
+a UTC conversion in `cli.py`, a report total that drops leading zeros and ignores dimensions).
+
+One task is one `claude -p` with the prompt, in a fresh copy of the project, once per arm:
+
+- **plain Claude Code**: routing off, so every turn runs on Claude Code's default model and
+  effort. On the machine the bench was built on that is `claude-opus-5-5` (each row records the
+  model that answered), so this arm is also the "always the strongest model" reference; a second
+  arm pinned to Opus would be the same arm.
+- **jev-mod**: routing on; Jev's lane for the prompt picks the model and effort.
+
+A task succeeds when the project's own tests pass and so does its hidden check
+(`bench/task-checks/<id>.py`, run after the arm, never seen by it): exact CLI output, exact
+values from the API, no old name left, nothing changed for the lookup. Per task the row records
+success and the share of checks passed, the wall time, Claude's cost, the models that answered
+and what each cost (`claude_models`, from `modelUsage`), and the decision model's cost (routing's
+one request, plus any the stop gate made: protective features stay as the person has them, in
+both arms). `bun src/features/routing/bench/task-report.ts` writes `results/task-routing.md` and
+`task-routing.svg`: success, total cost and wall time by difficulty and arm, and where each arm's
+Claude spend went by model, so the table shows where routing saves money and whether it loses
+accuracy on hard work.
+
+Routing does take effect headless: the mod's `turn.step` hook runs under `claude -p`. In the
+smoke run (one trivial case, 2026-10-11) the routed arm's `modelUsage` named only
+`claude-haiku-4-5-20251001` and the plain arm's only `claude-opus-5-5`; both fixed the bug, $0.10
+against $0.27 of Claude and 28 s against 31 s, for $0.00003 of routing decision.
+
+`bun src/features/routing/bench/task-selfcheck.ts` checks the bench for free: each hidden check
+fails on the fixture as shipped and passes on a known-good fix, and the task runner goes end to
+end on a fake `claude` (rows in `bench/fake/`).

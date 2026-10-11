@@ -4,7 +4,9 @@
 import type { Arm, ArmRun, Compaction, Row, RunMeta, TaskAdapter, TaskCase } from './types'
 
 export type Result = { ok: boolean; error?: string; text: string; session: string | null; cost: number; ms: number;
-  tokens: { input: number; output: number; cache_read: number; cache_write: number } }
+  tokens: { input: number; output: number; cache_read: number; cache_write: number }
+  /** The models that answered, each with its cost (modelUsage); empty when none was reported. */
+  models?: Record<string, number> }
 
 /** The last JSON object Claude printed: its result, session, cost and usage. */
 export function parseClaude(stdout: string): Omit<Result, 'ms'> {
@@ -14,6 +16,10 @@ export function parseClaude(stdout: string): Omit<Result, 'ms'> {
     try { j = JSON.parse(stdout) } catch { return { ok: false, error: 'output was not JSON', text: '', session: null, cost: 0, tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 } } }
   }
   const u = (j.usage ?? {}) as Record<string, number>
+  const models: Record<string, number> = {}
+  for (const [model, use] of Object.entries((j.modelUsage ?? {}) as Record<string, Record<string, unknown>>)) {
+    models[model] = typeof use?.costUSD === 'number' ? use.costUSD : 0
+  }
   return {
     ok: j.is_error !== true && j.subtype !== 'error_max_budget_usd',
     ...(j.is_error ? { error: String(j.subtype ?? 'error') } : {}),
@@ -21,6 +27,7 @@ export function parseClaude(stdout: string): Omit<Result, 'ms'> {
     session: typeof j.session_id === 'string' ? j.session_id : null,
     cost: typeof j.total_cost_usd === 'number' ? j.total_cost_usd : 0,
     tokens: { input: u.input_tokens ?? 0, output: u.output_tokens ?? 0, cache_read: u.cache_read_input_tokens ?? 0, cache_write: u.cache_creation_input_tokens ?? 0 },
+    models,
   }
 }
 

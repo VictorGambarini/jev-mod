@@ -68,6 +68,8 @@ export type Row = {
   context_tokens?: number | null
   /** What a compaction the mod recorded kept and dropped, in messages. */
   compaction?: Compaction
+  /** The models that answered the arm's Claude calls, each with what it cost (claude -p's modelUsage). */
+  claude_models?: Record<string, number>
 }
 
 /** One compaction as the mod records it in the bench ledger: messages before, kept and dropped, and why nothing went. */
@@ -171,6 +173,12 @@ export type TaskCase = {
   git?: boolean
   /** About what the shared setup costs, in dollars, for the estimate (else its prompts at the adapter's setup price). */
   setupUsd?: number
+  /**
+   * Each arm starts from its own fresh copy of the fixture (and its own git repository), so one
+   * arm's edits are never another's starting point and the checker reads that arm's files. Used
+   * with no setup: a session cannot be resumed from another folder.
+   */
+  fresh?: true
 }
 
 export type Arm = {

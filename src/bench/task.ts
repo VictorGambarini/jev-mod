@@ -7,7 +7,8 @@
 // own, as in any session.
 //
 // The shared setup's spend is a row of its own per case (`setup: true`), so a run's totals hold
-// it. After a case's arms ran, the adapter's verify may turn an arm that did not do its job (a
+// it. A `fresh` case gives each arm its own copy of the fixture instead (a coding task edits it).
+// Each arm's row names the models that answered and what each cost. After a case's arms ran, the adapter's verify may turn an arm that did not do its job (a
 // compaction that never happened) into an error: such an arm is never scored. Each arm's row holds
 // the context its final step read and, when the mod recorded one, what its compaction kept and dropped.
 
@@ -57,13 +58,16 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
   for (const c of o.cases) {
     const dir = `${base}/${c.id}`
     const work = `${dir}/project`
-    await f.mkdir(work, { recursive: true })
-    if (c.fixture) await f.cp(`${o.repo}/${c.fixture}`, work, { recursive: true })
-    if (c.git) {
-      // a project under git, as a real one is: the session can diff its own changes
-      const git = (...args: string[]) => run('git', ['-c', 'user.name=bench', '-c', 'user.email=bench@example.invalid', ...args], { cwd: work, timeoutMs: 30_000 })
-      for (const args of [['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'fixture']]) await git(...args)
+    const prepare = async (folder: string) => {
+      await f.mkdir(folder, { recursive: true })
+      if (c.fixture) await f.cp(`${o.repo}/${c.fixture}`, folder, { recursive: true })
+      if (c.git) {
+        // a project under git, as a real one is: the session can diff its own changes
+        const git = (...args: string[]) => run('git', ['-c', 'user.name=bench', '-c', 'user.email=bench@example.invalid', ...args], { cwd: folder, timeoutMs: 30_000 })
+        for (const args of [['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'fixture']]) await git(...args)
+      }
     }
+    await prepare(work)
     const tools = c.allowedTools ?? []
     // the shared session, built with every feature that changes what the model sees off
     const setupOverlay = `${dir}/overlay-setup.json`
@@ -85,6 +89,9 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     const done: { arm: Arm; row: Row; run: ArmRun }[] = []
     for (const [k, arm] of o.arms.entries()) {
       const ledger = `${dir}/ledger-${k}`
+      // a fresh case: this arm works on its own copy, which its checker reads
+      const cwd = c.fresh ? `${dir}/project-${k}` : work
+      if (c.fresh) await prepare(cwd)
       const overlay = `${dir}/overlay-${k}.json`
       await f.mkdir(ledger, { recursive: true })
       await f.writeFile(overlay, JSON.stringify(overlayFor(o.adapter, arm, ledger)))
@@ -97,10 +104,11 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       if (setupFailed) { row.outcome = 'error'; row.error = `setup: ${setupFailed}` }
       for (const [s, step] of o.adapter.steps(c, arm).entries()) {
         if (row.outcome === 'error') break
-        const r = await claude(step.prompt, work, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
+        const r = await claude(step.prompt, cwd, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
         row.wall_ms! += r.ms
         row.claude_cost_usd! += r.cost
         for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
+        for (const [model, usd] of Object.entries(r.models ?? {})) (row.claude_models ??= {})[model] = (row.claude_models[model] ?? 0) + usd
         if (!r.ok) { row.outcome = 'error'; row.error = r.error ?? 'claude failed'; break }
         mine = r.session ?? mine
         if (step.final) { final = r.text; context = contextOf(r.tokens) }
@@ -118,7 +126,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       row.context_tokens = context
       if (book.compaction) row.compaction = book.compaction
       if (row.outcome === 'ok') {
-        const checked = await o.adapter.check(c, final, work)
+        const checked = await o.adapter.check(c, final, cwd)
         row.success = checked.success
         row.score = checked.score
         if (checked.detail) row.detail = checked.detail

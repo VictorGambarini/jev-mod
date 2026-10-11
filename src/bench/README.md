@@ -63,6 +63,7 @@ this checkout where jev-mod is not installed).
 | Decision level, `screening` / `web-filter` / `tool-gate` / `stop-gate` / `access-gate` | about 45 / 19 / 62 / 42 / 0 requests (stop-gate's carry up to about 6k characters of evidence each) | pennies at most at Jev's list price; not yet measured |
 | Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
 | Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
+| Task level, `routing`, one backend | 20 headless Claude calls (10 tasks × 2 arms, no setup), about 10 decision calls | Claude: about $14.50 (plain on Opus: about $0.30 a trivial task, $0.80 medium, $1.50 hard; routed: $0.10, $0.50, $1.50); decisions: about $0.01. The smoke (`--cases lb-conversion`, both arms): $0.37 of Claude, $0.0004 of decisions, about a minute |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 69 headless Claude calls (36 shared setup, then 11 per case), about 48 decision calls | Claude: about $105 (setup about $12.80 a case: twelve prompts building ~105k tokens of conversation; per case, a question on the full context about $2.50, `/compact` about $2.90 then its question about $0.70, the mod's compaction about $2.50 then its question about $1.55; the plan prints how it priced them); decisions: about $0.02. One case (`--cases proration-fix`): about $35 |
 
 ## Backends and keys
@@ -137,7 +138,8 @@ Per threshold the report computes, per feature:
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
 Task level, per arm: the checker's success and score, wall time, Claude's cost and tokens (from
-`claude -p`'s JSON), the context the final step read (`context_tokens`), the decision model's
+`claude -p`'s JSON), the models that answered and what each cost (`claude_models`, from its
+`modelUsage`), the context the final step read (`context_tokens`), the decision model's
 cost and calls (from the ledger), and what a compaction the mod recorded kept and dropped
 (`compaction`). An arm that did not do its job is an error with the adapter's code (its `verify`),
 never a score: for `compact`, `not_compacted` is any compacting arm (`/compact` or the mod's)
@@ -213,7 +215,8 @@ backend), or a note when the mod has no setting for it yet (`compact`'s drop bar
 4. One line in `src/bench/features.ts`.
 5. For a task level, a `TaskAdapter` (`compact/bench/task.ts` is the example): task cases (a
    fixture folder copied to a scratch project, made a git repository with `git: true`, setup
-   prompts shared by every arm, an optional `setupUsd` estimate), each arm's steps (a step may
+   prompts shared by every arm, an optional `setupUsd` estimate; `fresh: true` instead gives each
+   arm its own copy of the fixture, for a task that edits it, as `routing/bench/task.ts` does), each arm's steps (a step may
    refuse tools and carry its own price for the estimate), its overlay, a checker, a `verify`
    that says when an arm plainly did not do its job, and optionally `maxUsdPerCall` and an
    `estimateNote` the plan prints under its estimate.
@@ -238,6 +241,14 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   with every tool refused, so only what it kept counts; each answer must match every one of its
   patterns. A jev-mod arm sends `/compact [jev-mod compact: drop only what Jev marks drop]`, the
   compaction `/jev-mod compact` runs, in one step.
+- `routing`'s task level (`routing/bench/task.ts`): ten one-prompt coding tasks in parcelkit
+  (`task-fixture/`, a small Python courier codebase), four trivial, three medium, three hard, each
+  in a fresh copy of the project per arm (`fresh: true`). Plain Claude Code runs every turn on its
+  default model (Opus here); the jev-mod arm lets routing pick the model and effort. A hidden
+  check per task plus the project's own tests decide success; each row names the models that
+  answered and what each cost (`claude_models`). `routing/bench/task-report.ts` draws success, cost
+  and wall time by difficulty; `routing/bench/task-selfcheck.ts` proves each check fair (fails as
+  shipped, passes when fixed) and runs the runner end to end on a fake `claude`.
 - `trim-output`: the four test logs that were `evals/trim-tests/`, with "keep failures only" as a
   baseline that needs no backend. `pipeline.test.ts` still holds the old benchmark's numbers.
 - `rules-gate`: eight edits against 23 written rules.

@@ -33,7 +33,7 @@ export function contextOf(t: Tokens): number | null {
   return n > 0 ? n : null
 }
 
-export type Ledger = { decisions: number; calls: number; cost: number; model: string | null; compaction: Compaction | null }
+export type Ledger = { decisions: number; calls: number; cost: number; model: string | null; compaction: Compaction | null; byFeature: Record<string, number> }
 
 /**
  * An arm's ledger folder, its files' text by name: the decision calls (their count, calls, cost
@@ -41,7 +41,7 @@ export type Ledger = { decisions: number; calls: number; cost: number; model: st
  * file is passed over.
  */
 export function readLedger(files: readonly { name: string; text: string }[]): Ledger {
-  const out: Ledger = { decisions: 0, calls: 0, cost: 0, model: null, compaction: null }
+  const out: Ledger = { decisions: 0, calls: 0, cost: 0, model: null, compaction: null, byFeature: {} }
   let last = -Infinity
   for (const { text } of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
     let e: Record<string, any>
@@ -56,6 +56,7 @@ export function readLedger(files: readonly { name: string; text: string }[]): Le
       continue
     }
     out.decisions++
+    if (typeof e.feature === 'string') out.byFeature[e.feature] = (out.byFeature[e.feature] ?? 0) + 1
     out.calls += typeof e.calls === 'number' ? e.calls : 0
     out.cost += typeof e.cost === 'number' ? e.cost : 0
     if (typeof e.model === 'string' && e.model) out.model = e.model

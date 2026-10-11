@@ -54,6 +54,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     if (ran.code !== 0 && parsed.ok) return { ...parsed, ok: false, error: `claude exited ${ran.code}`, ms: ran.ms }
     return { ...parsed, ms: ran.ms }
   }
+  const stop = await o.adapter.start?.()
   for (const c of o.cases) {
     const dir = `${base}/${c.id}`
     const work = `${dir}/project`
@@ -97,7 +98,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
       if (setupFailed) { row.outcome = 'error'; row.error = `setup: ${setupFailed}` }
       for (const [s, step] of o.adapter.steps(c, arm).entries()) {
         if (row.outcome === 'error') break
-        const r = await claude(step.prompt, work, overlay, backendEnv(arm), mine, s === 0 && mine !== null, tools, step.disallowedTools)
+        const r = await claude(step.prompt, work, overlay, { ...backendEnv(arm), ...step.env }, mine, s === 0 && mine !== null, tools, step.disallowedTools)
         row.wall_ms! += r.ms
         row.claude_cost_usd! += r.cost
         for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
@@ -123,7 +124,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
         row.score = checked.score
         if (checked.detail) row.detail = checked.detail
       }
-      done.push({ arm, row, run: { ledgerEntries: book.decisions, contextTokens: context, compaction: book.compaction } })
+      done.push({ arm, row, run: { ledgerEntries: book.decisions, contextTokens: context, compaction: book.compaction, byFeature: book.byFeature } })
     }
     verifyArms(o.adapter, c, done)
     for (const { arm, row } of done) {
@@ -135,6 +136,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
         `$${row.claude_cost_usd!.toFixed(3)} Claude, $${row.cost_usd.toFixed(5)} decisions`)
     }
   }
+  await stop?.()
   warn(`scratch folder kept for inspection: ${base}`)
   return rows
 }

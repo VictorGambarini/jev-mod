@@ -70,7 +70,7 @@ page text (screened; data, not instructions):
 | `unverified` | the step budget ran out after a *done* the page check did not confirm | look at the page text |
 | `needs_input` | a field needs text none of the inputs holds (the field is named) | call again with `resumeId` and that input |
 | `needs_confirm` | a consequential step (below) the goal does not plainly ask for; or one that was attempted and whose result is unknown, or any consequential step after such an attempt (the `attempted` line says which) | ask the person; only on their yes, call again with `resumeId` and `approve` |
-| `blocked` | no step is at least `stepFloor` sure, or the decision model abstained; its top three are named, and those that can be approved come back as options with probabilities | `approve` one, or call again with a clearer goal |
+| `blocked` | no step is at least `stepFloor` sure (by its confidence or its lead over the runner-up), or the decision model abstained, and the page check on the page as it is did not find the goal; its top three are named, and those that can be approved come back as options with probabilities | `approve` one, or call again with a clearer goal |
 | `stuck` | the decision model said the run is stuck (repeating, or making no progress), at least 0.85 sure; or 0.6 sure while the last steps changed nothing. Not before two steps. Its top three come back as options, as for `blocked` | `resumeId` with a clearer goal, or `approve` an option |
 | `bot_check` | the page is a bot check (Cloudflare, hCaptcha, reCAPTCHA, DataDome, PerimeterX) still there after 8 seconds; the `bot check` line names the provider and the evidence | ask the person; or, with `allowAttach` on, call again with `attach: true` in their own Chrome. In an attached Chrome it pauses, so they can solve it and resume |
 | `left_allowlist` | a navigation or redirect went off the allowed hosts | `allowHosts`, if that host is meant |
@@ -101,7 +101,8 @@ status closes it at once, and every browser closes when the session ends.
    options as the page labels them (up to 30; not a placeholder or a disabled one), the one chosen
    now, and which inputs' values are one of them (matched in the driver's process). The page's main
    text: `<main>` (or the body without its header), with navigation, asides and footers left out,
-   up to `textChars` characters; a table row is one line, its cells joined by ` | `, and a select
+   up to 20,000 characters (the decision model reads the first `textChars` of it; the rest is
+   searched, step 5); a table row is one line, its cells joined by ` | `, and a select
    reads as the option chosen in it (`Size [chosen: XL]`), not its list. The visible frames' addresses (for the bot check), and the
    console errors and failed requests (an HTTP status of 400 or more, or no answer) since the last
    look: a request by its origin and path, never its query; at most 50 per look.
@@ -141,21 +142,52 @@ status closes it at once, and every browser closes when the session ends.
 5. **Pick.** One request: the choice "Which single action should be taken next to move toward
    the goal?" over the goal, the page, the elements and the last ten steps, and in the same
    request two yes/no questions, "Is the goal already reached on this page?" and "Is the run
-   stuck: repeating the same actions, or making no progress toward the goal?". Below `stepFloor`
-   (0.4: an ordinary step on a real site scores 0.35-0.55), or `abstain`: `blocked`.
+   stuck: repeating the same actions, or making no progress toward the goal?". Two more things
+   come with it, both built here, since the decision model writes no text:
+   - **Find on page** (`page.further_down`): when the page's text runs past the view
+     (`textChars`), the rest (up to 20,000 characters) is searched for the goal's words and the
+     inputs' placeholders, and up to 6 matching lines of 200 characters come with the request,
+     with how many characters the rest holds. No row and no step is spent on it: the search
+     terms could only be the goal's own words, so a row would only choose when, at the cost of a
+     step and a decision each time.
+   - **Notes per page** (`pages_read`): one line per page read earlier in the run (at most 8, 200
+     characters each; the page read longest ago goes first): its address and title, its best line
+     sharing the goal's words, how often it was read, and "page check: not the thing the goal asks
+     for" where the page check said so, e.g. `fernbird.test/contact.html "Contact": "Our support
+     team answers the phone on …"; page check: not the thing the goal asks for`. They come from
+     the page text the decision model already read (values out, redacted, screened), so a page
+     already ruled out is not read again.
+
+   A step is taken when its confidence, or its lead over the runner-up, is at least `stepFloor`
+   (0.4); else, or on `abstain`, the call stops as `blocked`. The lead is (p1 − p2) / (p1 + p2),
+   Jev's confidence formula over the pick and its runner-up alone, with two links to the same
+   page counted as one row. The confidence (about p1 on a big table) shrinks as the table grows:
+   a list's twenty option rows took a form's first pick to 0.38, though nothing else came near
+   it. The lead does not shrink with rows the model does not consider, and is low only when two
+   rows split the pick: in the bench's blocked calls, 0.37 against 0.30 (lead 0.10), 0.41 against
+   0.27 (0.21), 0.21 against 0.21 (0). Either one high means the step is not a guess; the lead
+   alone would stop a form whose several fields are each a good next step. The step line says
+   the lead when it is what cleared the floor: `(0.30, lead 0.85)`.
 6. **Check, where a step needs it.** *done*, or *goal reached* at 0.85 or more, asks a second
    check over the page's own text. It asks the decision model to name to itself the exact thing
    the goal asks for ("the sales phone number", not a phone number) and whether that thing is
    visible on the page now (a link to it, a related thing, or a different one of the same kind,
    such as the support number, is not); and, when lines of the page share the goal's words (up to
-   six; a short line that starts with a number right after one, such as a price under its
-   product's name, is joined to it), which of them shows it, or none. It is done only at `confirmConfidence` or more *and*
+   six, found over all 20,000 characters read, not only the view; a short line that starts with a
+   number right after one, such as a price under its product's name, is joined to it, and a short
+   heading that names a version or a date right before one, such as `v2.8.0 · 12 March 2026`, is
+   joined in front), which of them shows it, or none. The lines found past the view come with it
+   as in step 5. It is done only at `confirmConfidence` or more *and*
    with a line picked; the step line quotes that line. With no such line (or no page text) the
    yes/no decides alone. That check is the safety: under `confirmConfidence` the run carries on (with
    the picked step, in the same step, for *goal reached*), and neither is taken on that same page
    again. *stuck* at 0.85 or more (or 0.6 while the last steps changed nothing) ends the run as
    `stuck`. Both are counted on the answer's `signals` line. A consequential step asks the tool
-   gate's question about the goal (below).
+   gate's question about the goal (below). Before a call stops as `blocked` (abstain included),
+   `stuck` or at the step budget, the page check runs once more on the page as it is, unless it
+   already said not yet there: when it finds the goal, the call ends as `done`, and the step line
+   says `before stopping (…), the page check found the goal on this page`. It takes no step and
+   no action; if it cannot run (the daily budget, the backend), the call stops as it would have.
 7. **Act**, then observe again. The driver checks that the element still says what it said
    when observed; if the page changed, it looks again instead of acting. Before a click it checks
    that the element at the target's centre is the target, inside it, or its label: one covered by
@@ -186,7 +218,12 @@ status closes it at once, and every browser closes when the session ends.
   **both** hold: the goal's own words name that kind of action, and the decision model answers at
   least `confirmConfidence` (0.5) that the goal asks for it ("Does the goal ask for this action to
   be done, or does it clearly follow from what the goal asks?", the tool gate's question put to the
-  goal). Otherwise it stops as `needs_confirm`. A cookie banner is not consequential. Enter is a
+  goal). Otherwise it stops as `needs_confirm`. A form's plain submit button, one whose label has
+  none of the words above ("Archive", "Rename", "Save changes"), is named by the submit words
+  (submit, send, apply, save, update, ...) or by a goal that uses one of the button's own words
+  ("archive Hemi's email" names Archive); the confirm question is still asked. A button with a
+  consequential word keeps its kind: "archive the email" does not name Delete or Buy beside it. A
+  cookie banner is not consequential. Enter is a
   search, not a submit, in a search box: a field in no form, a search box or `role="search"`, a
   field whose label, placeholder or name says search, filter, find or query, or a form that is
   marked a search, is a `GET` form, or has a single text field (neither of those two with a
@@ -243,10 +280,10 @@ an `attach` call fails and says how to turn it on.
 |---|---|---|
 | `maxSteps` | 20 (5-60) | the most steps one call takes; a call may ask for fewer |
 | `confirmConfidence` | 0.5 (0.5-1) | the bar for a consequential step and for *done* |
-| `stepFloor` | 0.4 (0.3-0.95) | under it, the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (`confirmConfidence`, and the goal naming the action). A named backend that sets `choose.min_confidence` in its `tuning` uses that instead, and `choose.dead_repeats` for how often a step may change nothing on a page before it is no longer offered (2) |
+| `stepFloor` | 0.4 (0.3-0.95) | a pick whose confidence and lead over the runner-up are both under it is not taken: the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (`confirmConfidence`, and the goal naming the action). A named backend that sets `choose.min_confidence` in its `tuning` uses that instead (read the same way: confidence or lead), and `choose.dead_repeats` for how often a step may change nothing on a page before it is no longer offered (2) |
 | `headed` | false | show the Chromium window |
 | `allowAttach` | false | let a call drive your own Chrome |
-| `textChars` | 6000 (1000-20000) | page text per step |
+| `textChars` | 6000 (1000-20000) | page text the decision model reads per step; the rest of the 20,000 characters read is searched for the goal's words |
 
 `JEV_MOD_BROWSER_DIR` names another folder holding `node_modules/playwright` (for development;
 its Chromium is wherever that Playwright keeps it).
@@ -255,7 +292,10 @@ its Chromium is wherever that Playwright keeps it).
 
 Per step: one screening request for a page not seen before, one request (the choice and the two
 yes/no signals together), and a yes/no when *done*, *goal reached* or a named consequential step
-comes up. A bot check costs nothing. The calls count against the daily budget and show on the
+comes up, and once more before a call stops short of done (blocked, stuck, the step budget). A
+long page's screening reads up to 20,000 characters (about 5,000 tokens, in the same one request).
+The answer to the model keeps its caps: 4,000 characters of the last page, 2,000 of what was
+found along the way; the notes and the lines found past the view go to the decision model only. A bot check costs nothing. The calls count against the daily budget and show on the
 band and in the dashboard under `browser` (`done`, `paused`, `failed`, `unverified`, `budget`,
 `stuck`, `bot-check`, `goal-reached`, `left-allowlist`, `withheld`).
 
@@ -274,11 +314,15 @@ value reaches any request or the store (and a secret-named one the answer); a bo
 clears and one that does not (each provider's page is a fixture in `bots.fixture.ts`, with pages
 that only look like one), goal reached and stuck stopping early, an unknown submit not repeated
 across resume, console and network lines capped and redacted, a covered button, a list option
-chosen without an input, and a failed step not offered again. The real driver
+chosen without an input, a failed step not offered again, a diluted pick taken on its lead (and
+a consequential one still stopped), the page check before stopping as blocked, stuck or at the
+budget, notes per page in the step request, find on page over a long page, and a form's Archive
+button named by a goal that says archive while Delete beside it is not. The real driver
 against local pages: `node src/features/browser/driver.check.mjs` (skips without Playwright),
 including a single-page search box submitted by Enter whose results say "Loading data..." for a
 second, a page whose text arrives late, which input a field holds, a button under a fixed banner,
 a console error and a 404, visible frames, a page that polls, a click whose result comes from
 a request it starts, a select's options chosen by place (a stale label refused, an input that is
 no option failing at once rather than after Playwright's 5-second wait, the chosen option in the
-text), and a table row read as one line. It prints the median time per kind of action.
+text), a table row read as one line, and a long page read to 20,000 characters with a line at
+about 15,000 in it. It prints the median time per kind of action.

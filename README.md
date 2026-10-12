@@ -9,27 +9,6 @@ asks a decision model (Jev, or any backend you run) and lets Claude do the work.
 
 It runs inside Claude Code as a mod: hooks that reach the engine where settings hooks cannot.
 
-## The headline: browsing that keeps Claude's context small
-
-With Playwright MCP, Claude drives the browser itself: every click returns a snapshot of the page
-into the conversation, and Claude re-reads all of them on each of its turns. With jev-mod's
-[`browse`](src/features/browser/README.md), the decision model clicks through the pages and Claude
-gets back one short answer: the final page's text, what was found along the way, a line per step.
-
-Measured on the same 17 web tasks, 3 runs each, `browse` alone (every other jev-mod feature off)
-against plain Claude Code with Playwright MCP, both on Opus 5.5 ([how](src/features/browser/README.md#benchmarks)):
-
-| | plain Claude Code + Playwright | Claude Code + `browse` |
-|---|---|---|
-| tasks right | 51 of 51 | 51 of 51 |
-| context Claude ends the task with | 128k tokens | **38k tokens (3.4× smaller)** |
-| Claude turns per task | 9.5 | **2.2** |
-| Claude cost per task | $0.132 | **$0.066** (+ $0.0005 of decisions) |
-| median time per task | 16.6 s | **12.5 s** |
-
-The context stays small after the task too: every later question in that session re-reads about
-90,000 fewer tokens, so follow-ups are cheaper and the model works with a cleaner window for longer.
-
 | Feature | When | What it decides | Default |
 |---|---|---|---|
 | [Routing](src/features/routing/README.md) | each turn | The lane (small / medium / high / escalate) that sets the turn's effort and model. | off |

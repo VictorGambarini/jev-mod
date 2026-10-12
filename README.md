@@ -196,7 +196,8 @@ the setting's key never goes to another backend's URL. Every threshold was measu
 model's confidences are not the same numbers, so a backend can carry its own `tuning` and its
 own copy of a policy (`~/.config/jev/backends/<name>/policies/`). The mod reads
 `skillpick.need_threshold`, `skillpick.match_threshold`, `skillpick.shortlist_floor` and
-`webscreen.injection_threshold`; the browser takes `choose.min_confidence` as its step floor and
+`webscreen.injection_threshold`; the browser takes `choose.min_confidence` as its step floor (read
+against a pick's confidence or its lead over the runner-up, whichever is higher) and
 `choose.dead_repeats` as how often a step may change nothing before it is dropped, each only when
 the backend sets it (over the `stepFloor` knob and 2; `choose.min_confidence` is bounded to
 0.5-0.99 as in jev-skills, so it can raise the floor, not lower it). `search.sufficiency_threshold` is accepted,

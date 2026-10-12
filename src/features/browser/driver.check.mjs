@@ -1,7 +1,7 @@
 // The real driver (driver.mjs and client.mjs, under node) against a static site served from a temp
 // folder: observe, type, Enter, back, a stale check, a click, a link off the hosts, a bad token,
 // close; and a single-page search box (which input a field holds, Enter with no form, results that
-// say "Loading data..." for a second before they come), and a page that loads its text late. The kit's tests cannot start processes, so this is a script:
+// say "Loading data..." for a second before they come), a page that loads its text late, and a long page read to 20,000 characters. The kit's tests cannot start processes, so this is a script:
 //
 //   node src/features/browser/driver.check.mjs
 //
@@ -26,7 +26,7 @@ if (!DIR) {
 
 const PAGES = {
   '/': '<!doctype html><title>Home</title><nav><a href="/about">About</a></nav><main><h1>Welcome</h1><p>The shop.</p>'
-    + '<h2>Plans</h2><a href="/pricing">Pricing</a> <a href="https://example.com/">Elsewhere</a> <a href="/spa">Single page</a> <a href="/covered">Covered</a> <a href="/framed">Framed</a> <a href="/poll">Poll</a> <a href="/product">Product</a>'
+    + '<h2>Plans</h2><a href="/pricing">Pricing</a> <a href="https://example.com/">Elsewhere</a> <a href="/spa">Single page</a> <a href="/covered">Covered</a> <a href="/framed">Framed</a> <a href="/poll">Poll</a> <a href="/product">Product</a> <a href="/long">Long</a>'
     + '<form role="search" action="/search"><input type="search" name="q" placeholder="Search"><button>Go</button></form></main>'
     + '<footer>Footer words</footer>',
   '/pricing': '<!doctype html><title>Pricing</title><main><h1>Pricing</h1><p>Team plan: $10 per seat.</p><button>Buy now</button></main>',
@@ -56,6 +56,9 @@ const PAGES = {
     + '<option value="XXL" disabled>XXL</option></select></label>'
     + '<table><tr><th>Item</th><th>Qty</th></tr><tr><td>Merino Socks</td><td><p>2</p></td></tr></table></main>'
     + '<script>document.getElementById("size").onchange = e => { document.getElementById("price").textContent = e.target.value === "XL" ? "$309" : "$289" }</script>',
+  // a long page: the line the goal wants lies at about 15,000 characters, the page goes on to about 30,000
+  '/long': '<!doctype html><title>Long</title><main><h1>News</h1>' + '<p>Older news about the product, nothing about that here.</p>'.repeat(260)
+    + '<p>Enterprise sales line: +64 9 555 0142.</p>' + '<p>Even older news, still nothing about that.</p>'.repeat(330) + '</main>',
   '/slow': '<!doctype html><title>Slow</title><main><h1>Slow</h1><div id="x" aria-busy="true">Loading</div></main><script>'
     + 'setTimeout(() => { const x = document.getElementById("x"); x.removeAttribute("aria-busy"); x.textContent = "Late text arrived." }, 1200)</script>',
 }
@@ -78,7 +81,7 @@ const child = spawn('node', [`${HERE}driver.mjs`, DIR], { stdio: ['pipe', 'pipe'
 let code = 0
 try {
   child.stdin.end(JSON.stringify({ startUrl: base, hosts: ['127.0.0.1'], headed: false, cdp: null,
-    values: { query: 'zebra-query-77', size: 'xl' }, textChars: 4000, maxRows: 80, runDir }))
+    values: { query: 'zebra-query-77', size: 'xl' }, textChars: 20000, maxRows: 80, runDir }))
   const ready = await new Promise((resolve, reject) => {
     let buf = ''
     child.stdout.on('data', d => {
@@ -200,6 +203,15 @@ try {
     r = await send({ op: 'act', action: { kind: 'back' } })
     assert.equal(r.obs.title, 'Home')
 
+    // A long page is read to 20,000 characters (what the mod asks for): a line at about 15,000 is in the text, the end is not.
+    const long = find('Long')
+    r = await send({ op: 'act', action: { kind: 'click', ref: long.id, expect: { tag: 'a', label: 'Long' } } })
+    assert.match(r.obs.text, /Enterprise sales line: \+64 9 555 0142\./, 'a line past the first 6000 characters is read')
+    assert.ok(r.obs.text.indexOf('Enterprise sales line') > 12000, 'it lies past the view the decision model reads')
+    assert.ok(r.obs.text.length <= 20000 && r.obs.text.length > 19000, `read up to the cap (${r.obs.text.length})`)
+    r = await send({ op: 'act', action: { kind: 'back' } })
+    assert.equal(r.obs.title, 'Home')
+
     // Visible frames are reported (origin, path and the frame= marker; no query), a 1px one is not.
     const framed = find('Framed')
     r = await send({ op: 'act', action: { kind: 'click', ref: framed.id, expect: { tag: 'a', label: 'Framed' } } })
@@ -221,6 +233,7 @@ try {
       + 'reported the input a field holds, submitted a single-page search by Enter and waited out its loading, waited for a late page, '
       + 'refused a covered button, reported console errors, failed requests and visible frames, did not wait out a poll, '
       + 'waited for a request a click started, chose an option of a list and failed fast on an input that is none, read a table row as a line, '
+      + 'read a long page to 20,000 characters, '
       + 'refused a bad token and closed')
   }
 } catch (error) {

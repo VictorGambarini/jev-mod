@@ -16,7 +16,8 @@ import { BOT_PAGES } from './bots.fixture'
 
 const USER = '/home/u/.config/jev-mod/config.json'
 
-type Pick = { choice: string; p?: number; probs?: Record<string, number> }
+/** p: the pick's probability; second: a runner-up and its probability; the rest share what is left evenly. */
+type Pick = { choice: string; p?: number; probs?: Record<string, number>; second?: [string, number] }
 type Brain = { picks?: Pick[]; achieved?: number[]; asked?: number; reached?: number[]; stuck?: number[]; shown?: string[] }
 type Sent = { state: any; questions: Record<string, any> }
 
@@ -63,8 +64,9 @@ function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: bool
           const options = Object.keys(q.criteria)
           const next = picks.shift() ?? { choice: 'abstain', p: 0.9 }
           const p = next.p ?? 0.9
-          const rest = options.filter(o => o !== next.choice)
-          const probabilities = next.probs ?? Object.fromEntries(options.map(o => [o, o === next.choice ? p : (1 - p) / rest.length]))
+          const [second, p2] = next.second ?? ['', 0]
+          const rest = options.filter(o => o !== next.choice && o !== second)
+          const probabilities = next.probs ?? Object.fromEntries(options.map(o => [o, o === next.choice ? p : o === second ? p2 : (1 - p - p2) / rest.length]))
           // x_jev_confidence: a named backend's confidence is read in Jev's units (engine/client.ts), so say it is p
           return [name, { type: 'choice', choice: next.choice, probabilities, confidence: p, x_jev_confidence: p }]
         }
@@ -111,6 +113,19 @@ const SITE: Record<string, PageDef> = {
     elements: [{ id: 'e1', tag: 'select', role: 'combobox', label: 'Size Choose a size S M', fillable: true, filled: false, options: ['', 'S', 'M'], selected: 0, fits: [] },
       button('e2', 'Add to cart'), link('e3', 'Home', 'https://shop.test/')],
   },
+  // a long page: the sales line lies past the decision model's view of 6000 characters
+  'https://shop.test/news': {
+    title: 'News', text: `${'Older news about our product and our team, nothing about that here. '.repeat(100)}\nEnterprise sales line: +64 9 555 0199, weekdays.`,
+    elements: [link('e1', 'Home', 'https://shop.test/')],
+  },
+  // a list of twenty options beside the field to fill first, and a mailbox with Archive beside Delete, each a form's submit
+  'https://shop.test/mail': {
+    title: 'Inbox', text: 'From Hemi: the invoice for October.',
+    elements: [field('e1', 'Note'), { id: 'e2', tag: 'select', role: 'combobox', label: 'Folder', fillable: true, filled: false,
+      options: ['', ...Array.from({ length: 20 }, (_, i) => `Folder ${i + 1}`)], selected: 0, fits: [] },
+    button('e3', 'Archive', true), button('e4', 'Delete', true), link('e5', 'Home', 'https://shop.test/')],
+  },
+  'https://shop.test/archived': { title: 'Archived', text: 'The message was archived.', elements: [link('e1', 'Home', 'https://shop.test/')] },
   'https://shop.test/still': { title: 'Still', text: 'Nothing moves here.', elements: [button('e1', 'Refresh'), link('e2', 'Home', 'https://shop.test/')] },
   // bot checks: Cloudflare's clears after two waits (BOT_CLEARS), DataDome's never does
   'https://shop.test/cf': { ...BOT_PAGES.cloudflare!.obs },
@@ -121,7 +136,8 @@ const SITE: Record<string, PageDef> = {
   },
 }
 // what a click on a label does beyond following its href
-const CLICKS: Record<string, string> = { 'https://shop.test/pricing|Buy now': 'https://shop.test/thanks', 'https://shop.test/|Sneaky': 'https://evil.test/' }
+const CLICKS: Record<string, string> = { 'https://shop.test/pricing|Buy now': 'https://shop.test/thanks', 'https://shop.test/|Sneaky': 'https://evil.test/',
+  'https://shop.test/mail|Archive': 'https://shop.test/archived', 'https://shop.test/mail|Delete': 'https://shop.test/thanks' }
 
 const BOT_CLEARS: Record<string, { waits: number; to: string }> = { 'https://shop.test/cf': { waits: 2, to: 'https://shop.test/' } }
 
@@ -329,7 +345,7 @@ test('consequential and named by the goal: done when the decision model is sure 
 
 test('blocked: under the step floor, the top three come back with their probabilities and can be approved', async () => {
   const probs = { 'click-e1': 0.35, 'click-e3': 0.3, 'fill-e4': 0.25 }
-  const fake = io({})
+  const fake = io({ achieved: [0.1, 0.1] })
   const { launched, launch } = site()
   // fill the rest of the table's probabilities so they sum to one
   const real = fake.fetch
@@ -352,7 +368,11 @@ test('blocked: under the step floor, the top three come back with their probabil
   const text = await browse(fake, { goal: 'Find something vague', startUrl: 'https://shop.test/' }, { launch })
   expect(statusOf(text)).toBe('status: blocked')
   expect(text).toContain('its top choices were click-e1 (0.35), click-e3 (0.30), fill-e4 (0.25)')
-  expect(text).toContain('no step is sure enough to take (the floor is 0.4)')
+  // under the floor on both counts: its confidence, and its lead over the runner-up, about (0.35 - 0.30) / (0.35 + 0.30)
+  expect(text).toContain('no step is sure enough to take (the floor is 0.4, for its confidence or its lead over the runner-up; click-e1 had 0.35 and lead 0.08 over click-e3)')
+  // before it stops, the page check looks at the page as it is
+  expect(text).toContain('1. before stopping (no step sure enough), the page check said not yet (0.10)')
+  expect(text).toContain('2. no step sure enough (best: click-e1 at 0.35, lead 0.08 over click-e3)')
   expect(text).toContain('- click-e1 (0.35): click link "Pricing"')
   expect(text).not.toContain('- fill-e4') // only what can be approved is offered as an option
   const bad = await browse(fake, { goal: 'Find something vague', resumeId: resumeOf(text), approve: 'fill-e4' }, { launch })
@@ -360,8 +380,10 @@ test('blocked: under the step floor, the top three come back with their probabil
   expect(bad).toContain('waiting: click-e1, click-e3')
   const again = await browse(fake, { goal: 'Find something vague', resumeId: resumeOf(text), approve: 'click-e1' }, { launch })
   expect(launched[0]!.url).toBe('https://shop.test/pricing') // the approved click was taken
-  expect(again).toContain('2. clicked link "Pricing" → shop.test/pricing')
-  expect(statusOf(again)).toBe('status: blocked')
+  expect(again).toContain('3. clicked link "Pricing" → shop.test/pricing')
+  // there "Buy now" (0.35) leads the rest of its table by far, so it clears the floor; the buy still stops for the person
+  expect(statusOf(again)).toBe('status: needs_confirm')
+  expect(again).toContain('4. stopped before: click button "Buy now"')
   closeAll()
 })
 
@@ -370,16 +392,17 @@ test("a named backend's choose.min_confidence is the step floor; without one the
     backends: { own: { url: 'https://own.example/v1/systemone', model: 'own-model', tuning } } }) })
   // jev-skills bounds the value to 0.5-0.99, so a backend can raise the floor, never lower it.
   const sure = site()
-  await browse(io({ picks: [{ choice: 'click-e1', p: 0.55 }] }, { files: backend({ 'choose.min_confidence': 0.5 }) }),
+  // a runner-up close behind, so the lead (0.05 / 0.85, or 0.15 / 0.95) stays under every floor and the confidence decides
+  await browse(io({ picks: [{ choice: 'click-e1', p: 0.55, second: ['click-e3', 0.4] }] }, { files: backend({ 'choose.min_confidence': 0.5 }) }),
     { goal: 'Reach pricing', startUrl: 'https://shop.test/', maxSteps: 1 }, { launch: sure.launch })
   expect(sure.launched[0]!.url).toBe('https://shop.test/pricing') // 0.55 clears the backend's 0.5
   const high = site()
-  const stopped = await browse(io({ picks: [{ choice: 'click-e1', p: 0.45 }] }, { files: backend({ 'choose.min_confidence': 0.5 }) }),
+  const stopped = await browse(io({ picks: [{ choice: 'click-e1', p: 0.45, second: ['click-e3', 0.4] }], achieved: [0.1] }, { files: backend({ 'choose.min_confidence': 0.5 }) }),
     { goal: 'Reach pricing', startUrl: 'https://shop.test/' }, { launch: high.launch })
   expect(statusOf(stopped)).toBe('status: blocked')
-  expect(stopped).toContain('(the floor is 0.5)') // 0.45 clears the knob's 0.4, not the backend's 0.5
+  expect(stopped).toContain('(the floor is 0.5, ') // 0.45 clears the knob's 0.4, not the backend's 0.5
   const untuned = site()
-  await browse(io({ picks: [{ choice: 'click-e1', p: 0.45 }] }, { files: backend({}) }),
+  await browse(io({ picks: [{ choice: 'click-e1', p: 0.45, second: ['click-e3', 0.4] }] }, { files: backend({}) }),
     { goal: 'Reach pricing', startUrl: 'https://shop.test/', maxSteps: 1 }, { launch: untuned.launch })
   expect(untuned.launched[0]!.url).toBe('https://shop.test/pricing') // not Jev's 0.65: the knob's 0.4
   closeAll()
@@ -476,10 +499,14 @@ test('left_allowlist: a redirect off the hosts stops the run', async () => {
 })
 
 test('a page with a password field is sent as its elements only', async () => {
-  const fake = io({ picks: [{ choice: 'abstain', p: 0.9 }] })
+  const fake = io({ picks: [{ choice: 'abstain', p: 0.9 }], achieved: [0.1] })
   const { launch } = site()
   const text = await browse(fake, { goal: 'Sign in', startUrl: 'https://shop.test/login' }, { launch })
   expect(statusOf(text)).toBe('status: blocked')
+  // the page check before stopping reads the elements only, too
+  const check = fake.sent.find(b => b.questions.achieved)!
+  expect([check.state.page.text, check.state.page.on_screen.length]).toEqual([undefined, 3])
+  expect(text).toContain('before stopping (nothing here moved toward the goal), the page check said not yet (0.10)')
   const step = fake.sent.find(b => b.questions.next_action)!
   expect(step.state.page.text).toBe(undefined)
   expect(step.state.page.text_withheld).toContain('password')
@@ -528,14 +555,15 @@ test('a project file may turn the browser off, never on, and sets none of its se
 })
 
 test('budget pauses: it returns a resumeId, keeps the browser, and a resume gets a fresh step budget', async () => {
-  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'done', p: 0.9 }], achieved: [0.95] })
+  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'done', p: 0.9 }], achieved: [0.1, 0.95] })
   const { launched, launch } = site()
   const first = await browse(fake, { goal: 'Reach pricing', startUrl: 'https://shop.test/', maxSteps: 1 }, { launch })
   expect(statusOf(first)).toBe('status: budget')
+  expect(first).toContain('2. before stopping (the step budget ran out), the page check said not yet (0.10)')
   expect(resumeOf(first)).not.toBe('')
   expect(openCount()).toBe(1)
   expect(launched[0]!.closed).toBe(false)
-  const second = await browse(fake, { goal: 'Reach pricing', resumeId: resumeOf(first), maxSteps: 1 }, { launch })
+  const second = await browse(fake, { goal: 'Reach pricing', resumeId: resumeOf(first), maxSteps: 2 }, { launch })
   expect(statusOf(second)).toBe('status: done')
   expect(launched).toHaveLength(1)
   expect(openCount()).toBe(0)
@@ -616,12 +644,13 @@ test('goal_reached with a page check that says not yet: the picked step is taken
 
 test('stuck at 0.85 or more ends the run early as stuck, resumable; not before two steps', async () => {
   const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'click-e1', p: 0.9 }],
-    stuck: [0.95, 0.2, 0.9] })
+    stuck: [0.95, 0.2, 0.9], achieved: [0.1] })
   const { launched, launch } = site()
   const text = await browse(fake, { goal: 'Find the enterprise price', startUrl: 'https://shop.test/' }, { launch })
   expect(statusOf(text)).toBe('status: stuck')
   expect(text).toContain('stopped early, at step 3 of 20')
-  expect(text).toContain('3. judged stuck (0.90)')
+  expect(text).toContain('3. before stopping (judged stuck), the page check said not yet (0.10)')
+  expect(text).toContain('4. judged stuck (0.90)')
   expect(text).toContain('signals: goal reached 0 (page check agreed 0), stuck 1')
   expect(launched[0]!.acts.map(a => a.ref)).toEqual(['e1', 'e2']) // the first step's 0.95 was too early to count
   expect(resumeOf(text)).not.toBe('')
@@ -631,7 +660,7 @@ test('stuck at 0.85 or more ends the run early as stuck, resumable; not before t
 
 test('stuck at 0.6 or more ends the run when the last steps changed nothing', async () => {
   const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'click-e1', p: 0.9 }, { choice: 'click-e2', p: 0.9 }],
-    stuck: [0.1, 0.7, 0.7] })
+    stuck: [0.1, 0.7, 0.7], achieved: [0.1] })
   const { launched, launch } = site()
   const text = await browse(fake, { goal: 'Refresh until it moves', startUrl: 'https://shop.test/still' }, { launch })
   expect(statusOf(text)).toBe('status: stuck')
@@ -750,7 +779,7 @@ test('a list option is chosen without an input; a step that failed is not offere
 })
 
 test('found along the way: a fact on an earlier page stays in the answer after the run moves on; injected text never does', async () => {
-  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'abstain', p: 0.9 }] })
+  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'abstain', p: 0.9 }], achieved: [0.1] })
   const { launch } = site()
   const text = await browse(fake, { goal: 'Find the Team plan price per seat', startUrl: 'https://shop.test/' }, { launch })
   expect(statusOf(text)).toBe('status: blocked')
@@ -795,4 +824,93 @@ test('the answer carries the page as fetched (a phone number, an email); with re
   const pricing = await browse(io({ picks: [{ choice: 'abstain', p: 0.9 }] }), { goal: 'Find the Team plan price', startUrl: 'https://shop.test/pricing' }, { launch: site().launch })
   expect(pricing).toContain('Team plan: $10 per seat')
   expect(pricing).not.toMatch(/ignore all previous instructions/i)
+})
+
+test('before stopping as blocked, the page check looks at the page as it is: a page that shows the goal ends as done', async () => {
+  // the sales page shows the number, but the pick is unsure and torn: done, not blocked
+  const fake = io({ picks: [{ choice: 'click-e1', p: 0.38, second: ['done', 0.34] }], achieved: [0.93], shown: ['line-1'] })
+  const text = await browse(fake, { goal: 'Find the sales phone number', startUrl: 'https://shop.test/sales' }, { launch: site().launch })
+  expect(statusOf(text)).toBe('status: done')
+  expect(text).toContain('1. before stopping (no step sure enough), the page check found the goal on this page (0.93), shown in: "Our sales team is on +64 9 555 0142')
+  expect(text).not.toContain('resumeId')
+  // abstain too, and the step budget: the page check runs on the last page
+  const gaveUp = io({ picks: [{ choice: 'abstain', p: 0.9 }], achieved: [0.93], shown: ['line-1'] })
+  expect(statusOf(await browse(gaveUp, { goal: 'Find the sales phone number', startUrl: 'https://shop.test/sales' }, { launch: site().launch }))).toBe('status: done')
+  const budget = io({ picks: [{ choice: 'click-e1', p: 0.9 }], achieved: [0.93], shown: ['line-1'] })
+  const { launched, launch } = site()
+  const out = await browse(budget, { goal: 'Find the Team plan price per seat', startUrl: 'https://shop.test/', maxSteps: 1 }, { launch })
+  expect(statusOf(out)).toBe('status: done')
+  expect(out).toContain('2. before stopping (the step budget ran out), the page check found the goal on this page (0.93), shown in: "Team plan: $10 per seat per month."')
+  expect(launched[0]!.acts).toHaveLength(1) // it took no step for it
+  // not again on a page the check already said "not yet" on
+  const twice = io({ picks: [{ choice: 'done', p: 0.9 }, { choice: 'abstain', p: 0.9 }], achieved: [0.2] })
+  const again = await browse(twice, { goal: 'Find the sales phone number', startUrl: 'https://shop.test/sales' }, { launch: site().launch })
+  expect(statusOf(again)).toBe('status: blocked')
+  expect(twice.sent.filter(b => b.questions.achieved)).toHaveLength(1)
+  closeAll()
+})
+
+test('a pick the table dilutes is taken on its lead over the runner-up; a consequential one still stops unless the goal names it', async () => {
+  // twenty option rows share what the pick leaves: 0.3 is under the floor, its lead over the rest is not
+  const fake = io({ picks: [{ choice: 'type-note-e1', p: 0.3 }, { choice: 'click-e4', p: 0.3 }], achieved: [0.1] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'File the message from Hemi', startUrl: 'https://shop.test/mail', inputs: { note: 'October invoice' } }, { launch })
+  expect(text).toMatch(/1\. typed input "note" in textbox "Note" \(0\.30, lead 0\.\d\d\)/)
+  // Delete, picked the same way, is not taken: the goal does not name it
+  expect(statusOf(text)).toBe('status: needs_confirm')
+  expect(text).toContain('stopped before: click button "Delete"')
+  expect(launched[0]!.acts.map(a => a.ref)).toEqual(['e1'])
+  closeAll()
+})
+
+test('a form\'s Archive button is named by a goal that says archive; Delete beside it is not', async () => {
+  const fake = io({ picks: [{ choice: 'click-e3', p: 0.9 }, { choice: 'done', p: 0.9 }], asked: 0.9, achieved: [0.93] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Archive the message from Hemi', startUrl: 'https://shop.test/mail' }, { launch })
+  expect(statusOf(text)).toBe('status: done')
+  expect(launched[0]!.url).toBe('https://shop.test/archived')
+  expect(fake.sent.filter(b => b.questions.asked)).toHaveLength(1) // the confirm question was still asked
+  const trap = io({ picks: [{ choice: 'click-e4', p: 0.9 }], asked: 0.9 })
+  const stopped = await browse(trap, { goal: 'Archive the message from Hemi', startUrl: 'https://shop.test/mail' }, { launch: site().launch })
+  expect(statusOf(stopped)).toBe('status: needs_confirm')
+  expect(stopped).toContain('the goal does not name that kind of action')
+  closeAll()
+})
+
+test('notes per page: the step request carries what each earlier page showed and the page check\'s verdict there, screened', async () => {
+  const fake = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'done', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'abstain', p: 0.9 }],
+    achieved: [0.2, 0.1] })
+  const { launch } = site()
+  await browse(fake, { goal: 'Find the enterprise price per seat', startUrl: 'https://shop.test/' }, { launch })
+  const steps = fake.sent.filter(b => b.questions.next_action)
+  expect(steps[0]!.state.pages_read).toBeUndefined()
+  expect(steps[1]!.state.pages_read).toEqual(['shop.test/ "Shop": no line shares the goal\'s words'])
+  // back home: the pricing page's best line, and that the page check said not yet there; its injected line never
+  const notes = steps[3]!.state.pages_read as string[]
+  expect(notes).toContain('shop.test/pricing "Pricing": "Team plan: $10 per seat per month."; page check: not the thing the goal asks for')
+  expect(JSON.stringify(notes)).not.toMatch(/ignore all previous/i)
+  closeAll()
+})
+
+test('find on page: the driver reads 20000 characters; a line past the view comes with the step request and the page check', async () => {
+  const fake = io({ picks: [{ choice: 'done', p: 0.9 }], achieved: [0.93], shown: ['line-1'] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Find the enterprise sales phone number', startUrl: 'https://shop.test/news' }, { launch })
+  expect(launched[0]!.o.textChars).toBe(20000)
+  const step = fake.sent.find(b => b.questions.next_action)!
+  expect([...step.state.page.text].length).toBeLessThan(6100)
+  expect(step.state.page.further_down.lines).toEqual(['Enterprise sales line: +64 9 555 0199, weekdays.'])
+  const check = fake.sent.find(b => b.questions.achieved)!
+  expect(Object.values(check.questions.shown_in.criteria)).toContain('Enterprise sales line: +64 9 555 0199, weekdays.')
+  expect(statusOf(text)).toBe('status: done')
+  expect(text).toContain('shown in: "Enterprise sales line: +64 9 555 0199, weekdays."')
+  // the answer stays small: its page text is cut at 4000 characters; the line comes in the found section
+  expect(text.split('found along the way')[1]).toContain('+64 9 555 0199')
+  expect(text.split('page text (screened')[1]!.length).toBeLessThan(4100)
+  // a bigger textChars reads more of the page as the view, never less than 20000 in all
+  const wide = site()
+  await browse(io({ picks: [{ choice: 'abstain', p: 0.9 }], achieved: [0.1] }, { settings: { textChars: 20000 } }),
+    { goal: 'Find the enterprise sales phone number', startUrl: 'https://shop.test/news' }, { launch: wide.launch })
+  expect(wide.launched[0]!.o.textChars).toBe(20000)
+  closeAll()
 })

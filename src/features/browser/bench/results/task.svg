@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1234 154" width="1234" height="154" role="img" aria-label="Browser: plain Claude Code (orange) against jev-mod, end to end">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1318 154" width="1318" height="154" role="img" aria-label="Browser: plain Claude Code (orange) against jev-mod, end to end">
 <title>Browser: plain Claude Code (orange) against jev-mod, end to end</title>
 <style>
 text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -7,63 +7,63 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}.rg{stroke:#0b0b0b}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.l2{stroke:#eb6834}.d2{fill:#eb6834}.fake{fill:#c43534}
 @media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}.rg{stroke:#f0efec}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.l2{stroke:#d95926}.d2{fill:#d95926}.fake{fill:#e66767}}
 </style>
-<rect width="1234" height="154" rx="8" class="bg"/>
+<rect width="1318" height="154" rx="8" class="bg"/>
 <text class="t" x="16" y="26">Browser: plain Claude Code (orange) against jev-mod, end to end</text>
 <text class="st" x="16" y="44">accuracy: success over all runs (line: its 95% interval) and score · speed: median wall time per run · cost per run: Claude, the feature's decisions, other jev-mod decisions, all</text>
-<text class="lab" x="162" y="95" text-anchor="end">plain Claude Code</text>
-<text class="lab" x="162" y="121" text-anchor="end">jev-mod openrouter</text>
-<text class="ax" x="174" y="68">success</text>
-<line class="a" x1="170" x2="170" y1="74" y2="130"/>
-<rect x="170" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 100.0%</title></rect>
-<line class="rg" x1="225.8" x2="230" y1="91" y2="91" stroke-width="2"><title>plain Claude Code: 93.0% to 100.0%</title></line>
-<line class="rg" x1="225.8" x2="225.8" y1="86" y2="96" stroke-width="2"/>
-<line class="rg" x1="230" x2="230" y1="86" y2="96" stroke-width="2"/>
-<text class="lab" x="234" y="95">100.0%</text>
-<rect x="170" y="109" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter: 100.0%</title></rect>
-<line class="rg" x1="225.8" x2="230" y1="117" y2="117" stroke-width="2"><title>jev-mod openrouter: 93.0% to 100.0%</title></line>
-<line class="rg" x1="225.8" x2="225.8" y1="112" y2="122" stroke-width="2"/>
-<line class="rg" x1="230" x2="230" y1="112" y2="122" stroke-width="2"/>
-<text class="lab" x="234" y="121">100.0%</text>
-<text class="ax" x="304" y="68">score</text>
-<line class="a" x1="300" x2="300" y1="74" y2="130"/>
-<rect x="300" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 100.0%</title></rect>
-<text class="lab" x="364" y="95">100.0%</text>
-<rect x="300" y="109" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter: 100.0%</title></rect>
-<text class="lab" x="364" y="121">100.0%</text>
-<text class="ax" x="434" y="68">wall time (median)</text>
-<line class="a" x1="430" x2="430" y1="74" y2="130"/>
-<rect x="430" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 16.4 s</title></rect>
-<text class="lab" x="494" y="95">16.4 s</text>
-<rect x="430" y="109" width="56.89" height="16" rx="3" class="d1"><title>jev-mod openrouter: 15.6 s</title></rect>
-<text class="lab" x="490.89" y="121">15.6 s</text>
-<text class="ax" x="564" y="68">Claude cost</text>
-<line class="a" x1="560" x2="560" y1="74" y2="130"/>
-<rect x="560" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: $0.129</title></rect>
-<text class="lab" x="624" y="95">$0.129</text>
-<rect x="560" y="109" width="31.14" height="16" rx="3" class="d1"><title>jev-mod openrouter: $0.067</title></rect>
-<text class="lab" x="595.14" y="121">$0.067</text>
-<text class="ax" x="694" y="68">feature decision cost</text>
-<line class="a" x1="690" x2="690" y1="74" y2="130"/>
-<rect x="690" y="83" width="2" height="16" rx="3" class="d2"><title>plain Claude Code: $0</title></rect>
-<text class="lab" x="696" y="95">$0</text>
-<rect x="690" y="109" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter: $0.00056</title></rect>
-<text class="lab" x="754" y="121">$0.00056</text>
-<text class="ax" x="824" y="68">other decision cost</text>
-<line class="a" x1="820" x2="820" y1="74" y2="130"/>
-<rect x="820" y="83" width="2" height="16" rx="3" class="d2"><title>plain Claude Code: $0</title></rect>
-<text class="lab" x="826" y="95">$0</text>
-<rect x="820" y="109" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter: $0.00001</title></rect>
-<text class="lab" x="884" y="121">$0.00001</text>
-<text class="ax" x="954" y="68">total cost</text>
-<line class="a" x1="950" x2="950" y1="74" y2="130"/>
-<rect x="950" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: $0.129</title></rect>
-<text class="lab" x="1014" y="95">$0.129</text>
-<rect x="950" y="109" width="31.4" height="16" rx="3" class="d1"><title>jev-mod openrouter: $0.068</title></rect>
-<text class="lab" x="985.4" y="121">$0.068</text>
-<text class="ax" x="1084" y="68">question context</text>
-<line class="a" x1="1080" x2="1080" y1="74" y2="130"/>
-<rect x="1080" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 123.5k</title></rect>
-<text class="lab" x="1144" y="95">123.5k</text>
-<rect x="1080" y="109" width="19.67" height="16" rx="3" class="d1"><title>jev-mod openrouter: 40.5k</title></rect>
-<text class="lab" x="1103.67" y="121">40.5k</text>
+<text class="lab" x="246" y="95" text-anchor="end">plain Claude Code</text>
+<text class="lab" x="246" y="121" text-anchor="end">jev-mod openrouter bare screenPag…</text>
+<text class="ax" x="258" y="68">success</text>
+<line class="a" x1="254" x2="254" y1="74" y2="130"/>
+<rect x="254" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 100.0%</title></rect>
+<line class="rg" x1="309.8" x2="314" y1="91" y2="91" stroke-width="2"><title>plain Claude Code: 93.0% to 100.0%</title></line>
+<line class="rg" x1="309.8" x2="309.8" y1="86" y2="96" stroke-width="2"/>
+<line class="rg" x1="314" x2="314" y1="86" y2="96" stroke-width="2"/>
+<text class="lab" x="318" y="95">100.0%</text>
+<rect x="254" y="109" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: 100.0%</title></rect>
+<line class="rg" x1="309.8" x2="314" y1="117" y2="117" stroke-width="2"><title>jev-mod openrouter bare screenPages=false: 93.0% to 100.0%</title></line>
+<line class="rg" x1="309.8" x2="309.8" y1="112" y2="122" stroke-width="2"/>
+<line class="rg" x1="314" x2="314" y1="112" y2="122" stroke-width="2"/>
+<text class="lab" x="318" y="121">100.0%</text>
+<text class="ax" x="388" y="68">score</text>
+<line class="a" x1="384" x2="384" y1="74" y2="130"/>
+<rect x="384" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 100.0%</title></rect>
+<text class="lab" x="448" y="95">100.0%</text>
+<rect x="384" y="109" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: 100.0%</title></rect>
+<text class="lab" x="448" y="121">100.0%</text>
+<text class="ax" x="518" y="68">wall time (median)</text>
+<line class="a" x1="514" x2="514" y1="74" y2="130"/>
+<rect x="514" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 16.6 s</title></rect>
+<text class="lab" x="578" y="95">16.6 s</text>
+<rect x="514" y="109" width="45.09" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: 12.5 s</title></rect>
+<text class="lab" x="563.09" y="121">12.5 s</text>
+<text class="ax" x="648" y="68">Claude cost</text>
+<line class="a" x1="644" x2="644" y1="74" y2="130"/>
+<rect x="644" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: $0.132</title></rect>
+<text class="lab" x="708" y="95">$0.132</text>
+<rect x="644" y="109" width="30.12" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: $0.066</title></rect>
+<text class="lab" x="678.12" y="121">$0.066</text>
+<text class="ax" x="778" y="68">feature decision cost</text>
+<line class="a" x1="774" x2="774" y1="74" y2="130"/>
+<rect x="774" y="83" width="2" height="16" rx="3" class="d2"><title>plain Claude Code: $0</title></rect>
+<text class="lab" x="780" y="95">$0</text>
+<rect x="774" y="109" width="60" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: $0.00046</title></rect>
+<text class="lab" x="838" y="121">$0.00046</text>
+<text class="ax" x="908" y="68">other decision cost</text>
+<line class="a" x1="904" x2="904" y1="74" y2="130"/>
+<rect x="904" y="83" width="2" height="16" rx="3" class="d2"><title>plain Claude Code: $0</title></rect>
+<text class="lab" x="910" y="95">$0</text>
+<rect x="904" y="109" width="2" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: $0</title></rect>
+<text class="lab" x="910" y="121">$0</text>
+<text class="ax" x="1038" y="68">total cost</text>
+<line class="a" x1="1034" x2="1034" y1="74" y2="130"/>
+<rect x="1034" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: $0.132</title></rect>
+<text class="lab" x="1098" y="95">$0.132</text>
+<rect x="1034" y="109" width="30.32" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: $0.067</title></rect>
+<text class="lab" x="1068.32" y="121">$0.067</text>
+<text class="ax" x="1168" y="68">question context</text>
+<line class="a" x1="1164" x2="1164" y1="74" y2="130"/>
+<rect x="1164" y="83" width="60" height="16" rx="3" class="d2"><title>plain Claude Code: 128.0k</title></rect>
+<text class="lab" x="1228" y="95">128.0k</text>
+<rect x="1164" y="109" width="17.65" height="16" rx="3" class="d1"><title>jev-mod openrouter bare screenPages=false: 37.6k</title></rect>
+<text class="lab" x="1185.65" y="121">37.6k</text>
 </svg>

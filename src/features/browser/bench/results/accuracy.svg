@@ -37,18 +37,18 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">accuracy</text>
 <line class="guide" x1="64" x2="64" y1="60" y2="294"/>
 <text class="ax" x="68" y="70">default 0.5</text>
-<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,69.65 132.89,72.06 201.78,74.47 270.67,74.47 339.56,76.89 408.44,81.71 477.33,88.95 546.22,96.19 615.11,103.42 684,134.78"/>
-<circle class="d1 dot" cx="64" cy="69.65" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 96%</title></circle>
-<circle class="d1 dot" cx="132.89" cy="72.06" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 95%</title></circle>
-<circle class="d1 dot" cx="201.78" cy="74.47" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.6 → 94%</title></circle>
-<circle class="d1 dot" cx="270.67" cy="74.47" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.65 → 94%</title></circle>
-<circle class="d1 dot" cx="339.56" cy="76.89" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.7 → 93%</title></circle>
-<circle class="d1 dot" cx="408.44" cy="81.71" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.75 → 91%</title></circle>
-<circle class="d1 dot" cx="477.33" cy="88.95" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.8 → 88%</title></circle>
-<circle class="d1 dot" cx="546.22" cy="96.19" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.85 → 85%</title></circle>
-<circle class="d1 dot" cx="615.11" cy="103.42" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.9 → 81%</title></circle>
-<circle class="d1 dot" cx="684" cy="134.78" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.95 → 68%</title></circle>
-<circle class="l1" cx="64" cy="69.65" r="8" fill="none" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: recommended 0.5</title></circle>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,73.25 132.89,73.25 201.78,73.25 270.67,73.25 339.56,77.66 408.44,82.08 477.33,90.91 546.22,99.74 615.11,104.15 684,135.06"/>
+<circle class="d1 dot" cx="64" cy="73.25" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 94%</title></circle>
+<circle class="d1 dot" cx="132.89" cy="73.25" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 94%</title></circle>
+<circle class="d1 dot" cx="201.78" cy="73.25" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.6 → 94%</title></circle>
+<circle class="d1 dot" cx="270.67" cy="73.25" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.65 → 94%</title></circle>
+<circle class="d1 dot" cx="339.56" cy="77.66" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.7 → 92%</title></circle>
+<circle class="d1 dot" cx="408.44" cy="82.08" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.75 → 91%</title></circle>
+<circle class="d1 dot" cx="477.33" cy="90.91" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.8 → 87%</title></circle>
+<circle class="d1 dot" cx="546.22" cy="99.74" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.85 → 83%</title></circle>
+<circle class="d1 dot" cx="615.11" cy="104.15" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.9 → 81%</title></circle>
+<circle class="d1 dot" cx="684" cy="135.06" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.95 → 68%</title></circle>
+<circle class="l1" cx="270.67" cy="73.25" r="8" fill="none" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: recommended 0.65</title></circle>
 <line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
 <text class="lab" x="88" y="350">openrouter · typesafe/jev-1.1…</text>
 </svg>

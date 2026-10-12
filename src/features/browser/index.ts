@@ -69,7 +69,7 @@ export function judgedStuck(stuck: number, steps: number, dead: boolean): boolea
 export const SPEC = {
   name: TOOL,
   description: 'Drive a real web browser toward a goal, for a page that needs clicking, typing or several steps '
-    + '(a page a plain fetch can read: use WebFetch). A small decision model picks each step from the page\'s own links, '
+    + '(a page a plain fetch can read: use WebFetch). The pages stay out of your context: you get one short answer (the final page\'s text, what was found along the way, a line per step). A small decision model picks each step from the page\'s own links, '
     + 'buttons and fields; it never writes text: anything to type comes from `inputs`, which it sees by name only (values '
     + 'are never sent to it), so give every value the goal needs typed (a quantity, a search, a name) in the first call; '
     + 'it chooses from a list\'s own options without one. Write `goal` as the END STATE plus what counts as progress ("Reach the team pricing page; '

@@ -4,19 +4,17 @@
 text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
 .g,.a,.guide{stroke-width:1}.guide{stroke-dasharray:4 4}.fake{font-size:13px;font-weight:700}
-.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
-@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
+.bg{fill:#fcfcfb}.dot{stroke:#fcfcfb}.rg{stroke:#0b0b0b}text{fill:#0b0b0b}.st,.ax{fill:#52514e}.g{stroke:#e4e3df}.a,.guide{stroke:#a3a29c}.l1{stroke:#2a78d6}.d1{fill:#2a78d6}.fake{fill:#c43534}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.dot{stroke:#1a1a19}.rg{stroke:#f0efec}text{fill:#f0efec}.st,.ax{fill:#c3c2b7}.g{stroke:#353532}.a,.guide{stroke:#6b6a64}.l1{stroke:#3987e5}.d1{fill:#3987e5}.fake{fill:#e66767}}
 </style>
 <rect width="720" height="380" rx="8" class="bg"/>
 <text class="t" x="64" y="26">/jev-mod compact: messages dropped against drop</text>
 <line class="g" x1="64" x2="684" y1="294" y2="294"/>
 <text class="ax" x="56" y="298" text-anchor="end">0%</text>
-<line class="g" x1="64" x2="684" y1="228.57" y2="228.57"/>
-<text class="ax" x="56" y="232.57" text-anchor="end">10%</text>
-<line class="g" x1="64" x2="684" y1="163.13" y2="163.13"/>
-<text class="ax" x="56" y="167.13" text-anchor="end">20%</text>
-<line class="g" x1="64" x2="684" y1="97.7" y2="97.7"/>
-<text class="ax" x="56" y="101.7" text-anchor="end">30%</text>
+<line class="g" x1="64" x2="684" y1="204.53" y2="204.53"/>
+<text class="ax" x="56" y="208.53" text-anchor="end">20%</text>
+<line class="g" x1="64" x2="684" y1="115.06" y2="115.06"/>
+<text class="ax" x="56" y="119.06" text-anchor="end">40%</text>
 <text class="ax" x="64" y="312" text-anchor="middle">0.5</text>
 <text class="ax" x="132.89" y="312" text-anchor="middle">0.55</text>
 <text class="ax" x="201.78" y="312" text-anchor="middle">0.6</text>
@@ -32,17 +30,17 @@ text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 <text class="ax" transform="translate(16 177) rotate(-90)" text-anchor="middle">messages dropped</text>
 <line class="guide" x1="64" x2="64" y1="60" y2="294"/>
 <text class="ax" x="68" y="70">default 0.5</text>
-<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,60 132.89,81.67 201.78,94.67 270.67,103.33 339.56,116.33 408.44,138 477.33,151 546.22,172.67 615.11,185.67 684,216"/>
-<circle class="d1 dot" cx="64" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 36%</title></circle>
-<circle class="d1 dot" cx="132.89" cy="81.67" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 32%</title></circle>
-<circle class="d1 dot" cx="201.78" cy="94.67" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.6 → 30%</title></circle>
-<circle class="d1 dot" cx="270.67" cy="103.33" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.65 → 29%</title></circle>
-<circle class="d1 dot" cx="339.56" cy="116.33" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.7 → 27%</title></circle>
-<circle class="d1 dot" cx="408.44" cy="138" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.75 → 24%</title></circle>
-<circle class="d1 dot" cx="477.33" cy="151" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.8 → 22%</title></circle>
-<circle class="d1 dot" cx="546.22" cy="172.67" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.85 → 19%</title></circle>
-<circle class="d1 dot" cx="615.11" cy="185.67" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.9 → 17%</title></circle>
-<circle class="d1 dot" cx="684" cy="216" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.95 → 12%</title></circle>
+<polyline class="l1" fill="none" stroke-width="2" stroke-linejoin="round" points="64,60 132.89,66.88 201.78,73.76 270.67,87.53 339.56,94.41 408.44,101.29 477.33,121.94 546.22,142.59 615.11,149.47 684,183.88"/>
+<circle class="d1 dot" cx="64" cy="60" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.5 → 52%</title></circle>
+<circle class="d1 dot" cx="132.89" cy="66.88" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.55 → 51%</title></circle>
+<circle class="d1 dot" cx="201.78" cy="73.76" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.6 → 49%</title></circle>
+<circle class="d1 dot" cx="270.67" cy="87.53" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.65 → 46%</title></circle>
+<circle class="d1 dot" cx="339.56" cy="94.41" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.7 → 45%</title></circle>
+<circle class="d1 dot" cx="408.44" cy="101.29" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.75 → 43%</title></circle>
+<circle class="d1 dot" cx="477.33" cy="121.94" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.8 → 38%</title></circle>
+<circle class="d1 dot" cx="546.22" cy="142.59" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.85 → 34%</title></circle>
+<circle class="d1 dot" cx="615.11" cy="149.47" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.9 → 32%</title></circle>
+<circle class="d1 dot" cx="684" cy="183.88" r="4" stroke-width="2"><title>openrouter · typesafe/jev-1.13-20260917: 0.95 → 25%</title></circle>
 <line x1="64" x2="82" y1="346" y2="346" class="l1" stroke-width="3"/>
 <text class="lab" x="88" y="350">openrouter · typesafe/jev-1.1…</text>
 </svg>

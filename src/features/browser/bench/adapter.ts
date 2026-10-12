@@ -104,7 +104,7 @@ export const adapter: DecisionAdapter<PageCase> = {
         if (action && risk) {
           // the loop asks only when the goal's own words name the kind of action; otherwise it stops unasked
           let p: number | null = null
-          if (goalNames(c.goal, risk.kinds)) {
+          if (goalNames(c.goal, risk.kinds, risk.label)) {
             const confirm = confirmRequest(c.goal, page, action, risk)
             const reply = await ask(ctx.host, confirm.state, confirm.questions, options)
             calls.push(reply)

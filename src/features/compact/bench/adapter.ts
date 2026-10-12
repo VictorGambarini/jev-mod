@@ -6,9 +6,9 @@
 //
 // Scored per message Jev judges keep or drop: one with text and no tool call or result, outside
 // the last six (always kept); positive = dropped. A message labelled keep that is dropped is the
-// costly mistake (counted as "keep lost"). A message holding a tool call or result is never
-// dropped (its result is trimmed instead, and the labels say nothing about how far), so it is not
-// scored here.
+// costly mistake (counted as "keep lost"). A message holding a tool call or result is decided by
+// its pairs (engine/compact.ts's `trim`: keep or drop, and how far to trim), which this bench does
+// not ask, so it is not scored here.
 
 import { DROP_CONFIDENCE, select } from '../../../engine/compact'
 import { scores } from '../../../bench/metrics'
@@ -64,7 +64,7 @@ export const adapter: DecisionAdapter<Session> = {
   title: '/jev-mod compact',
   explain: {
     oneCase: "a made-up coding session, each message labelled keep or drop by a careful person (keep: a decision, a constraint, an exact path or error; drop: chatter, superseded attempts).",
-    measured: "for each message with text and no tool call or result (a tool result is trimmed, never dropped), outside the last six (always kept), whether Jev's keep or drop call matches the label. Dropping a message labelled keep is the costly mistake: it cannot be had back.",
+    measured: "for each message with text and no tool call or result (a tool call with its result is judged as a pair, not scored here), outside the last six (always kept), whether Jev's keep or drop call matches the label. Dropping a message labelled keep is the costly mistake: it cannot be had back.",
     setting: "how sure Jev must be that a message can go before /jev-mod compact drops it. Higher keeps more.",
     result: "Jev makes the same keep or drop call as the label on {pct} of the messages in {n} sessions",
     columns: {"keep lost": "messages labelled keep that were dropped: the costly mistake."},

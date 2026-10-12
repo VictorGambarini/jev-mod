@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { ALWAYS_KEEP_LAST, cut, keepOnly, placeholder, saved, TRIM_MIN_CHARS, trimmed, trimsOf, unitsOf, type Msg, type Unit } from './keep'
+import { ALWAYS_KEEP_LAST, cut, keepOnly, placeholder, rebuilt, saved, TRIM_MIN_CHARS, trimsOf, unitsOf, type Msg, type Unit } from './keep'
 import { KEEP_LAST, TRIM_SHOWN, trimText } from '../../engine/compact'
 
 const m = (role: string, text: string, extra: Partial<Msg> = {}): Msg => ({ role, text, ...extra })
@@ -53,20 +53,21 @@ test('a text with no fate, or judged keep, is kept; the tail always is', () => {
   expect(keepOnly(messages, [...units, { text: 7 }], { [String(units.length)]: 'drop' })).toHaveLength(10)
 })
 
-test('what is sent to trim: long results outside the tail, with the call, the size, and each end as long as may be kept', () => {
+test('what is sent: each pair outside the tail with its call and size; a long result by its ends, as long as may be kept; a short one whole', () => {
   const messages = [
     m('assistant', '', { toolUses: [call('long', 'Bash', { command: 'cat app.log', timeout: 5 })] }), // 0
     m('user', '', { toolResults: [result('long', big('app'))] }),                                  // 1
     m('assistant', '', { toolUses: [call('short')] }),                                            // 2
-    m('user', '', { toolResults: [result('short', 'x'.repeat(TRIM_MIN_CHARS))] }),                 // 3: too short to bother
+    m('user', '', { toolResults: [result('short', 'x'.repeat(TRIM_MIN_CHARS))] }),                 // 3: keep or drop only
     m('user', '', { toolResults: [result('orphan', big('orphan'))] }),                             // 4: its call is not here
     m('assistant', '', { toolUses: [call('intail', 'Bash', { command: 'ls' })] }),                  // 5
     m('user', '', { toolResults: [result('intail', big('tail'))] }),                               // 6..: the tail
     ...tail().slice(1),
   ]
   const { pairs, views } = trimsOf(messages)
-  expect(pairs.map(p => p.id)).toEqual(['long'])
-  expect(views[0]).toMatchObject({ tool: 'Bash', arg: 'cat app.log', size: [...big('app')].length, isError: false })
+  expect(pairs.map(p => p.id)).toEqual(['long', 'short'])
+  expect(views[1]).toEqual({ tool: 'Read', arg: '/p/short.ts', size: TRIM_MIN_CHARS, isError: false, trim: false, head: 'x'.repeat(TRIM_MIN_CHARS), tail: '' })
+  expect(views[0]).toMatchObject({ tool: 'Bash', arg: 'cat app.log', size: [...big('app')].length, isError: false, trim: true })
   expect([...views[0]!.head].length).toBe(TRIM_SHOWN)
   expect(views[0]!.head.startsWith('app first line')).toBe(true)
   expect(views[0]!.tail.endsWith('app last line')).toBe(true)
@@ -117,15 +118,37 @@ test('the saved file holds the whole call and the whole result', () => {
   expect(file).toContain('(session s1)')
 })
 
-test('trimmed: only a message with a trimmed result is rebuilt, without its handle; the call and the other results stay', () => {
+test('rebuilt: only a message with a trimmed result is rebuilt, without its handle; the call and the other results stay', () => {
   const messages = [
     m('assistant', 'reading', { toolUses: [call('a'), call('b')], handle: 'h0' }),
     m('user', '', { toolResults: [{ ...result('a', 'A'), result: { stdout: 'A' } }, { ...result('b', 'B'), result: { stdout: 'B' } }], handle: 'h1' }),
     m('user', 'next', { handle: 'h2' }),
   ]
-  const out = trimmed(messages, new Map([['a', 'A trimmed']]))
+  const out = rebuilt(messages, new Map([['a', 'A trimmed']]))
   expect(out[0]).toBe(messages[0])
   expect(out[2]).toBe(messages[2])
   expect(out[1]).toEqual({ role: 'user', text: '', toolResults: [{ tool_use_id: 'a', text: 'A trimmed', isError: false },
     { tool_use_id: 'b', text: 'B', isError: false, result: { stdout: 'B' } }] })
+})
+
+test('rebuilt: a dropped pair takes its call and its result; a message left empty goes, one left with text stays', () => {
+  const messages = [
+    m('assistant', 'Let me look', { toolUses: [call('a')], handle: 'h0' }),   // keeps its text
+    m('user', '', { toolResults: [result('a')], handle: 'h1' }),              // left empty: goes
+    m('assistant', '', { toolUses: [call('b'), call('c')], handle: 'h2' }),   // keeps c
+    m('user', '', { toolResults: [result('b'), result('c')], handle: 'h3' }), // keeps c's result
+    m('assistant', '', { toolUses: [call('d')], handle: 'h4' }),              // left empty: goes
+    m('user', 'and this', { toolResults: [result('d')], handle: 'h5' }),      // keeps its text
+  ]
+  const out = rebuilt(messages, new Map(), new Set(['a', 'b', 'd']))
+  expect(out).toEqual([
+    { role: 'assistant', text: 'Let me look', toolUses: [] },
+    { role: 'assistant', text: '', toolUses: [call('c')] },
+    { role: 'user', text: '', toolResults: [result('c')] },
+    { role: 'user', text: 'and this', toolResults: [] },
+  ])
+  // every tool_use left has its tool_result, and the other way round
+  const uses = out.flatMap(x => x.toolUses ?? []).map(u => u.tool_use_id)
+  const results = out.flatMap(x => x.toolResults ?? []).map(r => r.tool_use_id)
+  expect(uses).toEqual(results)
 })

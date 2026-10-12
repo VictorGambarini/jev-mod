@@ -84,13 +84,15 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
 - **What a compaction hands back is messages.** `session.compact`'s `e.messages` carry the
   engine's `handle`; a message handed back with it stands as the engine has it, and one without
   is built from its role, text and tool blocks. `/jev-mod compact` hands back every message it
-  keeps untouched with its handle, and only a message whose tool result it trimmed is rebuilt
-  (handle and the result's stored record left out, the result's text replaced). It drops only
-  messages that hold no tool call or result, so a tool_use never loses its tool_result. Before a
-  result is trimmed, its call and full result are saved to
+  keeps untouched with its handle, and only a message whose tool result it trimmed, or that held
+  a tool pair it dropped, is rebuilt (handle and a trimmed result's stored record left out). A
+  dropped pair takes its tool_use and its tool_result together, so a tool_use never loses its
+  tool_result; a message left with no text and no tool block goes. Before a pair is dropped or
+  its result trimmed, the call and full result are saved to
   `<XDG_CACHE_HOME or ~/.cache>/jev-mod/compact/<session>/<tool_use_id>.txt` (folder 0700, files
   0600; through `io.run` for mkdir and chmod, since `$.fs.write` takes no mode), and the line
-  that replaces the result's middle names that file, so Claude can Read what was cut.
+  that replaces a trimmed result's middle names that file (the compaction's note names the
+  folder), so Claude can Read what was cut.
 - **The kit cannot raise `turn.step`, and does not route a mod's `$.process.run` to a test's
   stub.** It does stub `http.fetch`, `fs.read` and `env.get` (a stub answers `{ value: ... }`).
   So decisions live in pure files with kit tests, the engine reaches the network through

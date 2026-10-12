@@ -8,16 +8,17 @@ import { isPrivate, jevDir } from '../../core/settings'
 import { costOf, type Asked } from '../../engine/client'
 import { select, trim, type Selection, type Trimming } from '../../engine/compact'
 import { folderFor, prune, save } from './files'
-import { cut, keepOnly, placeholder, saved, trimmed, trimsOf, unitsOf, type Msg } from './keep'
+import { cut, keepOnly, placeholder, rebuilt, saved, trimsOf, unitsOf, type Msg } from './keep'
 
-// /jev-mod compact: a compaction with no summariser. Old tool results, where the tokens are, are
-// trimmed: for each tool call with its result outside the last few messages, the call stays as it
-// is, the full call and result are saved to a file Claude can Read, and the result keeps only the
-// start and end Jev says later work needs (0, 100, 300 or 600 characters of each), with a line
-// where the middle was naming the file. Messages with no tool call or result are kept or dropped:
-// one goes only when Jev confidently marked its text drop. In doubt, more is kept: a low-confidence
-// trim keeps 600 of that end; a pair Jev did not judge (Jev down, a partial answer, a result too
-// short to bother, too sensitive to send, or in the tail) stays whole and is not saved; a text Jev
+// /jev-mod compact: a compaction with no summariser. Old tool calls with their results, where the
+// tokens are, are judged as pairs: for each one outside the last few messages, the full call and
+// result are saved to a file Claude can Read, then Jev says whether the pair stays at all (a
+// confident drop takes the call and its result together) and, for a long result, how much of its
+// start and end stays (0, 100, 300 or 600 characters of each), with a line where the middle was
+// naming the file. Messages with no tool call or result are kept or dropped: one goes only when
+// Jev confidently marked its text drop. In doubt, more is kept: a low-confidence drop keeps the
+// pair, a low-confidence size keeps 600 of that end; a pair Jev did not judge (Jev down, a
+// partial answer, too sensitive to send, or in the tail) stays whole and is not saved; a text Jev
 // did not judge stays. Nothing is summarised. `/compact` itself is untouched.
 //
 // A command's own hook may not compact (the turn it holds would be compacted under it; the host
@@ -51,19 +52,25 @@ export function isOurs(e: { instructions?: string; agentId?: string; trigger?: s
 }
 
 /** The note that stands first in the compacted conversation: what was cut, and where the files are. */
-export function noteText(o: { messages: number; dropped: number; trimmed: number; folder: string | null }): string {
+export function noteText(o: { messages: number; dropped: number; pairsDropped: number; trimmed: number; folder: string | null }): string {
   const parts = ['[jev-mod compact] Earlier parts of this conversation were cut by a decision model; nothing was summarised.']
   if (o.dropped) {
-    parts.push(`It dropped ${o.dropped} of ${o.messages} messages whose text it confidently judged to be chatter, superseded ` +
-      'or repeated, or detail nothing later depends on.')
+    parts.push(`${o.dropped} of ${o.messages} messages are gone: ones whose text it confidently judged to be chatter, ` +
+      'superseded or repeated, or detail nothing later depends on, and ones that held only a tool call or result it dropped.')
+  }
+  if (o.pairsDropped && o.folder) {
+    parts.push(`It dropped ${o.pairsDropped} old tool calls with their results, each call and result together.`)
   }
   if (o.trimmed && o.folder) {
-    parts.push(`It trimmed ${o.trimmed} old tool results to the start and end it judged later work needs. Every tool call is ` +
-      'still here as it was; each trimmed result says where it was cut and names the file that holds the full call and result, ' +
-      `one file per call, in ${o.folder}. Read a file when you need what was cut.`)
+    parts.push(`It trimmed ${o.trimmed} old tool results to the start and end it judged later work needs; each says where ` +
+      'it was cut and names its file.')
+  }
+  if ((o.pairsDropped || o.trimmed) && o.folder) {
+    parts.push(`Every dropped or trimmed tool call is saved whole with its result, one file per call named by its tool_use_id, ` +
+      `in ${o.folder}. Read a file there when you need what was cut.`)
   }
   parts.push('Everything else, including anything it did not judge, was kept as it was. If something you need is missing, ' +
-    'read its file or ask for it rather than guessing.')
+    'look in that folder or ask for it rather than guessing.')
   return parts.join(' ')
 }
 
@@ -105,22 +112,28 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
   const answered = (s: { status: string } | null) => !!s && s.status !== 'fail_open'
   if (!answered(texts) && !answered(trims)) return done('Jev did not answer; nothing was removed')
 
-  // each result Jev trimmed, saved in full first: a pair whose file could not be written stays whole
-  const planned = new Map<string, { head: number; tail: number }>()
+  // each pair Jev dropped or trimmed, saved in full first: a pair whose file could not be written stays whole
+  const planned = new Map<string, { keep: boolean; head: number; tail: number }>()
   pairs.forEach((p, i) => {
     const t = trims?.trims[String(i)]
-    if (t && t.head + t.tail < views[i]!.size) planned.set(p.id, t)
+    if (t && (!t.keep || (views[i]!.trim && t.head + t.tail < views[i]!.size))) planned.set(p.id, t)
   })
   const where = planned.size ? await folderFor(io) : null
   const files = where
     ? await save(io, where, new Map(pairs.filter(p => planned.has(p.id)).map(p => [p.id, saved(p, where.session)])))
     : new Map<string, string>()
   const newTexts = new Map<string, string>()
+  const dropPairs = new Set<string>()
   let charsRemoved = 0
   for (const p of pairs) {
     const t = planned.get(p.id)
     const file = files.get(p.id)
     if (!t || !file) continue
+    if (!t.keep) {
+      dropPairs.add(p.id)
+      charsRemoved += [...p.text].length
+      continue
+    }
     const text = cut(p.text, t.head, t.tail, placeholder(p, t.head, t.tail, file))
     if (text === null) continue
     newTexts.set(p.id, text)
@@ -128,18 +141,20 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
   }
   if (where) void prune(io, where.root, where.session)
 
-  const kept = keepOnly(messages as Msg[], units, texts?.fates ?? {})
+  const kept = rebuilt(keepOnly(messages as Msg[], units, texts?.fates ?? {}), newTexts, dropPairs)
   const dropped = messages.length - kept.length
-  if (!dropped && !newTexts.size) return done('Jev marked nothing to drop or trim; nothing to remove')
+  if (!dropped && !newTexts.size && !dropPairs.size) return done('Jev marked nothing to drop or trim; nothing to remove')
   const note = {
     role: 'user',
-    text: noteText({ messages: messages.length, dropped, trimmed: newTexts.size, folder: where?.dir ?? null }),
+    text: noteText({ messages: messages.length, dropped, pairsDropped: dropPairs.size, trimmed: newTexts.size, folder: where?.dir ?? null }),
     toolUses: [],
   }
   void activity.count(io, 'compact', 'compacted')
   await ledgerCompaction(io, { messages: messages.length, kept: kept.length, dropped, skip: null,
-    trimmed: newTexts.size, charsRemoved, files: files.size })
-  const trimmedNote = newTexts.size ? `, trimmed ${newTexts.size} tool results (${Math.round(charsRemoved / 1000)}k characters, saved in full)` : ''
-  io.toast(`jev-mod compact: dropped ${dropped} of ${messages.length} messages${trimmedNote}; nothing was summarised.`)
-  return { messages: [note, ...trimmed(kept, newTexts)] }
+    pairsDropped: dropPairs.size, trimmed: newTexts.size, charsRemoved, files: files.size })
+  const what = [dropPairs.size ? `dropped ${dropPairs.size} tool calls with their results` : '',
+    newTexts.size ? `trimmed ${newTexts.size} tool results` : ''].filter(Boolean).join(', ')
+  io.toast(`jev-mod compact: ${dropped} of ${messages.length} messages gone${what ? `; ${what} (${Math.round(charsRemoved / 1000)}k ` +
+    'characters, saved in full)' : ''}; nothing was summarised.`)
+  return { messages: [note, ...kept] }
 }

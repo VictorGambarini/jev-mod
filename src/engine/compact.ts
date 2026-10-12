@@ -1,7 +1,7 @@
 // Compaction without a summary, in two decisions. The decision model marks each turn keep or
-// drop, and in doubt a turn is kept (`select`). And for each old tool result it says how much of
-// its start and of its end should stay in context, the full result being saved to a file a later
-// step can read (`trim`); in doubt it keeps more.
+// drop, and in doubt a turn is kept (`select`). And for each old tool call with its result it
+// says whether the pair stays at all, and how much of the result's start and end does, the full
+// pair being saved to a file a later step can read (`trim`); in doubt it keeps more.
 //
 // `select` is ported from jev-skills' jevkit/compact.py `select`, the part /jev-mod compact uses,
 // with one deliberate divergence (docs/PORTING.md): jev-skills also offers "summarize", and the
@@ -131,16 +131,24 @@ export async function select(host: Host, messages: readonly Message[],
   }
 }
 
-// ── trimming tool results ───────────────────────────────────────────────────
+// ── tool pairs: keep or drop, and how far to trim ───────────────────────────
 
 /** What may stay of a tool result's start, and of its end, in characters. */
 export const TRIM_SIZES = [0, 100, 300, 600] as const
 export type TrimSize = (typeof TRIM_SIZES)[number]
 /** Each end Jev is shown is as long as the most it may keep of it. */
 export const TRIM_SHOWN = 600
-/** Pairs per request; each pair is two questions. */
+/** Pairs per request; each is up to three questions. */
 export const TRIM_BATCH = 20
 const ARG_CHARS = 160
+
+/** Whether a tool call and its result stay in the conversation at all. */
+export const PAIR_FATE = {
+  keep: 'A later step needs this call or what it returned in front of it: a decision, an error, an exact value, path, ' +
+    'id or code later work depends on, or the state of something still being worked on',
+  drop: 'Nothing later depends on it, or a later step could re-read the file: a superseded attempt, repeated output, ' +
+    'or side work whose answer was already given',
+}
 
 /** The options for one end of a result: how many of its characters stay. */
 export function trimOptions(end: 'start' | 'end'): Record<string, string> {
@@ -152,13 +160,18 @@ export function trimOptions(end: 'start' | 'end'): Record<string, string> {
   }
 }
 
-/** One tool call with its result, as Jev sees it: `head` and `tail` are the result's raw first and last TRIM_SHOWN characters. */
-export type TrimView = { tool: string; arg: string; size: number; isError: boolean; head: string; tail: string }
-export type Trim = { head: TrimSize; tail: TrimSize }
+/**
+ * One tool call with its result, as Jev sees it. With `trim`, `head` and `tail` are the result's
+ * raw first and last TRIM_SHOWN characters, and Jev is asked how many of each stay; without it
+ * (a short result), `head` is the whole result, `tail` is empty, and Jev is asked keep or drop only.
+ */
+export type TrimView = { tool: string; arg: string; size: number; isError: boolean; head: string; tail: string; trim: boolean }
+/** A judged pair: whether it stays, and what of its result does (TRIM_SHOWN both ways for a short one: all of it). */
+export type Trim = { keep: boolean; head: TrimSize; tail: TrimSize }
 
 export type Trimming = {
   status: 'ok' | 'partial' | 'fail_open'
-  /** What to keep of each judged view, by its index; an unjudged one has none. */
+  /** What happens to each judged view, by its index; an unjudged one has none. */
   trims: Record<string, Trim>
   jev_calls: number
   errors: string[]
@@ -167,18 +180,23 @@ export type Trimming = {
   calls?: Asked[]
 }
 
-/** A view as the request holds it: the call, the result's size, and its start and end, redacted. */
+/** A view as the request holds it: the call, the result's size, and its start and end (or all of it), redacted. */
 export function trimText(v: TrimView): string {
-  return `tool call ${v.tool}: ${redact(v.arg, ARG_CHARS)}\nresult${v.isError ? ' (error)' : ''}: ${v.size} characters` +
-    `\nstart: ${redact(v.head, Number.POSITIVE_INFINITY)}\nend: ${redact(v.tail, Number.POSITIVE_INFINITY)}`
+  const call = `tool call ${v.tool}: ${redact(v.arg, ARG_CHARS)}\nresult${v.isError ? ' (error)' : ''}: ${v.size} characters`
+  if (!v.trim) return `${call}\nwhole: ${redact(v.head, Number.POSITIVE_INFINITY)}`
+  return `${call}\nstart: ${redact(v.head, Number.POSITIVE_INFINITY)}\nend: ${redact(v.tail, Number.POSITIVE_INFINITY)}`
 }
 
+type Choice = { choice: string; confidence: number } | undefined
+
 /**
- * How much of each tool result's start and end stays, from the decision model. The caller saves
- * every full result to a file first, so a later step can read what was cut; the question is
- * whether a later step needs those characters in front of it, or could re-read the file. In
- * doubt it keeps more: an answer below the confidence bar (DROP_CONFIDENCE, or the caller's)
- * keeps all TRIM_SHOWN characters of that end, and a view Jev did not judge gets no trim.
+ * For each tool call with its result: whether it stays at all, and how much of its result's
+ * start and end does, from the decision model, in one request per batch. The caller saves every
+ * full call and result to a file first, so a later step can read what went; each question asks
+ * whether a later step needs it in front of it, or could re-read the file. In doubt it keeps
+ * more: a drop below the confidence bar (DROP_CONFIDENCE, or the caller's) keeps the pair, a size
+ * below it keeps all TRIM_SHOWN characters of that end, and a view Jev did not answer in full is
+ * unjudged and stays whole.
  */
 export async function trim(host: Host, views: readonly TrimView[],
   opts: { timeoutMs?: number; confidence?: number } = {}): Promise<Trimming> {
@@ -188,7 +206,7 @@ export async function trim(host: Host, views: readonly TrimView[],
   const errors: string[] = []
   const trims: Record<string, Trim> = {}
   let latency = 0
-  const sizeOf = (answer: { choice: string; confidence: number } | undefined): TrimSize | undefined => {
+  const sizeOf = (answer: Choice): TrimSize | undefined => {
     if (!answer) return undefined
     const n = Number(answer.choice) as TrimSize
     if (!TRIM_SIZES.includes(n)) return undefined
@@ -198,10 +216,14 @@ export async function trim(host: Host, views: readonly TrimView[],
   for (const group of packBy(all, i => encode(texts[i]!, { ensureAscii: true }).length + PER_TURN_OVERHEAD, TRIM_BATCH)) {
     const state = { results: Object.fromEntries(group.map(i => [`R${i}`, texts[i]!])) }
     const questions = Object.fromEntries(group.flatMap(i => [
-      [`h${i}`, choice(`Result R${i} is saved in full to a file a later step can read. Would a later step need the first ` +
-        `characters of R${i} in front of it, or could it re-read the file? How many of its first characters should stay?`, trimOptions('start'))],
-      [`e${i}`, choice(`Result R${i} is saved in full to a file a later step can read. Would a later step need the last ` +
-        `characters of R${i} in front of it, or could it re-read the file? How many of its last characters should stay?`, trimOptions('end'))],
+      [`k${i}`, choice(`Tool call R${i} and its result are saved in full to a file a later step can read. For continuing ` +
+        `this work later, should R${i} stay in the conversation at all, or could a later step re-read the file?`, PAIR_FATE)],
+      ...(views[i]!.trim ? [
+        [`h${i}`, choice(`If R${i} stays: would a later step need the first characters of its result in front of it, or ` +
+          'could it re-read the file? How many of its first characters should stay?', trimOptions('start'))],
+        [`e${i}`, choice(`If R${i} stays: would a later step need the last characters of its result in front of it, or ` +
+          'could it re-read the file? How many of its last characters should stay?', trimOptions('end'))],
+      ] : []),
     ]))
     let reply: Asked
     try {
@@ -214,9 +236,12 @@ export async function trim(host: Host, views: readonly TrimView[],
     calls.push(reply)
     latency += reply.latency_ms
     for (const i of group) {
-      const head = sizeOf(reply.answers[`h${i}`] as { choice: string; confidence: number } | undefined)
-      const tail = sizeOf(reply.answers[`e${i}`] as { choice: string; confidence: number } | undefined)
-      if (head !== undefined && tail !== undefined) trims[String(i)] = { head, tail }
+      const fate = reply.answers[`k${i}`] as Choice
+      if (!fate || (fate.choice !== 'keep' && fate.choice !== 'drop')) continue
+      const head = views[i]!.trim ? sizeOf(reply.answers[`h${i}`] as Choice) : TRIM_SHOWN
+      const tail = views[i]!.trim ? sizeOf(reply.answers[`e${i}`] as Choice) : TRIM_SHOWN
+      if (head === undefined || tail === undefined) continue
+      trims[String(i)] = { keep: fate.choice === 'keep' || fate.confidence < bar, head, tail }
     }
   }
   const status = !views.length ? 'ok' : !calls.length ? 'fail_open' : errors.length ? 'partial' : 'ok'

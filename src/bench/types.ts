@@ -83,10 +83,10 @@ export type FeatureSpend = { requests: number; calls: number; cost_usd: number }
 
 /**
  * One compaction as the mod records it in the bench ledger: messages before, kept and dropped;
- * tool results trimmed, the characters that took out and the files saved (absent from a record
+ * tool pairs dropped, tool results trimmed, the characters that took out and the files saved (absent from a record
  * written before results were trimmed); and why nothing went.
  */
-export type Compaction = { messages: number; kept: number; dropped: number; trimmed?: number; charsRemoved?: number; files?: number; skip: string | null }
+export type Compaction = { messages: number; kept: number; dropped: number; pairsDropped?: number; trimmed?: number; charsRemoved?: number; files?: number; skip: string | null }
 
 /** What every row of one run shares. */
 export type RunMeta = Pick<Row, 'schema' | 'run' | 'feature' | 'level' | 'jevmod' | 'git' | 'date' | 'settings' | 'sweep'>

@@ -171,15 +171,17 @@ test('task level: an answer may run over several lines, bold or bulleted; a valu
   expect(checkAnswers(t, '').score).toBe(0)
 })
 
-test('task level: a jev-mod arm that trimmed results counts as compacted; one that removed nothing meaningful does not', () => {
+test('task level: a jev-mod arm that dropped tool pairs or trimmed results counts as compacted; one that removed nothing meaningful does not', () => {
   const jev = { id: 'jev-mod openrouter', kind: 'jev-mod' as const, backend: 'openrouter', settings: {} }
   const run = (contextTokens: number, compaction: object | null) =>
     ({ ledgerEntries: 2, byFeature: { compact: { requests: 2, calls: 6, cost_usd: 0.001 } }, contextTokens, compaction }) as never
   const all = (r: never) => new Map([['no compaction', { contextTokens: 170_000 } as never], ['jev-mod openrouter', r]])
   const trimmedOnly = run(60_000, { messages: 144, kept: 144, dropped: 0, trimmed: 70, charsRemoved: 400_000, files: 70, skip: null })
   expect(verify(TASKS[0]!, jev, trimmedOnly, all(trimmedOnly))).toBe(null)
+  const pairsOnly = run(60_000, { messages: 144, kept: 144, dropped: 0, pairsDropped: 30, trimmed: 0, charsRemoved: 300_000, files: 30, skip: null })
+  expect(verify(TASKS[0]!, jev, pairsOnly, all(pairsOnly))).toBe(null)
   // nothing dropped, nothing trimmed
-  const nothing = run(60_000, { messages: 144, kept: 144, dropped: 0, trimmed: 0, charsRemoved: 0, files: 0, skip: null })
+  const nothing = run(60_000, { messages: 144, kept: 144, dropped: 0, pairsDropped: 0, trimmed: 0, charsRemoved: 0, files: 0, skip: null })
   expect(verify(TASKS[0]!, jev, nothing, all(nothing))).toBe('not_compacted')
   // a few small results trimmed: the question read nearly the whole context
   const little = run(165_000, { messages: 144, kept: 144, dropped: 0, trimmed: 2, charsRemoved: 3_000, files: 2, skip: null })

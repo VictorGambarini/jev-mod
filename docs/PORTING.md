@@ -113,9 +113,10 @@ Known differences that are not fixture answers, and why:
   `compact.json` (recorded requests) is retired along with its replay test; `compact.test.ts`
   runs scripted fake backends instead. `compact_convos.json` stays as the test inputs.
   `/jev-mod compact` sends `select` only the text of messages with no tool call or result; tool
-  results go to `trim`, which is the mod's own (compact.py has no counterpart): per result, how
-  many of its first and last characters stay (0, 100, 300 or 600), the full call and result saved
-  to a file first, and a low-confidence answer keeping 600.
+  calls with their results go to `trim`, which is the mod's own (compact.py has no counterpart):
+  per pair, in one request, keep or drop, and for a long result how many of its first and last
+  characters stay (0, 100, 300 or 600); the full call and result are saved to a file first, a
+  low-confidence drop keeps the pair and a low-confidence size keeps 600.
 
 A port may fix what the original got wrong, but only visibly: the fixture keeps Python's
 answer, `test/parity/divergences.ts` gives the new one and why, and the parity test fails if

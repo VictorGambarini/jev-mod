@@ -3,11 +3,12 @@
 //
 // Two kinds of thing are judged. A message's text, in a message holding no tool call or result,
 // is kept or dropped (`unitsOf`, `keepOnly`): it goes only when Jev confidently marked it drop.
-// A tool call with its result is never dropped: the call stays as it is, and the result is
-// trimmed to the start and end Jev says later work needs (`trimsOf`, `trimmed`), the full call
-// and result being saved to a file first. A message that holds a tool call or result therefore
-// always stays, with its text, so every tool_use keeps its tool_result and the API never sees
-// half a pair; its text is not sent to Jev, since nothing would be done with the answer.
+// A tool call with its result is judged as a pair (`trimsOf`): Jev says whether it stays at all,
+// and for a long result how much of its start and end stays; the full call and result are saved
+// to a file first. A dropped pair loses its call and its result together, so every tool_use that
+// stays keeps its tool_result; a message left with neither text nor a tool block goes, and one
+// left with text stays (`rebuilt`). The text of a message that holds a tool call or result is not
+// sent to Jev: a pair's fate decides that message.
 
 import { KEEP_LAST, TRIM_SHOWN, type TrimView } from '../../engine/compact'
 import { isSensitive } from '../../engine/privacy'
@@ -23,7 +24,7 @@ export type Msg = {
 /** The last messages, kept whatever Jev says: the same tail the engine keeps by default. */
 export const ALWAYS_KEEP_LAST = KEEP_LAST
 
-/** A result this short or shorter is kept whole and not sent: trimming it saves too little. */
+/** A result this short or shorter is asked keep or drop only: trimming it would save too little. */
 export const TRIM_MIN_CHARS = 1300
 
 /** One text Jev judges keep or drop, by message index. */
@@ -92,10 +93,10 @@ function pairsOf(messages: readonly Msg[]): Pair[] {
 }
 
 /**
- * The tool results Jev is asked to trim, each with what it sees: the call, the result's size,
- * and its first and last TRIM_SHOWN characters (the engine redacts them). Left whole and not
- * sent: a pair with a half among the last ALWAYS_KEEP_LAST messages, a result of TRIM_MIN_CHARS
- * or fewer, and a pair whose call or full result looks sensitive.
+ * The tool pairs Jev is asked about, each with what it sees: the call, the result's size, and its
+ * first and last TRIM_SHOWN characters (the engine redacts them), or all of it when it is
+ * TRIM_MIN_CHARS or shorter (keep or drop only). Left whole and not sent: a pair with a half among
+ * the last ALWAYS_KEEP_LAST messages, and a pair whose call or full result looks sensitive.
  */
 export function trimsOf(messages: readonly Msg[]): { pairs: Pair[]; views: TrimView[] } {
   const tail = Math.max(0, messages.length - ALWAYS_KEEP_LAST)
@@ -103,13 +104,13 @@ export function trimsOf(messages: readonly Msg[]): { pairs: Pair[]; views: TrimV
   const views: TrimView[] = []
   for (const p of pairsOf(messages)) {
     if (p.call >= tail || p.result >= tail) continue
-    const points = [...p.text]
-    if (points.length <= TRIM_MIN_CHARS) continue
     const arg = argsOf(p.input)
     if (isSensitive(`${p.tool} ${arg}\n${p.text}`)) continue
+    const points = [...p.text]
+    const long = points.length > TRIM_MIN_CHARS
     pairs.push(p)
-    views.push({ tool: p.tool, arg, size: points.length, isError: p.isError,
-      head: points.slice(0, TRIM_SHOWN).join(''), tail: points.slice(-TRIM_SHOWN).join('') })
+    views.push({ tool: p.tool, arg, size: points.length, isError: p.isError, trim: long,
+      head: long ? points.slice(0, TRIM_SHOWN).join('') : p.text, tail: long ? points.slice(-TRIM_SHOWN).join('') : '' })
   }
   return { pairs, views }
 }
@@ -145,23 +146,28 @@ export function saved(p: Pair, session: string | null): string {
 }
 
 /**
- * The messages with each trimmed result's text replaced (`texts`, by tool_use_id). A message
- * that changed is handed back without the engine's `handle`, so the engine builds it from its
- * role, text and tool blocks; a trimmed result loses its stored record (`result`), which held
- * the bulk. Every other message is the engine's own, untouched.
+ * The messages with each trimmed result's text replaced (`texts`, by tool_use_id) and each
+ * dropped pair's call and result taken out (`drop`, by tool_use_id). A message that changed is
+ * handed back without the engine's `handle`, so the engine builds it from its role, text and tool
+ * blocks, and a trimmed result loses its stored record (`result`), which held the bulk; one left
+ * with no text and no tool block goes. Every other message is the engine's own, untouched.
  */
-export function trimmed<M extends Msg>(messages: readonly M[], texts: ReadonlyMap<string, string>): M[] {
-  return messages.map(m => {
-    if (!m.toolResults?.some(r => texts.has(r.tool_use_id))) return m
+export function rebuilt<M extends Msg>(messages: readonly M[], texts: ReadonlyMap<string, string>, drop: ReadonlySet<string> = new Set()): M[] {
+  const out: M[] = []
+  for (const m of messages) {
+    const touched = m.toolResults?.some(r => texts.has(r.tool_use_id) || drop.has(r.tool_use_id))
+      || m.toolUses?.some(u => drop.has(u.tool_use_id))
+    if (!touched) { out.push(m); continue }
     const { handle: _handle, ...rest } = m
-    return {
-      ...rest,
-      toolResults: m.toolResults.map(r => {
-        const text = texts.get(r.tool_use_id)
-        if (text === undefined) return r
-        const { result: _result, ...kept } = r
-        return { ...kept, text }
-      }),
-    } as unknown as M
-  })
+    const toolUses = (m.toolUses ?? []).filter(u => !drop.has(u.tool_use_id))
+    const toolResults = (m.toolResults ?? []).filter(r => !drop.has(r.tool_use_id)).map(r => {
+      const text = texts.get(r.tool_use_id)
+      if (text === undefined) return r
+      const { result: _result, ...kept } = r
+      return { ...kept, text }
+    })
+    if (!toolUses.length && !toolResults.length && !(typeof m.text === 'string' && m.text.trim())) continue
+    out.push({ ...rest, ...(m.toolUses ? { toolUses } : {}), ...(m.toolResults ? { toolResults } : {}) } as unknown as M)
+  }
+  return out
 }

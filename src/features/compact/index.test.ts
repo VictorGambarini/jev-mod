@@ -13,7 +13,7 @@ type Body = { state: { turns?: Record<string, string>; results?: Record<string, 
 type Fake = IO & { asked: Body[]; disk: Record<string, string>; ran: string[][]; toasts: string[] }
 
 function io(judge: (turn: string) => Fate, size: (result: string, end: 'h' | 'e') => Size = () => ({ choice: '0', confidence: 0.9 }),
-  backend: 'up' | 'down' = 'up', failFrom = Infinity): Fake {
+  backend: 'up' | 'down' = 'up', failFrom = Infinity, pair: (result: string) => Fate = () => ({ choice: 'keep', confidence: 0.9 })): Fake {
   const store: Record<string, unknown> = {}
   const asked: Body[] = []
   const disk: Record<string, string> = {}
@@ -47,11 +47,14 @@ function io(judge: (turn: string) => Fate, size: (result: string, end: 'h' | 'e'
           const other = fate.choice === 'keep' ? 'drop' : 'keep'
           answers[q] = { type: 'choice', choice: fate.choice, confidence: fate.confidence,
             probabilities: { [fate.choice]: fate.confidence, [other]: Math.round((1 - fate.confidence) * 1000) / 1000 } }
+        } else if (q[0] === 'k') {
+          const fate = pair(body.state.results![`R${q.slice(1)}`]!)
+          const other = fate.choice === 'keep' ? 'drop' : 'keep'
+          answers[q] = { type: 'choice', choice: fate.choice, confidence: fate.confidence, probabilities: { [fate.choice]: 0.9, [other]: 0.1 } }
         } else {
           const s = size(body.state.results![`R${q.slice(1)}`]!, q[0] as 'h' | 'e')
-          const rest = Math.round((1 - s.confidence) * 1000) / 3000
           answers[q] = { type: 'choice', choice: s.choice, confidence: s.confidence,
-            probabilities: Object.fromEntries(['0', '100', '300', '600'].map(k => [k, k === s.choice ? s.confidence : rest])) }
+            probabilities: Object.fromEntries(['0', '100', '300', '600'].map(k => [k, k === s.choice ? 0.7 : 0.1])) }
         }
       }
       return { status: 200, ok: true, text: JSON.stringify({ answers, model: 'jev-test', usage: { input_tokens: 100 } }) }
@@ -78,6 +81,7 @@ const convo = () => [
 ]
 type Out = Awaited<ReturnType<typeof compact>>
 const body = (out: Out) => ('messages' in out ? out.messages.slice(1) : [])
+const callOf = (out: Out, id: string) => body(out).flatMap((x: any) => x.toolUses ?? []).find((u: any) => u.tool_use_id === id)
 const resultText = (out: Out, id: string) =>
   body(out).flatMap((x: any) => x.toolResults ?? []).find((r: any) => r.tool_use_id === id)?.text as string | undefined
 const DIR = '/home/u/.cache/jev-mod/compact/s1'
@@ -133,6 +137,40 @@ test('a confident drop takes a text-only message; a message with a tool call sta
   expect(turns).toEqual(['user: fix the failing test', 'assistant: ok, noted'])
 })
 
+test('a pair Jev confidently drops goes whole, call and result, saved first; the note names the folder', async () => {
+  const messages = convo()
+  // the npm test pair (short: keep or drop only) and the log pair are dropped; texts are kept
+  const fake = io(() => ({ choice: 'keep', confidence: 0.9 }), undefined, 'up', Infinity, () => ({ choice: 'drop', confidence: 0.8 }))
+  const out = await compact(fake, messages)
+  expect(callOf(out, 't1')).toBe(undefined)
+  expect(resultText(out, 't1')).toBe(undefined)
+  expect(callOf(out, 't2')).toBe(undefined)
+  expect(resultText(out, 't2')).toBe(undefined)
+  expect(resultText(out, 't3')).toContain(SECRET) // never sent: whole
+  // 1 keeps its narration (rebuilt without the call); 2, 3 and 4 held only the dropped pairs and go
+  const kept = body(out)
+  expect(kept.map((x: any) => messages.indexOf(x))).toEqual([0, -1, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+  expect(kept[1]).toEqual({ role: 'assistant', text: 'Let me run the tests', toolUses: [] })
+  expect(Object.keys(fake.disk).filter(p => p.startsWith(DIR)).sort()).toEqual([`${DIR}/t1.txt`, `${DIR}/t2.txt`])
+  expect(fake.disk[`${DIR}/t1.txt`]).toContain('FAIL src/a.test.ts\nexpected 2, got 3')
+  const note = (out as { messages: any[] }).messages[0].text as string
+  expect(note).toContain('It dropped 2 old tool calls with their results')
+  expect(note).toContain(`one file per call named by its tool_use_id, in ${DIR}`)
+  // a drop below the bar keeps the pair, trimmed as answered
+  const unsure = io(() => ({ choice: 'keep', confidence: 0.9 }), undefined, 'up', Infinity, () => ({ choice: 'drop', confidence: 0.4 }))
+  const kept2 = await compact(unsure, convo())
+  expect(callOf(kept2, 't2')).toEqual(use('t2', 'cat app.log'))
+  expect(resultText(kept2, 't2')).toContain('keeping none of it')
+  expect(resultText(kept2, 't1')).toBe('FAIL src/a.test.ts\nexpected 2, got 3')
+})
+
+test('a bench run counts dropped pairs', async () => {
+  const fake = benched(io(() => ({ choice: 'keep', confidence: 0.9 }), undefined, 'up', Infinity,
+    r => (r.includes('npm test') ? { choice: 'drop', confidence: 0.9 } : { choice: 'keep', confidence: 0.9 })))
+  await compact(fake, convo())
+  expect(ledgerOf(fake.disk).compaction).toMatchObject({ messages: 14, kept: 13, dropped: 1, pairsDropped: 1, trimmed: 1, files: 2 })
+})
+
 test('doubt keeps more: a low-confidence size keeps 600 of that end; an unjudged result stays whole', async () => {
   const lowHead = io(() => ({ choice: 'keep', confidence: 0.9 }), (_r, end) => (end === 'h' ? { choice: '0', confidence: 0.3 } : { choice: '0', confidence: 0.9 }))
   expect(resultText(await compact(lowHead, convo()), 't2')).toContain('keeping its first 600.')
@@ -178,12 +216,12 @@ test('a bench run records what the compaction dropped and trimmed, and saves its
   const out = await compact(fake, convo())
   expect('messages' in out).toBe(true)
   const removed = LOG.length - resultText(out, 't2')!.length
-  expect(ledgerOf(fake.disk).compaction).toEqual({ messages: 14, kept: 13, dropped: 1, trimmed: 1, charsRemoved: removed, files: 1, skip: null })
+  expect(ledgerOf(fake.disk).compaction).toEqual({ messages: 14, kept: 13, dropped: 1, pairsDropped: 0, trimmed: 1, charsRemoved: removed, files: 1, skip: null })
   expect(Object.keys(fake.disk).filter(p => p.startsWith('/scratch/ledger/compact-files/s1/'))).toEqual(['/scratch/ledger/compact-files/s1/t2.txt'])
   expect(Object.keys(fake.disk).some(p => p.startsWith('/home/u/.cache'))).toBe(false)
   const down = benched(io(() => ({ choice: 'drop', confidence: 0.99 }), undefined, 'down'))
   await compact(down, convo())
-  expect(ledgerOf(down.disk).compaction).toEqual({ messages: 14, kept: 14, dropped: 0, trimmed: 0, charsRemoved: 0, files: 0,
+  expect(ledgerOf(down.disk).compaction).toEqual({ messages: 14, kept: 14, dropped: 0, pairsDropped: 0, trimmed: 0, charsRemoved: 0, files: 0,
     skip: 'Jev did not answer; nothing was removed' })
   // the decisions are counted apart from the compaction: one file for the keep-or-drop requests, one for the trim
   // requests, failed ones too

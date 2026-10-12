@@ -20,8 +20,8 @@ import { readOnce } from './reads'
 // config folder of its own (src/bench/bare.ts). `compact.dropConfidence` is how sure a drop, or a trim, must be
 // for /jev-mod compact to act on it (the default is engine/compact.ts's DROP_CONFIDENCE). `ledger`
 // is a folder where each decision call's cost is written, one small file per call, for the
-// bench to add up, where /jev-mod compact writes what each compaction kept, dropped and trimmed, and under
-// which (compact-files/) it saves the tool results it trimmed. An overlay holding anything
+// bench to add up, where /jev-mod compact writes what each compaction kept, dropped and
+// trimmed, and under which (compact-files/) it saves the tool pairs it dropped or trimmed. An overlay holding anything
 // key-shaped (a field named like a key, token, secret, password or header) is refused whole: a
 // key never travels in it.
 
@@ -105,19 +105,19 @@ export async function ledger(io: IO, entry: { feature?: string; calls: number; c
 }
 
 /**
- * Write what one /jev-mod compaction did (messages before, kept, dropped; tool results trimmed,
- * the characters that took out, and the files saved; why nothing went when nothing did) to the
- * overlay's ledger folder, when it names one: the bench's proof that a compaction happened.
- * Never throws.
+ * Write what one /jev-mod compaction did (messages before, kept, dropped; tool pairs dropped,
+ * tool results trimmed, the characters that took out, and the files saved; why nothing went when
+ * nothing did) to the overlay's ledger folder, when it names one: the bench's proof that a
+ * compaction happened. Never throws.
  */
 export async function ledgerCompaction(io: IO, entry: { messages: number; kept: number; dropped: number; skip: string | null;
-  trimmed?: number; charsRemoved?: number; files?: number }): Promise<void> {
+  pairsDropped?: number; trimmed?: number; charsRemoved?: number; files?: number }): Promise<void> {
   try {
     const folder = (await readOverlay(io)).overlay?.ledger
     if (!folder) return
     const name = `compaction-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.json`
     await io.writeFile(`${folder}/${name}`, JSON.stringify({ at: Date.now(), kind: 'compaction', messages: entry.messages,
-      kept: entry.kept, dropped: entry.dropped, trimmed: entry.trimmed ?? 0, charsRemoved: entry.charsRemoved ?? 0,
-      files: entry.files ?? 0, skip: entry.skip }))
+      kept: entry.kept, dropped: entry.dropped, pairsDropped: entry.pairsDropped ?? 0, trimmed: entry.trimmed ?? 0,
+      charsRemoved: entry.charsRemoved ?? 0, files: entry.files ?? 0, skip: entry.skip }))
   } catch { /* the ledger is the bench's; a compaction never fails for it */ }
 }

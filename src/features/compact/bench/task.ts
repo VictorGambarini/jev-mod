@@ -10,7 +10,7 @@
 // Each arm compacts its own fork of that session and is asked what a continuation needs, with
 // every tool refused, so it answers from its context alone; the checker scores the answers. That
 // measures what survives in context: a trimmed tool result names a file Claude could Read, but
-// here it may not, so a fact that lived only in a trimmed middle counts as lost.
+// here it may not, so a fact that lived only in a dropped pair or a trimmed middle counts as lost.
 //
 //   arms: no compaction (the upper bound), Claude Code's /compact, and /jev-mod compact at its
 //         shipped default for each backend (a --sweep of drop adds one arm per value; the drop
@@ -19,10 +19,10 @@
 // A jev-mod arm sends `/compact <marker>`, the compaction /jev-mod compact runs, in one step: a
 // `claude -p "/jev-mod compact"` process ends before the /compact it queues from a timer starts
 // (features/compact/index.ts). The mod writes what it kept, dropped and trimmed to the arm's
-// ledger, and saves the results it trimmed under the ledger folder. An arm that did not compact is
-// an error, `not_compacted`, never a score: a compacting arm whose question ran on a context not
-// meaningfully smaller than the no-compaction arm's, or a jev-mod arm that recorded no
-// compaction, or one that neither dropped a message nor trimmed a result.
+// ledger, and saves the tool pairs it dropped or trimmed under the ledger folder. An arm that did
+// not compact is an error, `not_compacted`, never a score: a compacting arm whose question ran on
+// a context not meaningfully smaller than the no-compaction arm's, or a jev-mod arm that recorded
+// no compaction, or one that dropped no message or tool pair and trimmed no result.
 
 import { DROP_CONFIDENCE } from '../../../engine/compact'
 import type { Arm, ArmRun, Checked, Step, TaskAdapter, TaskCase } from '../../../bench/types'
@@ -257,9 +257,9 @@ const NOT_SMALLER = 0.9
 /** Did this arm compact? A reason code when it plainly did not, else null. */
 export function verify(_t: CompactTask, arm: Arm, run: ArmRun, all: ReadonlyMap<string, ArmRun>): string | null {
   if (arm.id === 'no compaction') return null
-  // the mod's own record: none written (it never ran), or nothing dropped and nothing trimmed
+  // the mod's own record: none written (it never ran), or no message or tool pair dropped and nothing trimmed
   const c = run.compaction
-  if (arm.kind === 'jev-mod' && (c ? c.dropped === 0 && !c.trimmed : !(run.byFeature.compact?.requests ?? 0))) return 'not_compacted'
+  if (arm.kind === 'jev-mod' && (c ? c.dropped === 0 && !c.trimmed && !c.pairsDropped : !(run.byFeature.compact?.requests ?? 0))) return 'not_compacted'
   const base = all.get('no compaction')?.contextTokens
   if (!base || !run.contextTokens) return null
   return run.contextTokens >= NOT_SMALLER * base ? 'not_compacted' : null
@@ -309,7 +309,7 @@ export const task: TaskAdapter<CompactTask> = {
   usdPerCall: 1,
   // one long setup prompt with several tool turns, or a question on the full context, costs a few dollars
   maxUsdPerCall: 8,
-  // a session of about 150 messages: its texts in batches of 40, and its long tool results, 20 to a request
+  // a session of about 150 messages: its texts in batches of 40, and its tool pairs, 20 to a request
   decisionCallsPerArm: 8,
   estimateNote: cases => {
     const c = cases[0] as CompactTask | undefined

@@ -334,8 +334,8 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
 
 - `compact`: ten synthetic sessions (213 messages) labelled keep or drop, run through
   `keep.ts`'s units and `engine/compact.ts`'s requests; the drop bar swept. Only messages with
-  text and no tool call or result are scored: a tool result is trimmed, never dropped, and the
-  labels say nothing about how far. Its task level
+  text and no tool call or result are scored: a tool call with its result is judged as a pair
+  (keep or drop, and how far to trim), which this bench does not ask. Its task level
   (`compact/bench/task.ts`, three cases on `task-fixture/`, twelve questions each): the fixture
   is ledgerline, a small billing codebase (a `billing/` package, unittest tests that run with
   `python3`, a CLAUDE.md, docs, a CI log, an app log and a month of invoices as CSV). Each case is
@@ -347,10 +347,11 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   Claude Code's own ~28k. Each arm compacts its own fork (`/compact`, the mod's compaction at its
   default, or at each drop bar of a sweep, or none) and answers what a continuation needs (the constraints and corrections, the
   decisions and why, the failed approach and why, the files changed, the exact ids and commands)
-  with every tool refused, so only what it kept counts (a trimmed result's file may not be read,
-  so what was cut counts as lost); each answer must match every one of its patterns. The mod's
-  ledger record says what it dropped and trimmed; one that did neither, or whose question read
-  nearly the uncompacted context, is `not_compacted`. A jev-mod arm sends `/compact [jev-mod compact: drop only what Jev marks drop]`, the
+  with every tool refused, so only what it kept counts (a dropped or trimmed pair's file may not
+  be read, so what was cut counts as lost); each answer must match every one of its patterns. The
+  mod's ledger record says what messages and tool pairs it dropped and what results it trimmed;
+  one that did none of these, or whose question read nearly the uncompacted context, is
+  `not_compacted`. A jev-mod arm sends `/compact [jev-mod compact: drop only what Jev marks drop]`, the
   compaction `/jev-mod compact` runs, in one step.
 - `routing`'s task level (`routing/bench/task.ts`): ten one-prompt coding tasks in parcelkit
   (`task-fixture/`, a small Python courier codebase), four trivial, three medium, three hard, each

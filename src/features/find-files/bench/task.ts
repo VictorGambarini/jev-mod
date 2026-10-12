@@ -15,7 +15,8 @@
 // of the files (or of file:line, for the questions that ask for lines). The score is F1; success is
 // every gold item found and nothing else listed.
 
-import type { Arm, Checked, Step, TaskAdapter, TaskCase } from '../../../bench/types'
+import type { Arm, Checked, Row, Step, TaskAdapter, TaskCase } from '../../../bench/types'
+import { REPO, repoTasks, WHAT } from './task-repo'
 
 const FIXTURE = 'src/features/find-files/bench/task-fixture'
 
@@ -32,13 +33,16 @@ export type FindTask = TaskCase & {
   ask: string
   /** `paths`: a file per line; `lines`: path:line. */
   format: 'paths' | 'lines'
+  /** `repo`: the large real project (task-repo.ts), where an answer may be NONE; else the small fixture. */
+  suite?: 'repo'
   /** For `lines`: what the line is, in the format hint ("the line that reads the variable"). */
   lineIs?: string
+  /** The right answers; none when nothing in the project does what is asked (the answer is NONE). */
   gold: Gold[]
 }
 
 // what a person lets a read-only search session do without asking; the question step refuses edits
-const SEARCH_TOOLS = ['Read', 'Grep', 'Glob', 'Task', 'Agent', 'mcp__jev-mod__find_files', 'Bash(grep:*)', 'Bash(rg:*)', 'Bash(find:*)',
+export const SEARCH_TOOLS = ['Read', 'Grep', 'Glob', 'Task', 'Agent', 'mcp__jev-mod__find_files', 'Bash(grep:*)', 'Bash(rg:*)', 'Bash(find:*)',
   'Bash(ls:*)', 'Bash(cat:*)', 'Bash(head:*)', 'Bash(tail:*)', 'Bash(wc:*)', 'Bash(git grep:*)', 'Bash(git ls-files:*)']
 const NO_EDITS = ['Edit', 'MultiEdit', 'Write', 'NotebookEdit']
 
@@ -81,12 +85,16 @@ export const TASKS: FindTask[] = [
     gold: [src('src/customers/export/customers-csv.ts'), src('src/http/routes/customers-export.ts')] },
 ]
 
-/** The question as one prompt: the ask, no edits, and the answer format. */
+/** The large project's cases (task-repo.ts): paraphrases, near-miss names, and questions with no answer. */
+export const REPO_TASKS: FindTask[] = repoTasks(SEARCH_TOOLS)
+
+/** The question as one prompt: the ask, no edits, and the answer format (on the large project, NONE when nothing does it). */
 export function promptOf(t: FindTask): string {
   const fmt = t.format === 'lines'
     ? `\`path:line\`, path relative to the project root and line number of ${t.lineIs ?? 'the match'}`
     : '`path`, relative to the project root'
-  return `${t.ask}\n\nSearch this project; do not change any files. End your reply with a line \`ANSWERS\`, then one answer per line as ${fmt}, nothing else on those lines.`
+  const none = t.suite === 'repo' ? ' If nothing in this project does it, put the single line `NONE` under ANSWERS.' : ''
+  return `${t.ask}\n\nSearch this project; do not change any files. End your reply with a line \`ANSWERS\`, then one answer per line as ${fmt}, nothing else on those lines.${none}`
 }
 
 export type Answer = { path: string; line: number | null }
@@ -110,7 +118,10 @@ export function answersOf(text: string, workdir = ''): Answer[] {
   return out
 }
 
-/** Precision and recall of the answers against the gold; the score is F1, success is both 1. */
+/**
+ * Precision and recall of the answers against the gold; the score is F1, success is both 1. A
+ * question with no gold is right (score 1) only when nothing was answered (NONE is not a path).
+ */
 export function score(t: FindTask, answers: readonly Answer[]): Checked {
   const byLine = t.format === 'lines'
   const seen = new Set<string>()
@@ -126,6 +137,10 @@ export function score(t: FindTask, answers: readonly Answer[]): Checked {
   const recall = t.gold.length ? found.length / t.gold.length : 0
   const f1 = precision + recall ? 2 * precision * recall / (precision + recall) : 0
   const name = (a: Answer) => (a.line === null ? a.path : `${a.path}:${a.line}`)
+  if (!t.gold.length) {
+    const right = unique.length === 0
+    return { success: right, score: right ? 1 : 0, detail: { precision: right ? 1 : 0, recall: 1, answered: unique.length, gold: 0, wrong: unique.map(name), missed: [] } }
+  }
   return { success: precision === 1 && recall === 1, score: f1, detail: {
     precision, recall, answered: unique.length, gold: t.gold.length,
     wrong: unique.filter(a => !right.includes(a)).map(name), missed: t.gold.filter(g => !found.includes(g)).map(g => g.path) } }
@@ -133,14 +148,60 @@ export function score(t: FindTask, answers: readonly Answer[]): Checked {
 
 // ── the estimate ─────────────────────────────────────────────────────────────
 
-/** About what one question costs Claude: a search of ~320 files by Glob, Grep and Read takes a handful of turns. */
-export const USD = { plain: 0.25, jev: 0.25 }
+/**
+ * About what one question costs Claude: a search of ~320 files by Glob, Grep and Read takes a
+ * handful of turns; one of ~4,500 files (the large project) takes more of them.
+ */
+export const USD = { plain: 0.25, jev: 0.25, repo: 0.45 }
+
+const suiteOf = (c: { id: string; suite?: string }) => (c.suite === 'repo' ? 'large project' : 'small fixture')
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b)
+  return s.length ? (s.length % 2 ? s[(s.length - 1) / 2]! : (s[s.length / 2 - 1]! + s[s.length / 2]!) / 2) : 0
+}
+
+/**
+ * The report's own block: each suite apart (the small fixture's questions share the code's words;
+ * the large project's do not), per arm: runs, success, mean score, median time, Claude's and the
+ * decision model's cost per run, and how often find_files was called and how it answered.
+ */
+export function report(rows: readonly Row[]): string {
+  const bySuite = new Map(ALL.map(t => [t.id, suiteOf(t)]))
+  const out = ['**By suite.** The small fixture (tillbox, 320 files) and the large project (' +
+    `${REPO.name} ${REPO.tag}, ~4,500 files) apart; find_files calls are read from the ledger, so a call that asked no decision model still counts.`, '',
+    '| suite | arm | runs | success | mean score | median time | Claude $/run | decisions $/run | runs that called find_files | find_files answers |',
+    '|---|---|---|---|---|---|---|---|---|---|']
+  const keys = new Map<string, Row[]>()
+  for (const r of rows) {
+    if (r.setup || !r.arm) continue
+    const key = `${bySuite.get(r.case) ?? 'other'}\u0000${r.arm}`
+    keys.set(key, [...(keys.get(key) ?? []), r])
+  }
+  for (const [key, mine] of [...keys].sort(([a], [b]) => a.localeCompare(b))) {
+    const [suite, arm] = key.split('\u0000')
+    const ok = mine.filter(r => r.outcome === 'ok')
+    const pct = (n: number) => `${(100 * n).toFixed(0)}%`
+    const avg = (f: (r: Row) => number) => (ok.length ? ok.reduce((n, r) => n + f(r), 0) / ok.length : 0)
+    const tools = mine.map(r => r.tool_calls?.['find-files'] ?? {})
+    const called = tools.filter(t => Object.values(t).some(n => n > 0)).length
+    const hows: Record<string, number> = {}
+    for (const t of tools) for (const [how, n] of Object.entries(t)) hows[how] = (hows[how] ?? 0) + n
+    const answers = Object.entries(hows).sort(([a], [b]) => a.localeCompare(b)).map(([how, n]) => `${how} ${n}`).join(', ') || '-'
+    out.push(`| ${suite} | ${arm} | ${mine.length}${mine.length > ok.length ? ` (${mine.length - ok.length} failed)` : ''} | ${pct(avg(r => (r.success ? 1 : 0)))} | ` +
+      `${pct(avg(r => r.score ?? 0))} | ${Math.round(median(ok.map(r => r.wall_ms ?? 0)))} ms | $${avg(r => r.claude_cost_usd ?? 0).toFixed(3)} | ` +
+      `$${avg(r => r.cost_usd).toFixed(5)} | ${called} of ${mine.length} | ${answers} |`)
+  }
+  return out.join('\n')
+}
+
+/** Both suites: the small fixture's ten, then the large project's. `--cases saleor-*` runs only the large one. */
+export const ALL: FindTask[] = [...TASKS, ...REPO_TASKS]
 
 export const task: TaskAdapter<FindTask> = {
   feature: 'find-files',
-  cases: () => TASKS,
+  cases: () => ALL,
   steps(t, arm): Step[] {
-    return [{ prompt: promptOf(t), final: true, disallowedTools: NO_EDITS, usd: arm.kind === 'jev-mod' ? USD.jev : USD.plain }]
+    return [{ prompt: promptOf(t), final: true, disallowedTools: NO_EDITS, usd: t.suite === 'repo' ? USD.repo : arm.kind === 'jev-mod' ? USD.jev : USD.plain }]
   },
   overlay(arm): { features: Record<string, Record<string, unknown>> } {
     if (arm.kind !== 'jev-mod') return { features: {} }
@@ -151,8 +212,18 @@ export const task: TaskAdapter<FindTask> = {
   usdPerCall: USD.plain,
   maxUsdPerCall: 1.5,
   decisionCallsPerArm: 3,
-  estimateNote: () => [
-    `  priced at about $${USD.plain.toFixed(2)} a question, either arm (the smoke run: four questions, $0.21 to $0.30 each, a search of ~320 files in a few turns on cached context);`,
-    '  no shared setup: each question is one headless call in a fresh copy of the project. The decision model judges up to 60 file cards per find_files call.',
-  ],
+  estimateNote: cases => {
+    const repo = cases.filter(c => c.suite === 'repo').length
+    return [
+      ...(cases.length - repo ? [`  ${cases.length - repo} small-fixture question(s) priced at about $${USD.plain.toFixed(2)}, either arm (the smoke run: four questions, $0.21 to $0.30 each, a search of ~320 files in a few turns on cached context);`] : []),
+      ...(repo ? [`  ${repo} large-project question(s) priced at about $${USD.repo.toFixed(2)}, either arm (${REPO.name} ${REPO.tag}, ~4,500 files: more turns per question);`] : []),
+      '  no shared setup: each question is one headless call in a fresh copy of the project. The decision model judges up to 60 file cards per find_files call.',
+      ...(repo ? [`  the large project is cloned once per run (${REPO.url} at ${REPO.commit.slice(0, 12)}, about 100 MB, into the run's scratch folder) and hard-linked into each arm's folder.`] : []),
+      '  only one suite: --cases saleor-* (the large project), or the small fixture\'s ids.',
+    ]
+  },
+  report,
 }
+
+/** What each large-project case tests (task-repo.ts), for the README and the checks. */
+export { WHAT }

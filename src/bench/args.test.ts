@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { parseArgs, parseRepeat } from './args'
+import { caseWanted, parseArgs, parseRepeat } from './args'
 
 test('--repeat: a whole number of runs per case and arm, task level only; one when not given', () => {
   expect(parseArgs(['browser', '--level', 'task', '--backend', 'openrouter']).repeat).toBe(1)
@@ -20,4 +20,12 @@ test('the other options still parse as before', () => {
   expect(a.sweep).toEqual({ name: 'drop', from: 0.6, to: 0.9, step: 0.1 })
   expect(() => parseArgs(['compact'])).toThrow('name a backend')
   expect(() => parseArgs(['compact', '--backend', 'fake', '--nope'])).toThrow('unknown option --nope')
+})
+
+test('--cases: ids, or a prefix ending in *; no filter takes every case', () => {
+  expect(caseWanted(null, 'x')).toBe(true)
+  expect(caseWanted(['a', 'saleor-*'], 'saleor-refund-callers')).toBe(true)
+  expect(caseWanted(['a', 'saleor-*'], 'a')).toBe(true)
+  expect(caseWanted(['a', 'saleor-*'], 'ab')).toBe(false)
+  expect(caseWanted(['saleor-*'], 'webhook-retry')).toBe(false)
 })

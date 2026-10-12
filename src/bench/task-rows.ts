@@ -44,7 +44,9 @@ export function contextOf(t: Tokens): number | null {
 }
 
 /** `byFeature`: the same per feature that asked (an entry without one is under `other`), so a report can tell the feature's own cost from the rest. */
-export type Ledger = { decisions: number; calls: number; cost: number; model: string | null; compaction: Compaction | null; byFeature: Record<string, FeatureSpend> }
+export type Ledger = { decisions: number; calls: number; cost: number; model: string | null; compaction: Compaction | null; byFeature: Record<string, FeatureSpend>
+  /** The mod's own tools called, by feature, then by how each answered (find-files: jev, clear, local, symbol). */
+  tools: Record<string, Record<string, number>> }
 
 /**
  * An arm's ledger folder, its files' text by name: the decision calls (their count, calls, cost
@@ -52,7 +54,7 @@ export type Ledger = { decisions: number; calls: number; cost: number; model: st
  * file is passed over.
  */
 export function readLedger(files: readonly { name: string; text: string }[]): Ledger {
-  const out: Ledger = { decisions: 0, calls: 0, cost: 0, model: null, compaction: null, byFeature: {} }
+  const out: Ledger = { decisions: 0, calls: 0, cost: 0, model: null, compaction: null, byFeature: {}, tools: {} }
   let last = -Infinity
   for (const { text } of [...files].sort((a, b) => a.name.localeCompare(b.name))) {
     let e: Record<string, any>
@@ -67,6 +69,12 @@ export function readLedger(files: readonly { name: string; text: string }[]): Le
           ...('thinkingDropped' in e ? { thinkingDropped: n(e.thinkingDropped) } : {}),
           skip: typeof e.skip === 'string' ? e.skip : null }
       }
+      continue
+    }
+    if (e.kind === 'tool') {
+      const mine = (out.tools[typeof e.feature === 'string' && e.feature ? e.feature : 'other'] ??= {})
+      const how = typeof e.how === 'string' && e.how ? e.how : 'other'
+      mine[how] = (mine[how] ?? 0) + 1
       continue
     }
     const calls = typeof e.calls === 'number' ? e.calls : 0

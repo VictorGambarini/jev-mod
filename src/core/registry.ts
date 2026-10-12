@@ -258,7 +258,7 @@ export const FEATURES: readonly Feature[] = [
   {
     id: 'find-files',
     title: 'Find files',
-    summary: 'A tool the model calls to find the files that implement something described in plain words',
+    summary: 'A tool the model calls to find the files that implement something described in plain words, or where a name is defined and used',
     help: 'on: the model is offered a find_files tool (mcp__jev-mod__find_files). Given a query such as "where retries '
       + 'with backoff are done", it lists the files under the project (git\'s list, so .gitignore is honoured), scores '
       + 'them locally by the query\'s words in each path, its first lines and how many lines mention them, and sends the '
@@ -266,6 +266,12 @@ export const FEATURES: readonly Feature[] = [
       + 'for the decision model to judge: implements, related or unrelated. The model gets a ranked list of paths, each '
       + 'with a reason. No key, private mode, the daily budget, a backend cool-off or no answer within timeoutMs: the '
       + 'local ranking comes back, labelled as such. A card or query that looks like it holds a secret is not sent. '
+      + 'The model may add identifiers and synonyms, words it guesses the code uses, which widen the local scoring (they are '
+      + 'never sent). Each file returned comes with the lines to read first, definitions first. When the local ranking is '
+      + 'already clear (shortcut), the decision model is not asked; when it judges every candidate unrelated, the answer '
+      + 'says nothing here implements it. With symbol (one exact name) the tool answers where it is defined, imported, '
+      + 'called and used, in code only (comments, strings and longer names left out), from the code itself and a cached '
+      + 'index of definitions under ~/.cache/jev-mod/find-files; no decision model is asked. '
       + 'off: the tool is not offered (a session started while it was on keeps it, and it answers that it is off). '
       + 'There is no shadow: the model calls the tool by choice, so there is nothing to watch it do unasked.',
     modes: ['off', 'on'], default: 'off',
@@ -276,6 +282,8 @@ export const FEATURES: readonly Feature[] = [
         help: 'How many files the tool returns when the model does not say.' },
       timeoutMs: { type: 'int', title: 'Time limit (ms)', default: 8000, min: 1000, max: 30000,
         help: 'How long the tool waits for the decision model before it answers with the local ranking.' },
+      shortcut: { type: 'boolean', title: 'Answer clear cases locally', default: true,
+        help: 'When the local ranking already has one to three files far ahead (each at least 1.5 times the next, and holding most of the query\'s words in its path, names or header), answer with it and do not ask the decision model.' },
     },
   },
   {

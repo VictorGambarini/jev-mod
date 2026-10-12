@@ -7,7 +7,7 @@
 //   bun src/bench/run.ts browser --level task --backend openrouter --repeat 3                     # each case × arm three times
 
 import { VERSION } from '../version'
-import { type Args, parseArgs } from './args'
+import { type Args, caseWanted, parseArgs } from './args'
 import { runDecision, fakeHostFor } from './decision'
 import { BENCHES, fakeDir, resultsDir } from './features'
 import { chooseBackend } from './host'
@@ -60,13 +60,13 @@ async function main(): Promise<number> {
           chosen = { ref: c.ref, hostFor: () => c.host, keyFrom: c.keyFrom }
         } catch (error) { warn(`${name}: ${(error as Error).message}`); return 1 }
       }
-      const count = adapter.cases().filter(c => !a.cases || a.cases.includes(adapter.caseId(c))).length
+      const count = adapter.cases().filter(c => caseWanted(a.cases, adapter.caseId(c))).length
       say(`${a.feature}: ${count} case(s) on ${name}${chosen.ref.model ? ` (${chosen.ref.model})` : ''}, key from ${chosen.keyFrom}; writing ${out}`)
       if (fake) await f.writeFile(out, '')
       const baselines = adapter.baselines?.(meta) ?? []
       for (const row of baselines) await f.appendFile(out, toLine(row) + '\n')
       const rows = await runDecision({ adapter, backend: chosen.ref, hostFor: chosen.hostFor, meta, timeoutMs: a.timeoutMs,
-        settings: a.settings, ...(a.cases ? { only: a.cases } : {}),
+        settings: a.settings, ...(a.cases ? { only: adapter.cases().map(c => adapter.caseId(c)).filter(id => caseWanted(a.cases, id)) } : {}),
         onRow: async (row: Row) => {
           await f.appendFile(out, toLine(row) + '\n')
           say(`  ${row.case}: ${row.outcome}${row.error ? ` (${row.error})` : ''}, ${row.items.length} judged, ${row.calls} call(s), $${row.cost_usd.toFixed(6)}`)
@@ -81,7 +81,7 @@ async function main(): Promise<number> {
 
   const adapter = bench.task
   if (!adapter) { warn(`${a.feature} has no task-level bench`); return 2 }
-  const cases = adapter.cases().filter(c => !a.cases || a.cases.includes(c.id))
+  const cases = adapter.cases().filter(c => caseWanted(a.cases, c.id))
   if (a.backends.includes('fake')) { warn('the fake backend is decision level only: a headless Claude Code run cannot reach it'); return 2 }
   const swept = a.sweep ? { name: a.sweep.name, values: thresholds(a.sweep) } : null
   const arms = armsFor(adapter, a.backends, swept, a.settings)

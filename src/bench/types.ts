@@ -72,6 +72,8 @@ export type Row = {
   by_feature?: Record<string, FeatureSpend>
   /** Set on a case's shared-setup row: what building the session cost, once per case, before any arm. */
   setup?: true
+  /** The mod's own tools the arm's model called, by feature, then by how each answered (find-files: { symbol: 2, jev: 1 }), from the ledger. */
+  tool_calls?: Record<string, Record<string, number>>
   /** The final step's context: its input tokens, cached or not (for compaction, what the question read). */
   context_tokens?: number | null
   /** What a compaction the mod recorded kept and dropped, in messages. */

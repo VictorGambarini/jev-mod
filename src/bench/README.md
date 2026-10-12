@@ -49,7 +49,7 @@ bun src/bench/run.ts compact --level task --backend typesafe --sweep drop=0.6:0.
 bun src/bench/report.ts compact
 ```
 
-Options: `--cases id,id` (a subset), `--set name=value` (a setting the adapter reads, recorded
+Options: `--cases id,id` (a subset; an entry ending in `*` takes every case whose id starts with it, such as `--cases 'saleor-*'`), `--set name=value` (a setting the adapter reads, recorded
 with each row), `--timeout ms` (per decision request, default 20000). Task level only:
 `--repeat n` (runs every case × arm n times, 1 to 20; see "Repeated runs" below), `--usd-per-call n` (prices every Claude call alike in the estimate; without it, each step has its
 own price), `--max-usd-per-call n` (passed to each `claude -p` as `--max-budget-usd`; default the adapter's, else 2; `compact`'s is 8, since one long setup prompt or a question on its full context costs a few dollars), `--claude-arg <arg>` (repeatable, passed on to `claude`, such as
@@ -90,7 +90,7 @@ bun src/bench/run.ts browser --level task --backend openrouter --repeat 3 --yes
 | Decision level, `review-triage` / `browser` | 51 / 113 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
 | Task level, `routing`, one backend | 20 headless Claude calls (10 tasks × 2 arms, no setup), about 10 decision calls | Claude: about $14.50 (plain on Opus: about $0.30 a trivial task, $0.80 medium, $1.50 hard; routed: $0.10, $0.50, $1.50); decisions: about $0.01. The smoke (`--cases lb-conversion`, both arms): $0.37 of Claude, $0.0004 of decisions, about a minute |
 | Task level, `skills`, one backend | 20 headless Claude calls (10 cases × 2 arms, no shared setup), about 20 decision calls | Claude: about $6 (about $0.30 a run; the first smoke run was $0.36 plain and $0.25 with the feature, about 30 s each); decisions: under $0.01. One case (`--cases adr-queue`): about $0.60 |
-| Task level, `find-files`, one backend | 20 headless Claude calls (no setup: one per task and arm), about 30 decision calls | Claude: about $5 (smoke: four calls, $0.21 to $0.30 each, about 30 s each); decisions: about $0.01. One task: about $0.50 |
+| Task level, `find-files`, one backend | the small fixture: 20 headless Claude calls (no setup: one per task and arm), about 30 decision calls; the large project (`--cases 'saleor-*'`): 26 calls and one clone of Saleor (about 100 MB) per run | the small fixture: Claude about $5 (smoke: four calls, $0.21 to $0.30 each, about 30 s each), one task about $0.50; the large project: Claude about $11.70 (priced at $0.45 a question; the smoke, two questions × two arms, cost $0.54 in all, $0.10 to $0.20 a call); decisions under $0.02 |
 | Task level, `browser`, one backend | 34 headless Claude calls (17 cases × 2 arms, no setup), about 204 decision calls; `--repeat 3`: 102 and about 612 | Claude: about $11 by the plan's prices ($0.35 a case with Playwright MCP, $0.30 with browse; the smoke run's two cases cost $0.22-0.25 and $0.14-0.21), about $33 with `--repeat 3`; decisions: about $0.10 at the plan's price ($0.31 with `--repeat 3`), $0.001 or less a case measured on openrouter |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 69 headless Claude calls (36 shared setup, then 11 per case), about 48 decision calls | Claude: about $105 (setup about $12.80 a case: twelve prompts building ~105k tokens of conversation; per case, a question on the full context about $2.50, `/compact` about $2.90 then its question about $0.70, the mod's compaction about $2.50 then its question about $1.55; the plan prints how it priced them); decisions: about $0.02. One case (`--cases proration-fix`): about $35 |
 
@@ -205,7 +205,9 @@ A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 
 Task level, per arm: the checker's success and score, wall time, Claude's cost and tokens (from
 `claude -p`'s JSON), the models that answered and what each cost (`claude_models`, from its
 `modelUsage`), the context the final step read (`context_tokens`), the decision model's
-cost and calls (from the ledger), and what a compaction the mod recorded kept and dropped
+cost and calls (from the ledger), the mod's own tools the model called and how each answered
+(`tool_calls`, from the ledger: find-files writes one record per call, so a call that asked no
+decision model still shows), and what a compaction the mod recorded kept and dropped
 (`compaction`). An arm that did not do its job is an error with the adapter's code (its `verify`),
 never a score: for `compact`, `not_compacted` is any compacting arm (`/compact` or the mod's)
 whose question read at least 90% of the no-compaction arm's context, or a jev-mod arm that

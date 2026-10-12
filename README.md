@@ -20,7 +20,7 @@ It runs inside Claude Code as a mod: hooks that reach the engine where settings 
 | [Access gate](src/features/access-gate/README.md) (`access-gate`) | before a call that reaches another machine | Whether the call may reach another machine this session (no decision model). | off |
 | [Output trimming](src/features/trim-output/README.md) (`trim-output`) | after a long Bash output | Which parts of it the current goal needs. | off |
 | [Web filter](src/features/web-filter/README.md) (`web-filter`) | after WebSearch and long WebFetch | Which results and page parts the question needs. | off |
-| [Find files](src/features/find-files/README.md) (`find-files`) | when the model calls `find_files` | Which files implement what the model describes. | off |
+| [Find files](src/features/find-files/README.md) (`find-files`) | when the model calls `find_files` | Which files implement what the model describes, with the lines to read first; or, given a name, where it is defined and used (read from the code, no decision). | off |
 | [Review triage](src/features/review-triage/README.md) (`review-triage`) | at submit when the prompt asks for a code review; or when the model calls `review_triage` | Whether a diff needs a quick or a full first review pass. | off |
 | [Browser](src/features/browser/README.md) (`browser`) | when the model calls `browse` | Each step of a web run toward a goal. | off |
 | [The band](src/features/band/README.md) | always | Nothing; it shows what jev-mod decided, its cost and the backend. | on |
@@ -145,7 +145,7 @@ each setting does, is in the feature's page.
 | [`access-gate`](src/features/access-gate/README.md) | on, shadow, off | off | `alwaysAllow` (your file only), `allowLocalhost` |
 | [`trim-output`](src/features/trim-output/README.md) | on, shadow, off | off | `minLines`, `keepThreshold`, `localOnly` |
 | [`web-filter`](src/features/web-filter/README.md) | on, shadow, off | off | `minConfidence`, `keepTop`, `fetchMinChars`, `timeoutMs` |
-| [`find-files`](src/features/find-files/README.md) | on, off | off | `maxCandidates`, `limit`, `timeoutMs` (no shadow: the model calls it by choice) |
+| [`find-files`](src/features/find-files/README.md) | on, off | off | `maxCandidates`, `limit`, `timeoutMs`, `shortcut` (no shadow: the model calls it by choice) |
 | [`review-triage`](src/features/review-triage/README.md) | on, shadow, off | off | `minConfidence`, `maxDiffChars`, `timeoutMs` |
 | [`browser`](src/features/browser/README.md) | on, off | off | `maxSteps`, `confirmConfidence`, `stepFloor`, `headed`, `allowAttach`, `textChars`; a project file may turn it off, never on, and sets none of these |
 | [`band`](src/features/band/README.md) | on, off | on | none |

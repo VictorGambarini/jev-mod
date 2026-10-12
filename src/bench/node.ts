@@ -11,6 +11,7 @@ export type Fs = {
   rm(path: string, options: { recursive: true; force: true }): Promise<void>
   cp(from: string, to: string, options: { recursive: true }): Promise<void>
   mkdtemp(prefix: string): Promise<string>
+  symlink(target: string, path: string): Promise<void>
 }
 
 type Child = {

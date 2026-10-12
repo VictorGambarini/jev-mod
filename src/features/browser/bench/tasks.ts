@@ -315,6 +315,18 @@ export function playwrightConfig(chrome: string): string {
   return JSON.stringify({ mcpServers: { playwright: { command: 'npx', args: ['-y', PLAYWRIGHT_MCP, '--headless', '--isolated', '--executable-path', chrome] } } })
 }
 
+/**
+ * The jev-mod arm runs bare (bench/bare.ts): browse alone, with these settings beyond the
+ * shipped ones. Tool against tool: Playwright MCP does not screen what a page says, so neither
+ * does browse here, and no other jev-mod feature (a gate, screening) acts around either.
+ */
+export const BARE = { screenPages: false }
+
+/** The bench overlay's sections for an arm: browse on in the jev-mod arm, which keeps it to loopback hosts. */
+export function overlayOf(arm: Arm): { features: Record<string, Record<string, unknown>> } {
+  return { features: { browser: { mode: arm.kind === 'jev-mod' ? 'on' : 'off' } } }
+}
+
 /** The `claude` arguments of one arm: its browser tool and nothing else from MCP. */
 export function armArgs(arm: Arm, mcpConfigPath: string): string[] {
   return arm.kind === 'claude'

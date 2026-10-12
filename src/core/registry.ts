@@ -5,12 +5,20 @@
 export const MODES = ['off', 'shadow', 'on'] as const
 export type Mode = (typeof MODES)[number]
 
-export type Knob =
+export type Knob = (
   | { type: 'int' | 'number'; title: string; help: string; default: number; min: number; max: number }
   | { type: 'boolean'; title: string; help: string; default: boolean }
   | { type: 'choice'; title: string; help: string; default: string; options: readonly string[] }
   /** Any of `options`, none included: kept as their names joined by commas, in the options' order. */
   | { type: 'list'; title: string; help: string; default: string; options: readonly string[] }
+) & {
+  /**
+   * The bench's own: read from a config file like any knob, but never offered. /jev-mod, its
+   * completions and the dashboard leave it out (shown only once a file sets it away from its
+   * default) and refuse to write it, and the README tables do not list it.
+   */
+  hidden?: true
+}
 
 export type KnobValue = number | boolean | string
 
@@ -331,6 +339,10 @@ export const FEATURES: readonly Feature[] = [
           + 'http://127.0.0.1:9222), with your sign-ins, in a new tab it closes after. Only your own file sets it.' },
       textChars: { type: 'int', title: 'Page text sent', default: 6000, min: 1000, max: 20000,
         help: 'About how many characters of each page\'s main text the decision model reads per step; the rest, up to 20,000, is searched for the goal\'s words.' },
+      screenPages: { type: 'boolean', title: 'Screen page text', default: true, hidden: true,
+        help: 'false: the page text is not screened. The task bench\'s bare arm sets it in its own scratch config, to compare browse '
+          + 'with Playwright tool against tool; it acts only while a bench overlay turned the browser on (loopback hosts only), '
+          + 'so in any other session the page text is screened whatever this says.' },
     },
   },
   {
@@ -360,10 +372,16 @@ export function checkMode(f: Feature, value: unknown): { mode: Mode } | { proble
   return { problem: `${f.id}: mode must be ${f.modes.join(', ')}, not ${JSON.stringify(value)}` }
 }
 
+/** The knobs a person is offered: all but the hidden ones (the bench's own). */
+export function shownKnobs(f: Feature): [string, Knob][] {
+  return Object.entries(f.knobs).filter(([, k]) => !k.hidden)
+}
+
 /** The knob's value from what a file or a command gave, or why it is not one. Text is read as the knob's type. */
 export function checkKnob(f: Feature, name: string, value: unknown): { value: KnobValue } | { problem: string } {
   const knob = f.knobs[name]
-  if (!knob) return { problem: `${f.id} has no setting ${name}${Object.keys(f.knobs).length ? ` (it has ${Object.keys(f.knobs).join(', ')})` : ''}` }
+  const offered = shownKnobs(f).map(([n]) => n)
+  if (!knob) return { problem: `${f.id} has no setting ${name}${offered.length ? ` (it has ${offered.join(', ')})` : ''}` }
   const bad = (what: string) => ({ problem: `${f.id}.${name} must be ${what}, not ${JSON.stringify(value)}` })
   if (knob.type === 'boolean') {
     if (typeof value === 'boolean') return { value }

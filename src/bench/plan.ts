@@ -4,15 +4,19 @@
 import { FEATURES } from '../core/registry'
 import type { Arm, Setting, TaskAdapter, TaskCase } from './types'
 
-/** The arms: plain Claude Code (the feature off), any the adapter adds, then the feature on for each backend × swept value. */
+/**
+ * The arms: plain Claude Code (the feature off), any the adapter adds, then the feature on for
+ * each backend × swept value. When the adapter runs bare, the jev-mod arm is `jev-mod <backend>
+ * bare <its settings>`, so a row says plainly what was off.
+ */
 export function armsFor(adapter: TaskAdapter, backends: readonly string[], swept: { name: string; values: readonly number[] } | null,
   settings: Record<string, Setting>): Arm[] {
   const arms: Arm[] = [{ id: 'claude', kind: 'claude', backend: null, settings: {} }, ...(adapter.extraArms?.() ?? [])]
   for (const backend of backends) {
     for (const value of swept ? swept.values : [null]) {
-      const mine = { ...settings, ...(swept && value !== null ? { [swept.name]: value } : {}) }
-      const tag = Object.entries(mine).map(([k, v]) => `${k}=${v}`).join(' ')
-      arms.push({ id: `jev-mod ${backend}${tag ? ` ${tag}` : ''}`, kind: 'jev-mod', backend, settings: mine })
+      const mine = { ...(adapter.bare ?? {}), ...settings, ...(swept && value !== null ? { [swept.name]: value } : {}) }
+      const tag = [...(adapter.bare ? ['bare'] : []), ...Object.entries(mine).map(([k, v]) => `${k}=${v}`)].join(' ')
+      arms.push({ id: `jev-mod ${backend}${tag ? ` ${tag}` : ''}`, kind: 'jev-mod', backend, settings: mine, ...(adapter.bare ? { bare: true as const } : {}) })
     }
   }
   return arms
@@ -74,8 +78,10 @@ export function guard(p: Plan, yes: boolean): string | null {
  * (so a jev-mod arm runs the feature under test and as little else as it can), then the adapter's
  * own sections. Protective features (screening, the gates) stay as the person has them: an
  * overlay may only make them stricter. What they still ask is in the row's `by_feature`, apart
- * from the feature's own decisions. A plain arm runs with jev-mod off whole (task.ts), so this only
- * matters to it as a second guard.
+ * from the feature's own decisions. A plain arm runs with jev-mod off whole (task.ts), and a bare
+ * arm with every feature but the one under test killed (bare.ts), so this only matters to them as
+ * a second guard; a bare arm's overlay still turns the feature on (the browser: loopback hosts only)
+ * and names its ledger.
  */
 export function overlayFor(adapter: TaskAdapter, arm: Arm, ledger: string): Record<string, unknown> {
   const features: Record<string, Record<string, unknown>> = {}

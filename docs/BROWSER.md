@@ -120,7 +120,9 @@ status closes it at once, and every browser closes when the session ends.
    the text is redacted (cards and tokens; emails and phones too with *Mask contact details*,
    `redact_contacts`, on) and screened: passages carrying
    instructions aimed at an AI are withheld, by the same screen as WebFetch's, whatever the
-   screening feature's own mode. A page with a password, card or one-time-code field, or text that
+   screening feature's own mode. Only the task bench's bare arm skips this screen (the hidden
+   `screenPages` setting, false in its own scratch config, read only while a bench overlay turned
+   the browser on for loopback hosts; src/bench/README.md, "A bare arm"). A page with a password, card or one-time-code field, or text that
    holds a secret, is sent as its elements only. Labels have the values cut out, are
    redacted, and are screened locally (a label that looks like an injection or a secret is replaced).
    A secret's name said in passing is not a secret here: "Forgot password", a field labelled

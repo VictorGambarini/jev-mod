@@ -15,7 +15,9 @@ import { readOnce } from './reads'
 // neither takes its knobs from here. The one exception is LOOPBACK_ON: a bench overlay may turn
 // the browser on, and it then reaches this machine's loopback hosts only (browser/index.ts
 // refuses any other startUrl or allowHosts, and attaching), so a bench can drive its own local
-// test sites and nothing on the web. `compact.dropConfidence` is how sure a drop must be for
+// test sites and nothing on the web. An arm that runs a feature with every other one off, the
+// protective ones too (the browser's bare arm), does not get that from here: it gets a scratch
+// config folder of its own (src/bench/bare.ts). `compact.dropConfidence` is how sure a drop must be for
 // /jev-mod compact to act on it (the default is engine/compact.ts's DROP_CONFIDENCE). `ledger`
 // is a folder where each decision call's cost is written, one small file per call, for the
 // bench to add up, and where /jev-mod compact writes what each compaction kept and dropped. An overlay holding anything key-shaped (a field named like a key, token,

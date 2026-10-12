@@ -85,9 +85,14 @@ export async function configured(io: IO): Promise<boolean> {
   return !path || (await hostOf(io).readFile(path)) !== undefined
 }
 
+/** The kill file in jev-mod's config folder that turns one feature off: <ID>_OFF. */
+export function killFile(mod: string, f: Feature): string {
+  return `${mod}/${f.id.toUpperCase().replace(/-/g, '_')}_OFF`
+}
+
 /** The kill files that would turn a feature off, checked in this order. */
 function killFiles(f: Feature, mod: string, jev: string): string[] {
-  return [`${mod}/OFF`, `${mod}/${f.id.toUpperCase().replace(/-/g, '_')}_OFF`,
+  return [`${mod}/OFF`, killFile(mod, f),
     ...(f.legacy?.state ? [`${jev}/${f.legacy.state.toUpperCase()}_OFF`] : [])]
 }
 
@@ -288,6 +293,8 @@ export async function write(io: IO, scope: Scope, id: string, key: string, value
   features: readonly Feature[] = FEATURES): Promise<{ ok: true; path: string } | { problem: string }> {
   const f = feature(id, features)
   if (!f) return { problem: `no feature ${id} (there are ${features.map(x => x.id).join(', ')})` }
+  // a hidden knob is the bench's own (registry.ts): /jev-mod and the dashboard never write it
+  if (key !== 'mode' && f.knobs[key]?.hidden) return { problem: `${f.id} has no setting ${key} to set from here` }
   let checked: unknown
   if (value !== undefined) {
     const result = key === 'mode' ? checkMode(f, value) : checkKnob(f, key, value)

@@ -1,5 +1,5 @@
 import type { Resolved, Scope, Source } from '../../core/config'
-import type { Feature, Knob, KnobValue } from '../../core/registry'
+import { shownKnobs, type Feature, type Knob, type KnobValue } from '../../core/registry'
 import { WORDS } from './parse'
 
 // /jev-mod's answers as text. Pure: the registry and what config.ts resolved in, lines out.
@@ -46,6 +46,8 @@ export function list(version: string, shown: Shown[], problems: string[], files:
   for (const { feature: f, resolved: r } of shown) {
     lines.push(`${f.id.padEnd(width)}  ${r.mode.padEnd(6)}  ${f.summary}${r.source === 'default' ? '' : ` (${origin(r.source)})`}`)
     for (const [name, k] of Object.entries(r.knobs)) {
+      // a hidden knob (the bench's own) only once a file sets it
+      if (f.knobs[name]?.hidden && k.source === 'default') continue
       lines.push(`${' '.repeat(width)}  ${name} = ${value(k.value)}${k.source === 'default' ? '' : ` (${origin(k.source)})`}`)
     }
   }
@@ -64,12 +66,16 @@ export function show({ feature: f, resolved: r }: Shown): string {
     ...(f.protective ? ['It guards you: a project file may only make its mode stricter (off < shadow < on), and its settings come from your own file alone.'] : []),
     ...(f.risky ? ['It acts for you: a project file may only turn it off, and its settings come from your own file alone.'] : []),
   ]
-  const knobs = Object.entries(f.knobs)
+  const knobs = shownKnobs(f)
   if (!knobs.length) lines.push('settings: none')
   for (const [name, k] of knobs) {
     const now = r.knobs[name] ?? { value: k.default, source: 'default' as Source }
     lines.push(`${name}: ${k.title}. ${k.help} (${range(k)}; default ${value(k.default)}; now ${value(now.value)}`
       + `${now.source === 'default' ? '' : `, ${origin(now.source)}`})`)
+  }
+  for (const [name, k] of Object.entries(f.knobs)) {
+    const now = r.knobs[name]
+    if (k.hidden && now && now.source !== 'default') lines.push(`${name} = ${value(now.value)} (${origin(now.source)}): ${k.help}`)
   }
   lines.push(`set: /jev-mod ${f.id} ${f.modes.join('|')}${knobs.length ? ` · /jev-mod ${f.id} <setting> <value>` : ''}`
     + ` · /jev-mod ${f.id} reset · add --project for this project only`)

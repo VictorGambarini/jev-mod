@@ -11,6 +11,8 @@ over plain Claude Code. Two levels:
   --output-format json`), on task cases. Arm A is plain Claude Code (the feature off); arm B is
   the feature on, for each backend and setting. A checker scores each run; wall time, Claude's
   cost and tokens, and the decision model's cost are recorded, and so is the shared setup's cost.
+  The browser's arm B is *bare*: the tool alone against plain Claude Code's tool (see "A bare arm"
+  below).
 
 It runs with `bun` from the repository root, outside the mod. Nothing here is loaded by the mod.
 
@@ -139,6 +141,39 @@ A task-level arm needs a feature on or off and a threshold set, without writing 
 Each arm's overlay turns every other feature that changes what the model sees off, so arms
 differ only in the feature under test; protective features stay as the person has them, the same
 in every arm.
+
+## A bare arm: tool against tool
+
+The browser's task bench compares one tool with another: Playwright MCP in plain Claude Code
+against `browse` and nothing else of jev-mod. So its jev-mod arm is bare (`bare` on the adapter,
+`bare.ts`): `browse` with its own page screening off and every other feature off, the protective
+ones included (screening, the gates, the web filter). Playwright MCP screens nothing and no gate
+stands around it, so a guard on one side only would measure the guard, not the tool. Its other
+settings are as shipped (`confirmConfidence` 0.5 and the rest), and the overlay that turns it on
+still keeps it to loopback hosts. Its id says what is off, `jev-mod openrouter bare
+screenPages=false`, and the report notes that a bare arm is not jev-mod as shipped.
+
+An overlay cannot do this, on purpose: a cloned repo's settings could name one, so it may never
+switch a protection off. A bare arm gets a scratch config folder instead, as plain Claude Code's
+does, and its calls get `XDG_CONFIG_HOME` pointing at it:
+
+- `jev-mod/<ID>_OFF`, a kill file for every feature but the one under test;
+- `jev-mod/config.json` with the feature's settings for the arm: `screenPages` false, plus any
+  `--set` that names one of its settings. `screenPages` is a hidden setting: `/jev-mod`, its
+  typeahead and the dashboard neither show nor write it (it is shown once a file sets it), the
+  settings tables do not list it, and `browse` reads it only while a bench overlay turned the
+  browser on (loopback hosts only). In any other session the page text is screened, whatever a
+  file says;
+- `jev`, a link to the person's own jev config folder (`$XDG_CONFIG_HOME/jev`, else
+  `~/.config/jev`). The mod finds the decision backend's key as in any session: from the
+  environment, its own key setting (Claude Code's credential store) or the OS secret store, which
+  the scratch folder does not move, or a `credentials-*` file in jev's folder, which it would
+  (`engine/keys.ts`), hence the link. The bench never opens, reads, copies or prints anything in
+  it; the mod reads its key, `backends.json`, the daily budget and private mode there as always.
+  Removing the scratch folder removes the link, never what it points to.
+
+A bare row whose ledger shows a decision from any feature but the one under test (or one naming
+no feature) is an error, `other_decisions_in_bare_arm`, so a scored bare run is provably bare.
 
 ## What it measures
 
@@ -276,6 +311,8 @@ backend), or a note when the mod has no setting for it yet (`compact`'s drop bar
      the overlay switches off every feature it may (all but the protective ones, which it may only
      tighten). What still asks is recorded per feature in the row's `by_feature` (requests, calls,
      cost), and the report shows the feature's own decision cost apart from the other features'.
+     An adapter with `bare` (the browser's) runs it bare instead: every other feature off, the
+     protective ones too, through a scratch config folder ("A bare arm" above).
    - **Only what the bench gives it.** Every call gets `--strict-mcp-config --setting-sources
      project,local` (`ISOLATED` in `task.ts`): no MCP server but one an arm passes with
      `--mcp-config`, and none of the person's user settings, other plugins, hooks, skills or

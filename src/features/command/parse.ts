@@ -1,5 +1,5 @@
 import type { Scope } from '../../core/config'
-import { MODES, type Feature } from '../../core/registry'
+import { MODES, shownKnobs, type Feature } from '../../core/registry'
 import { ABOUT as ACCESS_ABOUT, CATEGORIES, isCategory, type Category } from '../access-gate/rules'
 
 // /jev-mod's arguments, read into what to do. Pure: the text after the name in, an action out.
@@ -56,11 +56,11 @@ export function parse(args: string, features: readonly Feature[]): Action {
   if (f.id === 'browser' && what === 'install' && !rest.length) return { kind: 'browser-install' }
   if (what === 'reset' && !rest.length) return { kind: 'reset', feature: f.id, scope }
   if ((MODES as readonly string[]).includes(what) && !rest.length) return { kind: 'set', feature: f.id, key: 'mode', value: what, scope }
-  if (second in f.knobs) {
+  if (second in f.knobs && !f.knobs[second]!.hidden) {
     if (!rest.length) return { kind: 'usage', problem: `${f.id}.${second} needs a value: /jev-mod ${f.id} ${second} <value>` }
     return { kind: 'set', feature: f.id, key: second, value: rest.join(' '), scope }
   }
-  const knobs = Object.keys(f.knobs)
+  const knobs = shownKnobs(f).map(([name]) => name)
   return { kind: 'usage', problem: `${f.id} takes ${[...f.modes, 'reset', ...knobs].join(', ')}, not ${second}` }
 }
 
@@ -113,9 +113,9 @@ export function complete(before: string, token: string, features: readonly Featu
   if (done.length === 1) {
     return starts([...f.modes.map(m => ({ text: m, description: `mode ${m}` })), { text: 'reset', description: 'clear what the file sets' },
       ...(f.id === 'browser' ? [{ text: 'install', description: 'install Playwright and Chromium (about 150 MB)' }] : []),
-      ...Object.entries(f.knobs).map(([name, k]) => ({ text: name, description: k.title }))])
+      ...shownKnobs(f).map(([name, k]) => ({ text: name, description: k.title }))])
   }
-  const knob = done.length === 2 ? f.knobs[done[1] ?? ''] : undefined
+  const knob = done.length === 2 ? shownKnobs(f).find(([name]) => name === done[1])?.[1] : undefined
   if (knob) {
     const values: readonly string[] = knob.type === 'choice' || knob.type === 'list' ? knob.options : knob.type === 'boolean' ? ['true', 'false'] : []
     return starts(values.map(v => ({ text: v })))

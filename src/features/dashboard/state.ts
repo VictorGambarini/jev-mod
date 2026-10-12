@@ -1,6 +1,6 @@
 import type { Activity } from '../../core/activity'
 import { beneathProject, killedBy, resolve, type Resolved, type Scope, type Snapshot, type Source } from '../../core/config'
-import type { Feature, KnobValue, Mode } from '../../core/registry'
+import { shownKnobs, type Feature, type KnobValue, type Mode } from '../../core/registry'
 
 // What the dashboard page is drawn from, and what the server says on stdout. Pure: the facts in,
 // the state file's JSON out; a line in, a message out. Every feature in the registry, with its
@@ -158,7 +158,7 @@ export function build(f: Facts): State {
       const resolved: Resolved = resolve(f.snap, feat)
       return {
         id: feat.id, title: feat.title, summary: feat.summary, help: feat.help, modes: feat.modes, default: feat.default,
-        knobs: Object.entries(feat.knobs).map(([name, k]) => knobView(name, k)),
+        knobs: shownKnobs(feat).map(([name, k]) => knobView(name, k)),
         resolved, files: filesOf(f.snap, feat.id), killedBy: killedBy(f.snap, feat),
         projectFloor: feat.protective ? beneathProject(f.snap, feat).mode : null,
       }
@@ -208,7 +208,7 @@ export function readLine(line: string, features: readonly Feature[]): Message | 
   if (!f) return bad(`no feature ${String(v.feature)}`)
   if (v.op === 'reset') return { kind: 'op', op: { id, op: 'reset', scope: v.scope, feature: f.id } }
   const key = v.key
-  if (typeof key !== 'string' || (key !== 'mode' && !(key in f.knobs))) return bad(`${f.id} has no setting ${String(key)}`)
+  if (typeof key !== 'string' || (key !== 'mode' && !shownKnobs(f).some(([name]) => name === key))) return bad(`${f.id} has no setting ${String(key)}`)
   const value = v.value
   if (value !== null && !['string', 'number', 'boolean'].includes(typeof value)) return bad('a value must be a string, number, boolean or null')
   if (key === 'mode' && value === null) return bad('a mode cannot be cleared on its own; reset the feature')

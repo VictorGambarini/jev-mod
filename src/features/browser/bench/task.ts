@@ -3,11 +3,17 @@
 // its browser tool (Playwright MCP, or jev-mod's browse), and the site's log is checked after. The
 // row's detail keeps the site's trail of pages and actions, the answer, and each browser tool call
 // with its answer (from the session's transcript), so a loss can be read afterwards.
+//
+// Tool against tool: the jev-mod arm is bare (bench/bare.ts), browse alone with its own page
+// screening off (screenPages false) and every other jev-mod feature off, the protective ones
+// too, against Playwright MCP alone. Its id says so: `jev-mod <backend> bare screenPages=false`.
+// Its other browser settings are as shipped, and the bench overlay that turns it on keeps it to
+// loopback hosts.
 
 import { fs, proc } from '../../../bench/node'
 import type { ArmSetup, Step, TaskAdapter } from '../../../bench/types'
 import { readLog, serveSite } from './serve'
-import { armArgs, type BrowserTask, checkRun, chromiumPath, parseLog, playwrightConfig, REFUSED, TASKS, toolCalls, UNATTENDED } from './tasks'
+import { armArgs, BARE, type BrowserTask, checkRun, chromiumPath, overlayOf, parseLog, playwrightConfig, REFUSED, TASKS, toolCalls, UNATTENDED } from './tasks'
 
 // About what one task costs on the Claude side, for the estimate, from the 2026-10-11 smoke run
 // (two cases on Opus): Playwright MCP $0.22-0.25 a case, browse $0.14-0.21; tasks with a login or
@@ -27,8 +33,9 @@ export async function transcriptOf(dir: string): Promise<string> {
 export const task: TaskAdapter<BrowserTask> = {
   feature: 'browser',
   cases: () => TASKS,
+  bare: BARE,
   steps: (t, arm): Step[] => [{ prompt: t.prompt + UNATTENDED, final: true, disallowedTools: REFUSED, usd: USD[arm.kind] }],
-  overlay: arm => ({ features: { browser: { mode: arm.kind === 'jev-mod' ? 'on' : 'off' } } }),
+  overlay: overlayOf,
   async beforeArm(t, arm, dir): Promise<ArmSetup> {
     const f = await fs()
     const site = serveSite(t.site, `${dir}/site-log.jsonl`)

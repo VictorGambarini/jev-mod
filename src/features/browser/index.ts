@@ -25,6 +25,8 @@ import {
 // (rules.ts); a child process holding Playwright does it (child.ts, driver.mjs). Every page's
 // text is scrubbed of the input values, redacted and screened before the decision model reads
 // it, and a page that holds secrets (holdsSecret: not one that only names a password) is sent as its elements only.
+// Only the task bench's bare arm skips the screening (the hidden screenPages knob, false in its
+// scratch config), and only while a bench overlay turned the browser on, for loopback hosts only.
 //
 // It stops, and says why, on: done (the pick, or the step request's goal_reached signal, then a
 // second check over the page's own text, which must find the exact thing the goal asks for on a
@@ -178,6 +180,8 @@ type Ctx = {
   /** Times an action is seen to change nothing on a page before it is no longer offered there. */
   deadRepeats?: number
   textChars: number
+  /** Whether page text is screened: false only in the task bench's bare arm (screenPages, see browse). */
+  screenPages: boolean
   max: number
   step: number
   screened: Map<string, string>
@@ -257,7 +261,7 @@ function shown(page: Page): string | null {
 
 /** Injected instructions withheld, as screening withholds them from a fetched page (whatever screening's own mode). */
 async function screen(ctx: Ctx, text: string): Promise<string> {
-  if (!text.trim()) return text
+  if (!text.trim() || !ctx.screenPages) return text
   const known = ctx.screened.get(text)
   if (known !== undefined) return known
   // Against the daily budget like the rest of the run; past it the page is screened locally.
@@ -773,6 +777,8 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
       io, host, deps, limits: await limitsOf(io),
       confirm: knob('confirmConfidence', 0.5), floor: tuning['choose.min_confidence'] ?? knob('stepFloor', 0.4),
       deadRepeats: tuning['choose.dead_repeats'], textChars: knob('textChars', 6000),
+      // screenPages false (the bench's bare arm) holds only where a bench overlay turned the browser on: loopback hosts only
+      screenPages: !(mine.knobs.screenPages?.value === false && mine.source === 'bench overlay'),
       max, step: 0, screened: new Map(),
     }
 

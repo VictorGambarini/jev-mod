@@ -218,6 +218,12 @@ export type Arm = {
   kind: 'claude' | 'jev-mod'
   backend: string | null
   settings: Record<string, Setting>
+  /**
+   * A jev-mod arm that runs the feature alone (TaskAdapter.bare): a scratch config folder of its
+   * own (bare.ts) turns every other feature off, protective ones too, and sets the feature's
+   * settings, hidden ones included. Its id says `bare` and those settings.
+   */
+  bare?: true
 }
 
 export type Checked = { success: boolean; score: number; detail?: Record<string, unknown> }
@@ -252,6 +258,12 @@ export interface TaskAdapter<C extends TaskCase = TaskCase> {
   cases(): readonly C[]
   /** Arms beyond plain Claude Code and the feature on (compaction adds one with no compaction at all). */
   extraArms?(): Arm[]
+  /**
+   * The jev-mod arm runs bare (Arm.bare), with these of the feature's settings beyond its
+   * defaults (browser: screenPages false). Tool against tool: plain Claude Code's tool against
+   * the feature with nothing else of jev-mod around it. A bare row with another feature's decision is an error.
+   */
+  bare?: Record<string, Setting>
   /** The prompts one arm sends after the shared setup (for compaction: the compaction, then the questions). */
   steps(c: C, arm: Arm): Step[]
   /** The bench overlay's feature sections for this arm (core/bench-overlay.ts); the runner adds the rest. */

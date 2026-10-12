@@ -21,7 +21,9 @@
 // error, `decisions_in_plain_arm`. The jev-mod arm uses the person's own config and backend, with
 // every feature the overlay may switch off switched off but the one under test (plan.ts
 // overlayFor); what other features still asked is in the row's `by_feature`, apart from the
-// feature's own decisions.
+// feature's own decisions. A bare jev-mod arm (the browser's) runs the feature alone instead: a
+// scratch config folder of its own kills every other feature, protective ones too (bare.ts), and
+// a bare row whose ledger shows another feature's decision is an error, `other_decisions_in_bare_arm`.
 //
 // After a case's arms ran, the adapter's verify may turn an arm that did not do its job (a
 // compaction that never happened) into an error: such an arm is never scored. Each arm's row holds
@@ -29,9 +31,10 @@
 // recorded one, what its compaction kept and dropped.
 
 import { PROVIDERS } from '../engine/keys'
+import { BARE_STRAY, strayFeatures } from './bare'
 import './gate-sys' // the gate benches' cases reach the machine through it
 import { fs, proc, run, say, warn } from './node'
-import { plainConfig } from './plain'
+import { bareConfig, plainConfig } from './plain'
 import { overlayFor } from './plan'
 import { buildProject } from './project'
 import { toLine } from './results'
@@ -76,6 +79,8 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
   const base = await f.mkdtemp(`${proc.env.TMPDIR || '/tmp'}/jev-mod-bench-`)
   say(`scratch folder: ${base}`)
   const plain = await plainConfig()
+  // a bare arm's scratch config folder, by arm id (bare.ts)
+  const bare = new Map<string, Awaited<ReturnType<typeof bareConfig>>>()
   const rows: Row[] = []
   const claude = async (prompt: string, cwd: string, overlay: string, env: Record<string, string>, resume: string | null, fork: boolean,
     tools: string[], refused: string[] = [], more: string[] = []): Promise<Result> => {
@@ -88,6 +93,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     return { ...parsed, ms: ran.ms }
   }
   try {
+    for (const arm of o.arms) if (arm.bare) bare.set(arm.id, await bareConfig(o.adapter.feature, arm.settings))
     for (const c of o.cases) {
       const dir = `${base}/${c.id}`
       const tools = c.allowedTools ?? []
@@ -146,7 +152,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
           let final = ''
           let context: number | null = null
           try {
-            const env = { ...backendEnv(arm), ...(arm.kind === 'claude' ? plain.env : {}), ...extra.env }
+            const env = { ...backendEnv(arm), ...(arm.kind === 'claude' ? plain.env : {}), ...extra.env, ...(bare.get(arm.id)?.env ?? {}) }
             const filled = (prompt: string) => prompt.replace(/\{\{(\w+)\}\}/g, (all, name: string) => extra.vars?.[name] ?? all)
             for (const [s, step] of o.adapter.steps(c, arm).entries()) {
               if (row.outcome === 'error') break
@@ -175,6 +181,8 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
             if (book.compaction) row.compaction = book.compaction
             // plain Claude Code asks no decision model: one that did had jev-mod on, and is not plain
             if (arm.kind === 'claude' && book.decisions > 0 && row.outcome === 'ok') fail(PLAIN_DECIDED)
+            // a bare arm asks for its own feature alone: another's decision means it was not bare
+            if (arm.bare && strayFeatures(book.byFeature, o.adapter.feature).length && row.outcome === 'ok') fail(BARE_STRAY)
             if (row.outcome === 'ok') {
               const checked = await o.adapter.check(c, final, work, armDir)
               row.success = checked.success
@@ -199,6 +207,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
     }
   } finally {
     await plain.remove()
+    for (const config of bare.values()) await config.remove()
   }
   warn(`scratch folder kept for inspection: ${base}`)
   return rows

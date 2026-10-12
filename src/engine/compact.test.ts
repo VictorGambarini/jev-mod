@@ -221,3 +221,10 @@ test('trim redacts what it sends: a key in a call or a result never leaves', asy
     view(1, { head: `short ${key}`, tail: '', trim: false })])
   expect(JSON.stringify(sent)).not.toContain(key)
 })
+
+test('trim: a pair that may not be dropped (in the tail) is asked only how far to trim, and always stays', async () => {
+  const sent: TrimBody[] = []
+  const out = await trim(trimFake(sizes('0', '100', { choice: 'drop', confidence: 0.99 }), { sent }), [view(0, { mayDrop: false })])
+  expect(Object.keys(sent[0]!.questions)).toEqual(['h0', 'e0'])
+  expect(out.trims['0']).toEqual({ keep: true, head: 0, tail: 100 })
+})

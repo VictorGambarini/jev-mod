@@ -8,7 +8,7 @@ import { isPrivate, jevDir } from '../../core/settings'
 import { costOf, type Asked } from '../../engine/client'
 import { select, trim, type Selection, type Trimming } from '../../engine/compact'
 import { folderFor, prune, save } from './files'
-import { cut, keepOnly, placeholder, rebuilt, saved, trimsOf, unitsOf, type Msg } from './keep'
+import { cut, isThinkingOnly, keepOnly, placeholder, rebuilt, saved, trimsOf, unitsOf, type Msg } from './keep'
 
 // /jev-mod compact: a compaction with no summariser. Old tool calls with their results, where the
 // tokens are, are judged as pairs: for each one outside the last few messages, the full call and
@@ -52,11 +52,12 @@ export function isOurs(e: { instructions?: string; agentId?: string; trigger?: s
 }
 
 /** The note that stands first in the compacted conversation: what was cut, and where the files are. */
-export function noteText(o: { messages: number; dropped: number; pairsDropped: number; trimmed: number; folder: string | null }): string {
+export function noteText(o: { messages: number; dropped: number; pairsDropped: number; trimmed: number; thinking?: number; folder: string | null }): string {
   const parts = ['[jev-mod compact] Earlier parts of this conversation were cut by a decision model; nothing was summarised.']
   if (o.dropped) {
     parts.push(`${o.dropped} of ${o.messages} messages are gone: ones whose text it confidently judged to be chatter, ` +
-      'superseded or repeated, or detail nothing later depends on, and ones that held only a tool call or result it dropped.')
+      'superseded or repeated, or detail nothing later depends on, and ones that held only a tool call or result it dropped' +
+      `${o.thinking ? `, and ${o.thinking} that held only thinking (no earlier thinking is kept)` : ''}.`)
   }
   if (o.pairsDropped && o.folder) {
     parts.push(`It dropped ${o.pairsDropped} old tool calls with their results, each call and result together.`)
@@ -141,17 +142,20 @@ export async function compact(io: IO, messages: readonly any[]): Promise<{ messa
   }
   if (where) void prune(io, where.root, where.session)
 
+  // every assistant message comes back built, without its thinking, so a thinking-only one goes
+  // (keep.ts's rebuilt): not a decision, so counted apart
+  const thinking = (messages as Msg[]).filter(isThinkingOnly).length
   const kept = rebuilt(keepOnly(messages as Msg[], units, texts?.fates ?? {}), newTexts, dropPairs)
   const dropped = messages.length - kept.length
   if (!dropped && !newTexts.size && !dropPairs.size) return done('Jev marked nothing to drop or trim; nothing to remove')
   const note = {
     role: 'user',
-    text: noteText({ messages: messages.length, dropped, pairsDropped: dropPairs.size, trimmed: newTexts.size, folder: where?.dir ?? null }),
+    text: noteText({ messages: messages.length, dropped, pairsDropped: dropPairs.size, trimmed: newTexts.size, thinking, folder: where?.dir ?? null }),
     toolUses: [],
   }
   void activity.count(io, 'compact', 'compacted')
   await ledgerCompaction(io, { messages: messages.length, kept: kept.length, dropped, skip: null,
-    pairsDropped: dropPairs.size, trimmed: newTexts.size, charsRemoved, files: files.size })
+    pairsDropped: dropPairs.size, trimmed: newTexts.size, charsRemoved, files: files.size, thinkingDropped: thinking })
   const what = [dropPairs.size ? `dropped ${dropPairs.size} tool calls with their results` : '',
     newTexts.size ? `trimmed ${newTexts.size} tool results` : ''].filter(Boolean).join(', ')
   io.toast(`jev-mod compact: ${dropped} of ${messages.length} messages gone${what ? `; ${what} (${Math.round(charsRemoved / 1000)}k ` +

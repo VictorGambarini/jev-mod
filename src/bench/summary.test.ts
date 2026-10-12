@@ -123,6 +123,23 @@ test('task level: the setup is no arm, a failed run is never scored, and the spe
   expect(md).toContain('Spend in all: $3.400 Claude, of which the shared setup $2.000 (1 case(s), 60.0 s)')
 })
 
+test('task level: the compaction step and the question step are timed apart', () => {
+  const task = (arm: string, step_ms?: number[]): Row => ({
+    ...row('typesafe', 'jev-1.13', []), level: 'task', arm, success: true, score: 1, wall_ms: 30_000, claude_cost_usd: 0.5,
+    context_tokens: 50_000, ...(step_ms ? { step_ms } : {}),
+  })
+  const s = summarise(gate, [task('no compaction', [9_000]), task('jev-mod typesafe', [4_000, 10_000]), task('jev-mod typesafe', [6_000, 12_000]),
+    task('jev-mod typesafe', [8_000, 14_000]), task('claude', [70_000, 8_000]), task('other')], false)
+  const by = Object.fromEntries(s.arms.map(a => [a.key, a.stepsMs]))
+  expect(by['no compaction']).toEqual({ before: null, final: 9_000 })
+  expect(by['jev-mod typesafe']).toEqual({ before: 6_000, final: 12_000 })
+  expect(by['claude']).toEqual({ before: 70_000, final: 8_000 })
+  expect(by['other']).toBe(null)
+  const md = markdown(gate, s, {})
+  expect(md).toContain('| compaction time | question time |')
+  expect(md).toContain("| jev-mod typesafe | 50.0k | – | – | 6000 ms | 12.0 s |")
+})
+
 test('a case settled without a request counts with its backend, not as a backend of its own', () => {
   const local = row('openrouter', 'jev-latest', [[true, 1]], { answered_model: null, calls: 0, latencies_ms: [], cost_usd: 0 })
   const asked = row('openrouter', 'jev-latest', [[false, 0.2]], { answered_model: 'jev-1.13' })

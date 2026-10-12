@@ -64,6 +64,7 @@ export function readLedger(files: readonly { name: string; text: string }[]): Le
         last = e.at ?? 0
         out.compaction = { messages: n(e.messages), kept: n(e.kept), dropped: n(e.dropped),
           ...('trimmed' in e ? { pairsDropped: n(e.pairsDropped), trimmed: n(e.trimmed), charsRemoved: n(e.charsRemoved), files: n(e.files) } : {}),
+          ...('thinkingDropped' in e ? { thinkingDropped: n(e.thinkingDropped) } : {}),
           skip: typeof e.skip === 'string' ? e.skip : null }
       }
       continue

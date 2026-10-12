@@ -158,6 +158,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
               if (row.outcome === 'error') break
               const r = await claude(filled(step.prompt), work, overlay, env, mine, s === 0 && mine !== null, tools, step.disallowedTools, extra.claudeArgs)
               row.wall_ms! += r.ms
+              ;(row.step_ms ??= []).push(r.ms)
               row.claude_cost_usd! += r.cost
               for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
               for (const [model, usd] of Object.entries(r.models ?? {})) (row.claude_models ??= {})[model] = (row.claude_models[model] ?? 0) + usd

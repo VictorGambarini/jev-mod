@@ -85,6 +85,12 @@ const callOf = (out: Out, id: string) => body(out).flatMap((x: any) => x.toolUse
 const resultText = (out: Out, id: string) =>
   body(out).flatMap((x: any) => x.toolResults ?? []).find((r: any) => r.tool_use_id === id)?.text as string | undefined
 const DIR = '/home/u/.cache/jev-mod/compact/s1'
+/** Where a kept message came from: the same object, or the same message handed back built (without its handle); -1 for none. */
+const from = (messages: object[]) => (x: any) => messages.findIndex((m: any) => {
+  if (m === x) return true
+  const { handle: _h, ...rest } = m
+  return JSON.stringify(rest) === JSON.stringify(x)
+})
 
 test('Jev down: nothing is removed or trimmed, and no file is written', async () => {
   const fake = io(() => ({ choice: 'drop', confidence: 0.99 }), undefined, 'down')
@@ -102,6 +108,7 @@ test('a long result is trimmed to what Jev keeps, saved in full first; the call,
   expect(body(out)).toHaveLength(messages.length)
   body(out).forEach((x: any, i: number) => {
     if ([2, 4, 6].includes(i)) expect([x.handle, x.toolResults.length]).toEqual([undefined, 1])
+    else if (x.role === 'assistant') expect([x.handle, from(messages)(x)]).toEqual([undefined, i]) // built: no handle
     else expect(x).toBe(messages[i])
   })
   const file = `${DIR}/t2.txt`
@@ -134,8 +141,7 @@ test('a confident drop takes a text-only message; a message with a tool call sta
   const fake = io(() => ({ choice: 'drop', confidence: 0.9 }), () => ({ choice: '600', confidence: 0.9 }))
   const out = await compact(fake, messages)
   // 0 and 7 are text only and go; 1 (narration with a call) is never sent and stays; 600+600 still cuts the long log
-  expect(body(out).map((x: any) => messages.indexOf(x)).filter((i: number) => i >= 0)).toEqual([1, 3, 5, 8, 9, 10, 11, 12, 13])
-  expect(body(out)).toHaveLength(12) // and the three result messages, rebuilt
+  expect(body(out).map(from(messages))).toEqual([1, 2, 3, -1, 5, 6, 8, 9, 10, 11, 12, 13]) // -1: the log, trimmed
   expect(resultText(out, 't2')).toContain('keeping its first 600 and last 600')
   const turns = fake.asked.flatMap(b => Object.values(b.state.turns ?? {}))
   expect(turns).toEqual(['user: fix the failing test', 'assistant: ok, noted'])
@@ -153,7 +159,7 @@ test('a pair Jev confidently drops goes whole, call and result, saved first; the
   expect(resultText(out, 't3')).toContain(SECRET) // never sent: whole
   // 1 keeps its narration (rebuilt without the call); 2, 3 and 4 held only the dropped pairs and go; 6 is rebuilt
   const kept = body(out)
-  expect(kept.map((x: any) => messages.indexOf(x))).toEqual([0, -1, 5, -1, 7, 8, 9, 10, 11, 12, 13])
+  expect(kept.map(from(messages))).toEqual([0, -1, 5, 6, 7, 8, 9, 10, 11, 12, 13])
   expect(kept[1]).toEqual({ role: 'assistant', text: 'Let me run the tests', toolUses: [] })
   expect(Object.keys(fake.disk).filter(p => p.startsWith(DIR)).sort()).toEqual([`${DIR}/t1.txt`, `${DIR}/t2.txt`])
   expect(fake.disk[`${DIR}/t1.txt`]).toContain('FAIL src/a.test.ts\nexpected 2, got 3')
@@ -173,6 +179,37 @@ test('a bench run counts dropped pairs', async () => {
     r => (r.includes('npm test') ? { choice: 'drop', confidence: 0.9 } : { choice: 'keep', confidence: 0.9 })))
   await compact(fake, convo())
   expect(ledgerOf(fake.disk).compaction).toMatchObject({ messages: 14, kept: 13, dropped: 1, pairsDropped: 1, trimmed: 1, files: 2 })
+})
+
+test('a long result in the tail may be trimmed, never dropped; thinking goes without asking', async () => {
+  const messages = [
+    ...convo().slice(0, 7),
+    m('assistant', ''),                                                                         // 7: thinking alone, before the tail
+    m('assistant', 'ok, noted'),                                                                // 8
+    m('user', 'one more'),                                                                      // 9: tail starts
+    m('assistant', '', { toolUses: [use('t9', 'cat big.log')] }),                               // 10
+    m('user', '', { toolResults: [res('t9', LOG)] }),                                           // 11
+    m('assistant', ''),                                                                         // 12: thinking in the tail
+    m('assistant', 'read it'),                                                                  // 13
+    m('user', 'thanks'),                                                                        // 14
+  ]
+  // every pair is dropped where it may be; the tail's is trimmed to 100 + 100
+  const fake = benched(io(() => ({ choice: 'keep', confidence: 0.9 }), () => ({ choice: '100', confidence: 0.9 }), 'up', Infinity,
+    () => ({ choice: 'drop', confidence: 0.9 })))
+  const out = await compact(fake, messages)
+  const asked = fake.asked.flatMap(b => Object.keys(b.questions))
+  const tailView = fake.asked.flatMap(b => Object.entries(b.state.results ?? {})).find(([, v]) => v.includes('cat big.log'))![0]
+  expect(asked).not.toContain(`k${tailView.slice(1)}`)
+  expect(asked).toContain(`h${tailView.slice(1)}`)
+  expect(callOf(out, 't9')).toEqual(use('t9', 'cat big.log'))
+  expect(resultText(out, 't9')).toContain('keeping its first 100 and last 100')
+  expect(callOf(out, 't2')).toBe(undefined)
+  const kept = body(out)
+  // thinking alone goes, the tail's too: every assistant message comes back built, without its handle
+  expect(kept.filter((x: any) => x.role === 'assistant' && !x.text && !x.toolUses?.length)).toHaveLength(0)
+  expect(kept.filter((x: any) => x.role === 'assistant' && x.handle !== undefined)).toHaveLength(0)
+  expect(ledgerOf(fake.disk).compaction).toMatchObject({ thinkingDropped: 2, trimmed: 1 })
+  expect((out as { messages: any[] }).messages[0].text).toContain('2 that held only thinking')
 })
 
 test('doubt keeps more: a low-confidence size keeps 600 of that end; an unjudged result stays whole', async () => {
@@ -220,12 +257,12 @@ test('a bench run records what the compaction dropped and trimmed, and saves its
   const out = await compact(fake, convo())
   expect('messages' in out).toBe(true)
   const removed = LOG.length - resultText(out, 't2')!.length
-  expect(ledgerOf(fake.disk).compaction).toEqual({ messages: 14, kept: 13, dropped: 1, pairsDropped: 0, trimmed: 1, charsRemoved: removed, files: 1, skip: null })
+  expect(ledgerOf(fake.disk).compaction).toEqual({ messages: 14, kept: 13, dropped: 1, pairsDropped: 0, trimmed: 1, charsRemoved: removed, files: 1, thinkingDropped: 0, skip: null })
   expect(Object.keys(fake.disk).filter(p => p.startsWith('/scratch/ledger/compact-files/s1/'))).toEqual(['/scratch/ledger/compact-files/s1/t2.txt'])
   expect(Object.keys(fake.disk).some(p => p.startsWith('/home/u/.cache'))).toBe(false)
   const down = benched(io(() => ({ choice: 'drop', confidence: 0.99 }), undefined, 'down'))
   await compact(down, convo())
-  expect(ledgerOf(down.disk).compaction).toEqual({ messages: 14, kept: 14, dropped: 0, pairsDropped: 0, trimmed: 0, charsRemoved: 0, files: 0,
+  expect(ledgerOf(down.disk).compaction).toEqual({ messages: 14, kept: 14, dropped: 0, pairsDropped: 0, trimmed: 0, charsRemoved: 0, files: 0, thinkingDropped: 0,
     skip: 'Jev did not answer; nothing was removed' })
   // the decisions are counted apart from the compaction: one file for the keep-or-drop requests, one for the trim
   // requests, failed ones too

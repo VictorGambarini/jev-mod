@@ -7,6 +7,8 @@ There is no mode setting: it runs when you type it. `/compact` is left as Claude
 ## What it decides
 
 - **For each tool call with its result** outside the last six messages, in one request: whether the pair stays in the conversation at all (*keep* or *drop*); and, for a result over 1,300 characters, how many characters of its start to keep (0, 100, 300 or 600) and how many of its end (0, 100, 300 or 600). A kept call stays exactly as it was.
+- **For each long tool result in the last six messages**: how much of its start and end to keep, as above. A pair there is never dropped.
+- Not a decision: **thinking** goes from every assistant message (below).
 - **For each message with text and no tool call or result**: *keep* or *drop*.
 
 ## When it runs
@@ -34,8 +36,9 @@ A `/compact` typed with that marker as its instructions is answered the same way
     ```
 
     When the kept start and end cover the whole result, or the line would not make it shorter, it is left as it was. A short result is kept whole when the pair stays (asking how far to trim it would cost more than it saves).
+- **Thinking.** Every assistant message is handed back to Claude Code rebuilt from its text and tool calls, so its thinking is left out, and a message that held only thinking goes. This is not asked. A later turn does not need an earlier turn's thinking, and the API allows leaving it out of every turn but the last one of an unfinished tool loop, which a compaction between turns never has. It is also how the compaction holds after a resume: a message handed back as Claude Code had it keeps its API message id, and a resumed session gathers every row of the transcript with that id, bringing back the thinking, the dropped tool calls and the text a second time (on one bench session the resumed question read 82k tokens; with every assistant message rebuilt, 26k).
 - **Messages.** Keep means: a decision, a constraint, a user preference, an unfinished task, an exact value, path, id, command or error that later work depends on, or background whose gist later work needs. Drop means chatter, acknowledgements, superseded attempts, repeated output, or detail nothing later depends on. A message goes only when its text was judged drop with confidence of at least 0.5 (`DROP_CONFIDENCE` in `src/engine/compact.ts`). A long text is judged on its first and last 350 characters, redacted. The text of a message that holds a tool call or result is not sent: that message's tool pairs decide it.
-- **Doubt keeps, sized to the choice.** A drop below the same 0.5 confidence keeps the pair (and its result is then trimmed as answered); a size below it keeps all 600 characters of that end. A pair is left whole, and no file is written for it, when the decision model did not judge it (it was down, timed out, or answered only part), when the call or the full result held something sensitive (never sent), when its call is no longer in the conversation, when it or its call is among the last six messages, or when its file could not be written privately. A text it did not judge stays. Errors are judged like any other result; the file keeps them whole.
+- **Doubt keeps, sized to the choice.** A drop below the same 0.5 confidence keeps the pair (and its result is then trimmed as answered); a size below it keeps all 600 characters of that end. A pair is left whole, and no file is written for it, when the decision model did not judge it (it was down, timed out, or answered only part), when the call or the full result held something sensitive (never sent), when its call is no longer in the conversation, when it is among the last six messages and its result is 1,300 characters or shorter, or when its file could not be written privately. A pair among the last six messages is never dropped. A text it did not judge stays. Errors are judged like any other result; the file keeps them whole.
 - Requests are packed by encoded size: texts up to 40 to a request, tool pairs up to 20 (three questions each, one for a short result).
 - A note goes first in the compacted conversation: how many messages went, how many tool pairs were dropped and results trimmed, and the folder that holds their files. Nothing is summarised.
 
@@ -54,13 +57,13 @@ Nothing is removed when the decision model does not answer, when it marks nothin
 ## Limits
 
 - Dropping and trimming are not undone in the conversation; a dropped or trimmed tool pair is still whole in its file, a dropped message is gone. So doubt keeps.
-- The tail (six messages) is always kept whole.
+- The tail (six messages) is always kept, except that a long tool result there may be trimmed, and thinking goes there too.
 - A message that holds a kept tool call keeps its text, even chatter.
 - Claude has to Read a file to see what was cut. The task bench refuses every tool when it asks its questions, so it measures what survives in context only.
 
 ## Benchmarks
 
-Two benches (src/bench/README.md). The decision level asks Jev about ten labelled sessions and sweeps the drop bar; it scores keep or drop on messages with text and no tool call only (tool pairs are not asked there). The task level builds three long, real coding sessions in `bench/task-fixture/` (a bug fix, a feature, an investigation; about 105k tokens of conversation each), compacts a fork of each with `/compact`, with this compaction at its default, and not at all, then asks what a continuation needs with every tool refused. In a bench run the compaction writes the messages and tool pairs it dropped and the results it trimmed to the run's ledger; an arm whose question did not read a meaningfully smaller context, or that did none of these, is `not_compacted`, never a score. One pass of three cases costs about $69 in Claude calls (`bun src/bench/run.ts compact --level task --backend <name>` prints the plan).
+Two benches (src/bench/README.md). The decision level asks Jev about ten labelled sessions and sweeps the drop bar; it scores keep or drop on messages with text and no tool call only (tool pairs are not asked there). The task level builds three long, real coding sessions in `bench/task-fixture/` (a bug fix, a feature, an investigation; about 105k tokens of conversation each), compacts a fork of each with `/compact`, with this compaction at its default, and not at all, then asks what a continuation needs with every tool refused. In a bench run the compaction writes the messages and tool pairs it dropped and the results it trimmed to the run's ledger; an arm whose question did not read a meaningfully smaller context, or that did none of these, is `not_compacted`, never a score. Each arm's compaction step and question step are timed apart (`step_ms` in its rows; the report's compaction time and question time). One pass of three cases costs about $69 in Claude calls (`bun src/bench/run.ts compact --level task --backend <name>` prints the plan).
 
 <!-- bench:start -->
 **Bench** (`bun src/bench/report.ts compact`; 0.11.0@14f7f68, 0.11.0@40135d0).

@@ -60,6 +60,8 @@ export type ArmSummary = {
   /** `plain`: Claude Code with the feature off (arm `claude`); `jev-mod`: the feature on; `other`: any further arm (compaction's "no compaction"). */
   kind: 'plain' | 'jev-mod' | 'other'
   tokens: number | null
+  /** Median wall time of the steps before the final one (for compaction: the compaction itself), and of the final step, over every run that recorded its steps. */
+  stepsMs: { before: number | null; final: number | null } | null
   /** The final step's context in tokens (what a compacted question read), over every run that reported it, failed ones too. */
   context: number | null
   /** What the mod's compactions kept and dropped, in messages, and the tool pairs they dropped and results they trimmed (with the characters that took out), over the runs that recorded one. */
@@ -195,6 +197,7 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
         tokens: num(r => (r.claude_tokens ? r.claude_tokens.input + r.claude_tokens.output + r.claude_tokens.cache_read + r.claude_tokens.cache_write : undefined)),
         // a compaction that did too little is an error, and what it read and kept is the reason: these count every run
         context: all(r => r.context_tokens),
+        stepsMs: stepTimes(mine),
         compaction: compacted.length ? { messages: all(r => r.compaction?.messages)!, kept: all(r => r.compaction?.kept)!,
           dropped: all(r => r.compaction?.dropped)!,
           // a record from before results were trimmed has no count: such an arm shows none
@@ -286,6 +289,14 @@ export function plots(adapter: DecisionAdapter, s: Summary): Record<string, stri
     })
   }
   return out
+}
+
+/** The median wall time of the steps before the last (summed per run) and of the last step, over the runs that recorded their steps. */
+export function stepTimes(rows: readonly Row[]): { before: number | null; final: number | null } | null {
+  const timed = rows.map(r => r.step_ms).filter((t): t is number[] => Array.isArray(t) && t.length > 0)
+  if (!timed.length) return null
+  const before = timed.filter(t => t.length > 1).map(t => t.slice(0, -1).reduce((a, b) => a + b, 0))
+  return { before: before.length ? percentile(before, 50) : null, final: percentile(timed.map(t => t[t.length - 1]!), 50) }
 }
 
 /** One line per backend: the best threshold, and what it scores against the shipped default. */
@@ -384,11 +395,16 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
     }
     if (s.arms.some(a => a.context !== null || a.compaction)) {
       const kd = (a: ArmSummary) => (a.compaction ? `${Math.round(a.compaction.kept)} / ${Math.round(a.compaction.dropped)} of ${Math.round(a.compaction.messages)}` : '–')
+      const sec = (n: number | null | undefined) => (n === null || n === undefined ? '–' : ms(n))
       const tr = (a: ArmSummary) => (a.compaction?.trimmed === undefined ? '–'
         : `${Math.round(a.compaction.pairsDropped ?? 0)} / ${Math.round(a.compaction.trimmed)} (${Math.round((a.compaction.charsRemoved ?? 0) / 1000)}k chars)`)
-      lines.push('| arm | question context | kept / dropped | tool pairs dropped / trimmed | Claude tokens |', '|---|---|---|---|---|')
-      for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${tok(a.context)} | ${kd(a)} | ${tr(a)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
-      lines.push('', '- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it; tool pairs dropped / trimmed: tool calls dropped with their results, and results cut down, with the characters that took out (each pair saved in full to a file).', '')
+      lines.push('| arm | question context | kept / dropped | tool pairs dropped / trimmed | compaction time | question time | Claude tokens |',
+        '|---|---|---|---|---|---|---|')
+      for (const a of s.arms) {
+        lines.push(`| ${armLabel(a)} | ${tok(a.context)} | ${kd(a)} | ${tr(a)} | ${sec(a.stepsMs?.before)} | ${sec(a.stepsMs?.final)} | ` +
+          `${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
+      }
+      lines.push('', '- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it; tool pairs dropped / trimmed: tool calls dropped with their results, and results cut down, with the characters that took out (each pair saved in full to a file); compaction time and question time: the median wall time of the compaction step and of the question step, over every run (no compaction has no compaction step).', '')
     }
     if (s.spend) {
       const setup = s.setup ? `, of which the shared setup ${usd(s.setup.claudeCost)} (${s.setup.cases} case(s), ${ms(s.setup.wallMs)})` : ''

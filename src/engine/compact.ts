@@ -164,8 +164,9 @@ export function trimOptions(end: 'start' | 'end'): Record<string, string> {
  * One tool call with its result, as Jev sees it. With `trim`, `head` and `tail` are the result's
  * raw first and last TRIM_SHOWN characters, and Jev is asked how many of each stay; without it
  * (a short result), `head` is the whole result, `tail` is empty, and Jev is asked keep or drop only.
+ * Without `mayDrop` (a pair in the always-kept tail) Jev is not asked keep or drop: it stays.
  */
-export type TrimView = { tool: string; arg: string; size: number; isError: boolean; head: string; tail: string; trim: boolean }
+export type TrimView = { tool: string; arg: string; size: number; isError: boolean; head: string; tail: string; trim: boolean; mayDrop?: boolean }
 /** A judged pair: whether it stays, and what of its result does (TRIM_SHOWN both ways for a short one: all of it). */
 export type Trim = { keep: boolean; head: TrimSize; tail: TrimSize }
 
@@ -216,8 +217,8 @@ export async function trim(host: Host, views: readonly TrimView[],
   for (const group of packBy(all, i => encode(texts[i]!, { ensureAscii: true }).length + PER_TURN_OVERHEAD, TRIM_BATCH)) {
     const state = { results: Object.fromEntries(group.map(i => [`R${i}`, texts[i]!])) }
     const questions = Object.fromEntries(group.flatMap(i => [
-      [`k${i}`, choice(`Tool call R${i} and its result are saved in full to a file a later step can read. For continuing ` +
-        `this work later, should R${i} stay in the conversation at all, or could a later step re-read the file?`, PAIR_FATE)],
+      ...(views[i]!.mayDrop === false ? [] : [[`k${i}`, choice(`Tool call R${i} and its result are saved in full to a file a later step can read. For continuing ` +
+        `this work later, should R${i} stay in the conversation at all, or could a later step re-read the file?`, PAIR_FATE)]]),
       ...(views[i]!.trim ? [
         [`h${i}`, choice(`If R${i} stays: would a later step need the first characters of its result in front of it, or ` +
           'could it re-read the file? How many of its first characters should stay?', trimOptions('start'))],
@@ -236,7 +237,7 @@ export async function trim(host: Host, views: readonly TrimView[],
     calls.push(reply)
     latency += reply.latency_ms
     for (const i of group) {
-      const fate = reply.answers[`k${i}`] as Choice
+      const fate = views[i]!.mayDrop === false ? { choice: 'keep', confidence: 1 } : reply.answers[`k${i}`] as Choice
       if (!fate || (fate.choice !== 'keep' && fate.choice !== 'drop')) continue
       const head = views[i]!.trim ? sizeOf(reply.answers[`h${i}`] as Choice) : TRIM_SHOWN
       const tail = views[i]!.trim ? sizeOf(reply.answers[`e${i}`] as Choice) : TRIM_SHOWN

@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { ALWAYS_KEEP_LAST, cut, keepOnly, placeholder, rebuilt, saved, TRIM_MIN_CHARS, trimsOf, unitsOf, type Msg, type Unit } from './keep'
+import { ALWAYS_KEEP_LAST, cut, isThinkingOnly, keepOnly, placeholder, rebuilt, saved, TRIM_MIN_CHARS, trimsOf, unitsOf, type Msg, type Unit } from './keep'
 import { KEEP_LAST, TRIM_SHOWN, trimText } from '../../engine/compact'
 
 const m = (role: string, text: string, extra: Partial<Msg> = {}): Msg => ({ role, text, ...extra })
@@ -65,7 +65,10 @@ test('what is sent: each pair outside the tail with its call and size; a long re
     ...tail().slice(1),
   ]
   const { pairs, views } = trimsOf(messages)
-  expect(pairs.map(p => p.id)).toEqual(['long', 'short'])
+  // in the tail: a long result may be trimmed, never dropped; a short one is not sent
+  expect(pairs.map(p => p.id)).toEqual(['long', 'short', 'intail'])
+  expect(views[2]).toMatchObject({ tool: 'Bash', arg: 'ls', trim: true, mayDrop: false })
+  expect(views[0]!.mayDrop).toBe(undefined)
   expect(views[1]).toEqual({ tool: 'Read', arg: '/p/short.ts', size: TRIM_MIN_CHARS, isError: false, trim: false, head: 'x'.repeat(TRIM_MIN_CHARS), tail: '' })
   expect(views[0]).toMatchObject({ tool: 'Bash', arg: 'cat app.log', size: [...big('app')].length, isError: false, trim: true })
   expect([...views[0]!.head].length).toBe(TRIM_SHOWN)
@@ -129,7 +132,7 @@ test('rebuilt: every message holding a tool result is rebuilt without its handle
   // a result message kept with its handle is written after the boundary with its old parent: a resumed session
   // would walk back through everything the compaction removed
   expect(out[3]).toEqual({ role: 'user', text: '', toolResults: [result('c', 'C')] })
-  expect(out[0]).toBe(messages[0])
+  expect(out[0]).toEqual({ role: 'assistant', text: 'reading', toolUses: [call('a'), call('b')] }) // built: no handle
   expect(out[2]).toBe(messages[2])
   expect(out[1]).toEqual({ role: 'user', text: '', toolResults: [{ tool_use_id: 'a', text: 'A trimmed', isError: false },
     { tool_use_id: 'b', text: 'B', isError: false, result: { stdout: 'B' } }] })
@@ -155,4 +158,26 @@ test('rebuilt: a dropped pair takes its call and its result; a message left empt
   const uses = out.flatMap(x => x.toolUses ?? []).map(u => u.tool_use_id)
   const results = out.flatMap(x => x.toolResults ?? []).map(r => r.tool_use_id)
   expect(uses).toEqual(results)
+})
+
+test('every assistant message comes back built (a fresh id, no thinking); thinking alone goes, the tail\'s too', () => {
+  const messages = [
+    m('user', 'go', { handle: 'u0' }),                                             // 0
+    m('assistant', '', { handle: 'a1' }),                                          // 1: thinking alone
+    m('assistant', 'Reading it', { toolUses: [call('a')], handle: 'a2' }),        // 2
+    m('user', '', { toolResults: [result('a')], handle: 'u3' }),                   // 3
+    m('assistant', 'done', { handle: 'a4' }),                                      // 4
+    m('user', '', { handle: 'u5' }),                                               // 5: a user message with nothing shown stays
+    m('assistant', '', { handle: 'a6' }),                                          // 6: thinking alone, in the tail
+    ...tail().slice(1),
+  ]
+  expect(messages.filter(isThinkingOnly)).toHaveLength(2)
+  expect(unitsOf(messages).units).toEqual([{ text: 0 }, { text: 4 }])
+  const out = rebuilt(keepOnly(messages, [], {}), new Map())
+  expect(out).toHaveLength(messages.length - 2)
+  expect(out[0]).toBe(messages[0])
+  expect(out[1]).toEqual({ role: 'assistant', text: 'Reading it', toolUses: [call('a')] })
+  expect(out[3]).toEqual({ role: 'assistant', text: 'done' })
+  expect(out[4]).toBe(messages[5])
+  expect(out.filter(x => x.role === 'assistant').every(x => x.handle === undefined)).toBe(true)
 })

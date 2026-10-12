@@ -84,9 +84,14 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
 - **What a compaction hands back is messages.** `session.compact`'s `e.messages` carry the
   engine's `handle`; a message handed back with it stands as the engine has it, and one without
   is built from its role, text and tool blocks. `/jev-mod compact` hands back every message it
-  keeps untouched with its handle, except that every message holding a tool result, and every
-  one that held a tool pair it dropped, is rebuilt (handle and a trimmed result's stored record
-  left out). A result message handed back with its handle is written after the boundary with its
+  keeps untouched with its handle, except that every assistant message, every message holding a
+  tool result, and every one that held a tool pair it dropped, is rebuilt (handle and a trimmed
+  result's stored record left out; a built assistant message gets a new API message id and no
+  thinking). An assistant message kept with its handle keeps its API message id, and a resumed
+  session gathers every row of the transcript with that id, from before the boundary too, into
+  one message: its thinking, the tool calls dropped from it and its text again come back (82k
+  tokens read on one bench session; 26k with every assistant message rebuilt). A result message
+  handed back with its handle is written after the boundary with its
   old parent, the call's original message before the boundary (seen in a bench run: the
   transcript's chain from the newest row then crossed the boundary, and `claude -p --resume`
   read the whole uncompacted conversation, 169k tokens, though the compaction itself said 28k);

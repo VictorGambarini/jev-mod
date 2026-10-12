@@ -60,6 +60,13 @@ export function unitsOf(messages: readonly Msg[]): { units: Unit[]; toJev: { rol
 }
 
 /**
+ * An assistant message with no text and no tool call: its thinking alone, which the transcript
+ * keeps as a message of its own. `rebuilt` hands every assistant message back built, which leaves
+ * thinking out, so this one is left empty and goes (see there).
+ */
+export const isThinkingOnly = (m: Msg) => m.role === 'assistant' && !hasTools(m) && !(typeof m.text === 'string' && m.text.trim())
+
+/**
  * The messages `/jev-mod compact` keeps, in order. `fates` is indexed by position in `units`
  * (the engine already turns a low-confidence drop into keep). A message goes only when its text
  * is a unit marked drop and it holds no tool call or result; the last ALWAYS_KEEP_LAST stay.
@@ -95,21 +102,24 @@ function pairsOf(messages: readonly Msg[]): Pair[] {
 /**
  * The tool pairs Jev is asked about, each with what it sees: the call, the result's size, and its
  * first and last TRIM_SHOWN characters (the engine redacts them), or all of it when it is
- * TRIM_MIN_CHARS or shorter (keep or drop only). Left whole and not sent: a pair with a half among
- * the last ALWAYS_KEEP_LAST messages, and a pair whose call or full result looks sensitive.
+ * TRIM_MIN_CHARS or shorter (keep or drop only). A pair with a half among the last ALWAYS_KEEP_LAST
+ * messages may be trimmed but never dropped, so it is sent only when its result is long. Left
+ * whole and not sent: a short pair in that tail, and a pair whose call or full result looks
+ * sensitive.
  */
 export function trimsOf(messages: readonly Msg[]): { pairs: Pair[]; views: TrimView[] } {
   const tail = Math.max(0, messages.length - ALWAYS_KEEP_LAST)
   const pairs: Pair[] = []
   const views: TrimView[] = []
   for (const p of pairsOf(messages)) {
-    if (p.call >= tail || p.result >= tail) continue
-    const arg = argsOf(p.input)
-    if (isSensitive(`${p.tool} ${arg}\n${p.text}`)) continue
+    const inTail = p.call >= tail || p.result >= tail
     const points = [...p.text]
     const long = points.length > TRIM_MIN_CHARS
+    if (inTail && !long) continue
+    const arg = argsOf(p.input)
+    if (isSensitive(`${p.tool} ${arg}\n${p.text}`)) continue
     pairs.push(p)
-    views.push({ tool: p.tool, arg, size: points.length, isError: p.isError, trim: long,
+    views.push({ tool: p.tool, arg, size: points.length, isError: p.isError, trim: long, ...(inTail ? { mayDrop: false } : {}),
       head: long ? points.slice(0, TRIM_SHOWN).join('') : p.text, tail: long ? points.slice(-TRIM_SHOWN).join('') : '' })
   }
   return { pairs, views }
@@ -147,18 +157,29 @@ export function saved(p: Pair, session: string | null): string {
 
 /**
  * The messages with each trimmed result's text replaced (`texts`, by tool_use_id) and each
- * dropped pair's call and result taken out (`drop`, by tool_use_id). Every message that holds a
- * tool result is handed back without the engine's `handle`, so the engine builds it from its role,
- * text and tool blocks: a kept result message handed back with its handle is written after the
- * compaction with its old parent (the call's original message, before the boundary), and a
- * resumed session then walks back through the whole conversation the compaction removed. A
- * trimmed result loses its stored record (`result`), which held the bulk. A message left with no
- * text and no tool block goes. Every other message is the engine's own, untouched.
+ * dropped pair's call and result taken out (`drop`, by tool_use_id). Every assistant message and
+ * every message that holds a tool result is handed back without the engine's `handle`, so the
+ * engine builds it from its role, text and tool blocks; a message left with no text and no tool
+ * block goes. Only user messages with no tool result stay the engine's own. Why, from bench runs
+ * (`claude -p --resume` after the compaction):
+ *
+ * - A result message kept with its handle is written after the compact boundary with its old
+ *   parent, the call's original row before the boundary, so a resumed session walks back through
+ *   everything the compaction removed (169k tokens read where the compaction reported 28k).
+ * - An assistant message kept with its handle keeps its API message id, and a resumed session
+ *   gathers every row of the file with that id into one message: the thinking, the dropped tool
+ *   calls (and then their results) and the very text again come back from before the boundary
+ *   (82k read on that session; 26k once every assistant message was built, with its own id).
+ *
+ * A built message carries no thinking, so thinking goes from every assistant turn, the tail's
+ * too. The API allows it: a previous turn's thinking may be left out, and only the last assistant
+ * turn of an unfinished tool loop must keep it, which a compaction between turns never has. A
+ * trimmed result loses its stored record (`result`), which held the bulk.
  */
 export function rebuilt<M extends Msg>(messages: readonly M[], texts: ReadonlyMap<string, string>, drop: ReadonlySet<string> = new Set()): M[] {
   const out: M[] = []
   for (const m of messages) {
-    const touched = !!m.toolResults?.length || m.toolUses?.some(u => drop.has(u.tool_use_id))
+    const touched = m.role === 'assistant' || !!m.toolResults?.length || m.toolUses?.some(u => drop.has(u.tool_use_id))
     if (!touched) { out.push(m); continue }
     const { handle: _handle, ...rest } = m
     const toolUses = (m.toolUses ?? []).filter(u => !drop.has(u.tool_use_id))

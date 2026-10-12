@@ -61,6 +61,8 @@ export type Row = {
   /** The checker's score, 0..1 (the share of questions answered right, for example). */
   score?: number
   wall_ms?: number
+  /** Each step's wall time, in order (for compaction: the compaction, then the question). */
+  step_ms?: number[]
   claude_cost_usd?: number
   claude_tokens?: { input: number; output: number; cache_read: number; cache_write: number }
   /** The model turns Claude took over the arm's steps (`num_turns`, summed), when it said. */
@@ -86,7 +88,9 @@ export type FeatureSpend = { requests: number; calls: number; cost_usd: number }
  * tool pairs dropped, tool results trimmed, the characters that took out and the files saved (absent from a record
  * written before results were trimmed); and why nothing went.
  */
-export type Compaction = { messages: number; kept: number; dropped: number; pairsDropped?: number; trimmed?: number; charsRemoved?: number; files?: number; skip: string | null }
+export type Compaction = { messages: number; kept: number; dropped: number; pairsDropped?: number; trimmed?: number; charsRemoved?: number; files?: number
+  /** Of `dropped`, the assistant messages that held only thinking (dropped without asking). */
+  thinkingDropped?: number; skip: string | null }
 
 /** What every row of one run shares. */
 export type RunMeta = Pick<Row, 'schema' | 'run' | 'feature' | 'level' | 'jevmod' | 'git' | 'date' | 'settings' | 'sweep'>

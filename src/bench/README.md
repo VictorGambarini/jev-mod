@@ -351,7 +351,8 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   be read, so what was cut counts as lost); each answer must match every one of its patterns. The
   mod's ledger record says what messages and tool pairs it dropped and what results it trimmed;
   one that did none of these, or whose question read nearly the uncompacted context, is
-  `not_compacted`. A jev-mod arm sends `/compact [jev-mod compact: drop only what Jev marks drop]`, the
+  `not_compacted`. Every task row records each step's wall time (`step_ms`); the compaction
+  table shows the median compaction time (the steps before the question) and question time. A jev-mod arm sends `/compact [jev-mod compact: drop only what Jev marks drop]`, the
   compaction `/jev-mod compact` runs, in one step.
 - `routing`'s task level (`routing/bench/task.ts`): ten one-prompt coding tasks in parcelkit
   (`task-fixture/`, a small Python courier codebase), four trivial, three medium, three hard, each

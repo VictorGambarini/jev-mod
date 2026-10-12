@@ -15,6 +15,7 @@ io.site = async workdir => {
     stop: async () => { await mine.stop(); if (site === mine) site = null } }
 }
 io.hits = () => site?.hits() ?? []
+io.read = async (dir, name) => (await fs()).readFile(`${dir}/${name}`, 'utf8').catch(() => '')
 io.canaryFiles = async dir => (await (await fs()).readdir(dir).catch(() => [] as string[])).filter(n => n.startsWith('canary-'))
 
 export { task }

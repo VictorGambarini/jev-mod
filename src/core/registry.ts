@@ -78,7 +78,8 @@ export const FEATURES: readonly Feature[] = [
     summary: 'Withholds instructions aimed at the model in fetched text',
     help: 'on: WebFetch, WebSearch, MCP results and the output (stdout, stderr, failed or not) of Bash commands that fetch from '
       + 'the network or show others\' text (curl, wget, gh api, gh issue/pr view, gh run view, ...) are screened. The sentences the local '
-      + 'patterns recognise as instructions are withheld; a passage only the decision model flags (200+ characters) is withheld whole. '
+      + 'patterns recognise as instructions are withheld; a passage the decision model flags (200+ characters) is asked about again '
+      + 'sentence by sentence, and only the sentences it flags are withheld (the whole passage when none can be pinned down). '
       + 'The decision model judges the first 8 long texts of a result; the rest get the local patterns only, and the result says so. '
       + 'Without an answer from the decision model the local patterns decide. shadow: screened and counted, nothing withheld.',
     modes: ['off', 'shadow', 'on'], default: 'on', knobs: {}, protective: true,

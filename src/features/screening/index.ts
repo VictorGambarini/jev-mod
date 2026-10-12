@@ -14,8 +14,9 @@ import { kindOf, screenValue, SCREEN_MAX_TEXTS, SCREEN_MIN_CHARS, type Kind } fr
 // it. WebFetch, WebSearch, MCP tool results, and Bash commands that fetch from the network or
 // print other people's text (stdout and stderr, failed or not). Every text gets the local
 // screen at any length; the decision backend also judges texts of SCREEN_MIN_CHARS or more
-// (the first SCREEN_MAX_TEXTS of a result). Where only the local screen recognises the
-// sentence, only the sentence is replaced; a passage the backend alone flags goes whole.
+// (the first SCREEN_MAX_TEXTS of a result). Only the sentences that carry the instruction are
+// replaced: the ones the local screen recognises, and, in a passage the backend flags, the ones
+// it flags when asked sentence by sentence. A passage it cannot pin down that way goes whole.
 
 export type ScreeningSpace = { withheld?: number }
 
@@ -48,9 +49,9 @@ async function judge(io: IO, tool: string, text: string, raw: boolean, localOnly
   // the budget it is screened locally, never left unscreened.
   const limits = send ? await limitsOf(io) : undefined
   if (limits) send = (await limits.admit(false))[0]
-  const verdict = await screenResult(hostOf(io), tool, text, { send, raw })
+  const verdict = await screenResult(hostOf(io), tool, text, { send, raw, sentences: true })
   const calls = verdict.calls ?? []
-  await Promise.all([recordCalls(io, calls, verdict.errors ?? [], 'screening'),
+  await Promise.all([recordCalls(io, calls, [...verdict.errors ?? [], ...verdict.sentence_errors ?? []], 'screening'),
     limits?.charge(calls.reduce((sum, c) => sum + costOf(c), 0))])
   return { verdict, send }
 }
@@ -76,7 +77,7 @@ export async function screenWhole(io: IO, text: string): Promise<string | null> 
       return text
     }
     count(io, verdict.flagged.length, 'a fetched response')
-    return withheld
+    return noted(withheld, WITHHELD_NOTE(verdict.flagged.length)) as string
   } catch {
     return null
   }
@@ -90,13 +91,26 @@ function count(io: IO, withheld: number, what: string): void {
   void activity.count(io, 'screening', 'withheld', withheld)
 }
 
+/**
+ * Said once under a result something was withheld from: what the marks are, that the rest is as
+ * it came, and that fetching it again shows the same. A whole page withheld for one planted line
+ * once sent a session through 26 turns of curl | grep to piece the page back together.
+ */
+export const WITHHELD_NOTE = (n: number) =>
+  `[jev-mod screening withheld text from ${n} passage(s) of this result, each piece replaced where it stood by a ` +
+  '"withheld by Jev screening" mark: it was aimed at an AI assistant, not part of the content. Everything else is the result as it came. Fetching it again shows the same.]'
+
 const BEYOND = (n: number) =>
   `[jev-mod: the decision backend screened only the first ${SCREEN_MAX_TEXTS} texts of this result; ${n} more long text(s) were screened by the local patterns alone]`
 
 /** The result with a line added saying what the backend did not cover. */
 function noted(value: unknown, note: string): unknown {
   if (typeof value === 'string') return `${value}\n${note}`
-  if (Array.isArray(value)) return [...value, note]
+  // an MCP result handed over as its content blocks takes a block; a list of texts, a text
+  if (Array.isArray(value)) {
+    const blocks = value.some(item => item && typeof item === 'object' && typeof (item as { type?: unknown }).type === 'string')
+    return [...value, blocks ? { type: 'text', text: note } : note]
+  }
   const object = value as { content?: unknown }
   if (object && typeof object === 'object' && Array.isArray(object.content)) {
     return { ...object, content: [...object.content, { type: 'text', text: note }] }
@@ -110,7 +124,10 @@ async function screenMany(io: IO, tool: string, value: unknown, what: string, ra
   let screened = await screenValue(value, t => screenText(io, tool, t, raw),
     t => screenText(io, tool, t, raw, true), budget)
   if (!budget.withheld && !budget.beyond) return null
-  if (budget.withheld) count(io, budget.withheld, what)
+  if (budget.withheld) {
+    count(io, budget.withheld, what)
+    screened = noted(screened, WITHHELD_NOTE(budget.withheld))
+  }
   if (budget.beyond) screened = noted(screened, BEYOND(budget.beyond))
   return screened
 }
@@ -121,7 +138,7 @@ async function screenStream(io: IO, text: unknown) {
   const out = await screenText(io, 'Bash', text, true)
   if (!out) return null
   count(io, out.flagged, 'a fetched response')
-  return out.text
+  return noted(out.text, WITHHELD_NOTE(out.flagged)) as string
 }
 
 /**
@@ -147,7 +164,7 @@ export async function filter(io: IO, kind: Kind, tool: string, result: any): Pro
     const out = await screenText(io, 'WebFetch', result.result, false)
     if (!out) return null
     count(io, out.flagged, 'a fetched page')
-    return { ...result, result: out.text }
+    return { ...result, result: noted(out.text, WITHHELD_NOTE(out.flagged)) }
   }
   if (kind === 'WebSearch') {
     if (!Array.isArray(result?.results)) return null

@@ -53,6 +53,23 @@ test('a long case costs more to ask on the full context than after a compaction,
   expect(compactTask.maxUsdPerCall!).toBeGreaterThan(full)
 })
 
+test('--repeat runs each case × arm that many times: the arms\' calls, their cost and the decisions multiply; the shared setup does not', () => {
+  const cases = compactTask.cases()
+  const arms = armsFor(compactTask, ['openrouter'], { name: 'drop', values: [0.6, 0.8] }, {})
+  const once = plan(compactTask, cases, arms)
+  const thrice = plan(compactTask, cases, arms, null, 0.0005, 3)
+  expect(thrice.repeat).toBe(3)
+  expect(thrice.setupCalls).toBe(once.setupCalls)
+  expect(thrice.setupUsd).toBe(once.setupUsd)
+  expect(thrice.claudeCalls - thrice.setupCalls).toBe(3 * (once.claudeCalls - once.setupCalls))
+  expect(Math.round(thrice.armsUsd * 1e6)).toBe(Math.round(3 * once.armsUsd * 1e6))
+  expect(thrice.decisionCalls).toBe(3 * once.decisionCalls)
+  expect(thrice.text).toContain(`${cases.length} case(s) × ${arms.length} arm(s) × 3 runs each`)
+  expect(thrice.text).toContain('(3 runs of each)')
+  expect(once.text).not.toContain('runs each')
+  expect(plan(compactTask, cases, arms, null, 0.0005, 1)).toEqual(once)
+})
+
 test('without --yes nothing runs: the guard returns the plan and says how to start it', () => {
   const p = plan(compactTask, TASKS, armsFor(compactTask, ['typesafe'], null, {}))
   const refused = guard(p, false)

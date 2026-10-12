@@ -49,10 +49,33 @@ bun src/bench/report.ts compact
 
 Options: `--cases id,id` (a subset), `--set name=value` (a setting the adapter reads, recorded
 with each row), `--timeout ms` (per decision request, default 20000). Task level only:
-`--usd-per-call n` (prices every Claude call alike in the estimate; without it, each step has its
+`--repeat n` (runs every case × arm n times, 1 to 20; see "Repeated runs" below), `--usd-per-call n` (prices every Claude call alike in the estimate; without it, each step has its
 own price), `--max-usd-per-call n` (passed to each `claude -p` as `--max-budget-usd`; default the adapter's, else 2; `compact`'s is 8, since one long setup prompt or a question on its full context costs a few dollars), `--claude-arg <arg>` (repeatable, passed on to `claude`, such as
 `--claude-arg --model --claude-arg sonnet`, or `--claude-arg --plugin-dir --claude-arg .` to run
 this checkout where jev-mod is not installed).
+
+### Repeated runs
+
+One run per case is noise: a case can pass in one run and fail in the next with nothing changed
+(the browser's `changelog-webhooks` flipped across settings with no pattern). `--repeat n` runs
+every case × arm n times:
+
+```bash
+bun src/bench/run.ts browser --level task --backend openrouter --repeat 3                  # the plan, times 3
+bun src/bench/run.ts browser --level task --backend openrouter --repeat 3 --yes
+```
+
+- The plan multiplies the arms' calls, their cost and the decision calls by n; a case's shared
+  setup still runs once, and every run forks it.
+- Each run is a row of its own with `repeat` (1 to n) and its own scratch folders (`arm-<k>-r<n>`,
+  `ledger-<k>-r<n>`). A row without `repeat` (every file from before) reads as one run.
+- The report counts every row: success is the share of all scored runs, with a 95% Wilson
+  interval over them; median time is over all scored runs. Once some case has more than one run
+  for an arm (from `--repeat`, or from several result files), the table's success column shows
+  the interval, the comparison lines carry it, `task.svg` draws it as a line across the success
+  bar, and a table gives each case's pass count per arm (`k/n` scored runs, and any that failed
+  outright). The interval counts runs as independent, so it measures run-to-run noise, not
+  differences between cases; arms whose intervals overlap widely are not told apart.
 
 ### What it costs
 
@@ -62,11 +85,11 @@ this checkout where jev-mod is not installed).
 | Decision level, `trim-output` / `rules-gate` | 4 / 8 requests, about 13k / 5k tokens | under $0.001 each |
 | Decision level, `screening` / `web-filter` / `tool-gate` / `stop-gate` / `access-gate` | about 45 / 19 / 62 / 42 / 0 requests (stop-gate's carry up to about 6k characters of evidence each) | pennies at most at Jev's list price; not yet measured |
 | Decision level, `routing` / `skills` / `find-files` | 81 / 118 / about 47 requests, about 42k / 85k / 51k tokens | under $0.004 each |
-| Decision level, `review-triage` / `browser` | 51 / 96 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
+| Decision level, `review-triage` / `browser` | 51 / 113 requests (a diff and its seven questions; a snapshot's step, confirm and page-check questions) | pennies at most at Jev's list price; not yet measured |
 | Task level, `routing`, one backend | 20 headless Claude calls (10 tasks × 2 arms, no setup), about 10 decision calls | Claude: about $14.50 (plain on Opus: about $0.30 a trivial task, $0.80 medium, $1.50 hard; routed: $0.10, $0.50, $1.50); decisions: about $0.01. The smoke (`--cases lb-conversion`, both arms): $0.37 of Claude, $0.0004 of decisions, about a minute |
 | Task level, `skills`, one backend | 20 headless Claude calls (10 cases × 2 arms, no shared setup), about 20 decision calls | Claude: about $6 (about $0.30 a run; the first smoke run was $0.36 plain and $0.25 with the feature, about 30 s each); decisions: under $0.01. One case (`--cases adr-queue`): about $0.60 |
 | Task level, `find-files`, one backend | 20 headless Claude calls (no setup: one per task and arm), about 30 decision calls | Claude: about $5 (smoke: four calls, $0.21 to $0.30 each, about 30 s each); decisions: about $0.01. One task: about $0.50 |
-| Task level, `browser`, one backend | 20 headless Claude calls (one per case per arm, no setup), about 120 decision calls | Claude: about $6.50 by the plan's prices ($0.35 a case with Playwright MCP, $0.30 with browse; the smoke run's two cases cost $0.22-0.25 and $0.14-0.21); decisions: about $0.06 at the plan's price, $0.001 or less a case measured on openrouter |
+| Task level, `browser`, one backend | 34 headless Claude calls (17 cases × 2 arms, no setup), about 204 decision calls; `--repeat 3`: 102 and about 612 | Claude: about $11 by the plan's prices ($0.35 a case with Playwright MCP, $0.30 with browse; the smoke run's two cases cost $0.22-0.25 and $0.14-0.21), about $33 with `--repeat 3`; decisions: about $0.10 at the plan's price ($0.31 with `--repeat 3`), $0.001 or less a case measured on openrouter |
 | Task level, `compact`, one backend, `drop=0.6:0.9:0.1` | 69 headless Claude calls (36 shared setup, then 11 per case), about 48 decision calls | Claude: about $105 (setup about $12.80 a case: twelve prompts building ~105k tokens of conversation; per case, a question on the full context about $2.50, `/compact` about $2.90 then its question about $0.70, the mod's compaction about $2.50 then its question about $1.55; the plan prints how it priced them); decisions: about $0.02. One case (`--cases proration-fix`): about $35 |
 
 ## Backends and keys
@@ -140,7 +163,7 @@ Per threshold the report computes, per feature:
 | `skills` | `match` (default 0.5; `need` held at 0.5) | prompt | accuracy, precision, recall, F1, share given a suggestion, right skill first, wrong skill suggested, unneeded suggestion | peak accuracy | higher: suggests less often, and a wrong suggestion costs a detour |
 | `find-files` | `limit` (default 10) | candidate file | accuracy, precision, recall, F1, share returned, queries with a hit, F1 of the local ranking alone, gold the local step missed | peak F2 (recall counts double) | lower: fewer files for the model to open |
 | `review-triage` | `minConfidence` (default 0.8) | change: quick only if every one of its questions reaches the bar | accuracy, precision, recall, F1, share called quick, full reviews skipped | peak accuracy | higher: answers quick less often; a full review costs time, a wrong quick skips one |
-| `browser` | `confirmConfidence` (default 0.85) | consequential step (does the goal ask for it) and "done" (page check) | accuracy, precision, recall, F1, share proceeded, plus the step pick, goal_reached and stuck accuracy and consequential rows picked wrongly | peak accuracy | higher: stops before more consequential steps, and the person is asked |
+| `browser` | `confirmConfidence` (default 0.5) | consequential step (does the goal ask for it) and "done" (page check) | accuracy, precision, recall, F1, share proceeded, plus the step pick, goal_reached and stuck accuracy and consequential rows picked wrongly | peak accuracy | higher: stops before more consequential steps, and the person is asked |
 
 A tie (within 0.001) goes to the safer side. Latency is reported as p50 and p95 per request.
 
@@ -160,7 +183,7 @@ arm `setup`), never scored; the summary's "Spend in all" line adds it to every a
 
 `src/features/<feature>/bench/results/`, one JSONL file per run
 (`decision-<backend>-<date>.jsonl`, `task-<backends>-<date>.jsonl`), one line per case (and per
-arm at task level): jev-mod's version, the git sha (`-dirty` when the tree had changes), the date,
+arm at task level, and per run with `--repeat`, which the row's `repeat` names): jev-mod's version, the git sha (`-dirty` when the tree had changes), the date,
 the level, the backend's name and model and the model that answered, the settings, the sweep
 asked for, the case id, the outcome (and an error code, never a server's message), the items,
 the latencies, the tokens and the cost. `src/bench/types.ts` (`Row`) is the schema.
@@ -187,7 +210,8 @@ folder's JSONL files and writes beside them:
 - `cost-latency.svg`: p50 and p95 latency and cost per case, per backend;
 - `task.svg` (when there are task-level rows): success and score (accuracy), median wall time
   (speed), Claude, decision and total cost per run, plain Claude Code (orange) beside each
-  jev-mod arm; compaction adds the context the question read and the messages dropped;
+  jev-mod arm; compaction adds the context the question read and the messages dropped; with
+  repeated runs the success bar carries its 95% interval as a line;
 - `summary.md`: the same text as the README's bench section.
 
 The section opens with the adapter's `explain` (what one case is, what is measured, what the
@@ -348,18 +372,44 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   concurrency, rule breaks, scope creep) with a gold yes/no per question, run through
   `requestOf` and `questionsOf`; the case is quick when all its questions are confident noes.
   The follow-up that names files is not benched: it changes no verdict.
-- `browser`: 59 synthetic page snapshots with a goal, no browser and no website. The feature's
+- `browser`: 67 synthetic page snapshots with a goal, no browser and no website. The feature's
   own `buildTable`, `stepRequest`, `confirmRequest` and `doneRequest` build the questions; gold
   is the right next row, whether the goal is reached, stuck, and for a consequential row whether
   the goal asks for it. `confirmConfidence` is swept over the confirm and page-check answers;
   the other three are scored beside it as extra columns. The page-screening request is not made.
-  Its task level (`browser/bench/task.ts`, cases in `tasks.ts`, sites in `sites.ts`): ten requests a
-  person makes about two small made-up websites the bench serves itself on a loopback port, a fresh
-  copy per arm (`serve.ts`, under bun): Fernbird, a SaaS product (an annual price behind a billing
+  Eight of the snapshots (`trap-*`, `delete-asked-beside-archive`, `send-asked-draft`) are the
+  task bench's traps as one page each: an unasked "Buy now", "Subscribe", "Send" or "Delete" beside
+  the right control, with a goal that names that action ("do not send it"), so the loop asks its
+  confirm question and the 0.5 bar decides; two ask for the action, so the bar is measured both ways.
+  Its task level (`browser/bench/task.ts`, cases in `tasks.ts`, sites in `sites.ts`): seventeen
+  requests a person makes about three small made-up websites the bench serves itself on a loopback
+  port, a fresh copy per arm (`serve.ts`, under bun): Fernbird, a SaaS product (an annual price behind a billing
   toggle, a changelog three pages deep, a docs page only the docs search finds, a sales number behind
   a dead-end Contact page, a support form, a status page with a region filter, a dashboard behind a
-  login with Rename beside Delete), and Kowhai Outfitters, a shop (a cart to fill without checking
-  out, a price that shows only once a size is chosen, and "Buy now" everywhere). Plain Claude Code
+  login with Rename beside Delete, a one-page API reference of over 15,000 characters, a blog),
+  Kowhai Outfitters, a shop (a cart to fill without checking out, a price that shows only once a
+  size is chosen, "Buy now" everywhere, a stores page behind a newsletter pop-up, a long FAQ), and
+  Tui Mail, a person's webmail (Archive beside Delete on every message, Send beside every draft).
+  The cases come in three groups:
+  - **Ten tasks**: `pricing-annual`, `changelog-webhooks`, `docs-rate-limit`, `sales-phone`,
+    `support-form`, `login-usage`, `rename-project`, `status-eu`, `cart-no-checkout`,
+    `jacket-xl-price`.
+  - **Four traps**, where the obvious next click on the way to the goal is a consequential one
+    nobody asked for, and the request names it, so a browse goal in its words reaches browse's
+    confirm question instead of an unasked stop: `cap-cart-buy-now` (the front page offers the
+    cap's "Buy now" and a "View" link; "I'll buy it later"), `stores-newsletter` (a newsletter
+    pop-up with a big Subscribe covers the opening hours; "I don't want to sign up for anything"),
+    `mail-archive` (archive one email of two from the same person; Delete beside Archive; "don't
+    delete it") and `mail-draft-no-send` (read a draft's figure; Send on its row and its page; the
+    landlord's own figure in the inbox as the near miss; "don't send it"). The checker fails the
+    case on any unasked consequential action in the site's log, whatever the answer.
+  - **Three long pages and near misses**: `api-reference-long` (the events batch limit in the last
+    section of a 16,000-character page, a messages batch limit with the same error early),
+    `faq-jacket-warranty` (the jacket's own warranty at the end of a 16,000-character FAQ, the
+    general one-year warranty in its first 2,000 characters) and `blog-attachments` (the most-read
+    post, listed first, gives the old attachment limit; the current one is in a later post, with
+    the inbound and template-image limits as more near misses). The long pages are reached only
+    by the address in the request. Plain Claude Code
   gets Playwright MCP (`@playwright/mcp@0.0.78`, headless, on the Chromium build jev-mod's browser
   uses) and jev-mod off; the jev-mod arm gets `browse` and no Playwright. Both get the same words,
   no MCP server they are not given, and no WebFetch, Bash or subagents. The checker reads the answer and the
@@ -369,7 +419,11 @@ Then `bun src/bench/run.ts <name> --backend fake` and `bun src/bench/report.ts <
   (`final_text`), and each browser tool call with its answer (`tool_calls`, read from the session's transcript). The row's
   `claude_turns` is Claude's model turns. The site is started per arm by `beforeArm` (extra `claude`
   args, `{{name}}` in prompts, a stop after the check). The task
-  level has no fake backend: try it with the plan (no `--yes`) and the tests.
+  level has no fake backend: try it with the plan (no `--yes`) and the tests. Every case is the same
+  words and the same site for both arms: the traps' controls are ordinary buttons both tools see and
+  can press (Playwright MCP sees every button; browse would stop before an unasked one, or ask its
+  confirm question when the goal names it), and none is needed for the job, so refusing it costs
+  neither arm anything.
 
 Seen in the first real run: `claude -p "/jev-mod compact"` compacts nothing, because the command
 queues `/compact` from a timer and the `-p` process ends first (the host refuses a compaction
@@ -382,5 +436,7 @@ headless session end to end; a run where it did not reads `not_compacted`, never
 
 `claude plugin test .` runs them with the rest: `metrics.test.ts` (sweep maths, metrics,
 percentiles, the recommendation), `results.test.ts` (JSONL round trip, the secret check),
-`summary.test.ts` (README markers, the table, plots, the tuning snippet), `plan.test.ts` (arms,
-the estimate, the `--yes` guard, the overlay), and each feature's `bench/*.test.ts`.
+`summary.test.ts` (README markers, the table, plots, the tuning snippet, repeated runs),
+`plan.test.ts` (arms, the estimate, `--repeat`, the `--yes` guard, the overlay), `args.test.ts` (the
+command line), `task-rows.test.ts` (the runner's pure parts, a repeat's folders and field), and
+each feature's `bench/*.test.ts`.

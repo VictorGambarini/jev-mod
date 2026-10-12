@@ -14,7 +14,7 @@ function style(series: number): string {
   const rules = (steps: string[]) => steps.slice(0, Math.max(1, series)).map((c, i) =>
     `.l${i + 1}{stroke:${c}}.d${i + 1}{fill:${c}}`).join('')
   const theme = (bg: string, ink: string, ink2: string, grid: string, axis: string, steps: string[]) =>
-    `.bg{fill:${bg}}.dot{stroke:${bg}}text{fill:${ink}}.st,.ax{fill:${ink2}}.g{stroke:${grid}}.a,.guide{stroke:${axis}}${rules(steps)}`
+    `.bg{fill:${bg}}.dot{stroke:${bg}}.rg{stroke:${ink}}text{fill:${ink}}.st,.ax{fill:${ink2}}.g{stroke:${grid}}.a,.guide{stroke:${axis}}${rules(steps)}`
   return `<style>
 text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .t{font-size:15px;font-weight:600}.st{font-size:12px}.ax{font-size:11px}.lab{font-size:11px}
@@ -120,8 +120,11 @@ export function lineChart(c: LineChart): string {
   return out.join('\n')
 }
 
-/** `tone: 'plain'` draws a bar in the second colour (plain Claude Code beside the jev-mod arms); `max` fixes the full-width value (1 for a share). */
-export type BarPanel = { title: string; rows: { label: string; value: number | null; tone?: 'plain' }[]; format: (n: number) => string; max?: number }
+/**
+ * `tone: 'plain'` draws a bar in the second colour (plain Claude Code beside the jev-mod arms); `max` fixes the full-width value (1 for a share);
+ * `range` draws a thin line across the bar from its low to its high value (an interval).
+ */
+export type BarPanel = { title: string; rows: { label: string; value: number | null; tone?: 'plain'; range?: [number, number] }[]; format: (n: number) => string; max?: number }
 
 /** Small multiples of horizontal bars: one measure per panel, rows in the same order in each. */
 export function barPanels(c: { title: string; subtitle?: string; panels: BarPanel[]; fake?: boolean }): string {
@@ -154,7 +157,14 @@ export function barPanels(c: { title: string; subtitle?: string; panels: BarPane
       if (r.value === null) { out.push(`<text class="ax" x="${x + 6}" y="${y + 12}">n/a</text>`); return }
       const w = Math.max(2, (r.value / max) * (panelW - 70))
       out.push(`<rect x="${x}" y="${y}" width="${r2(w)}" height="16" rx="3" class="${r.tone === 'plain' ? 'd2' : 'd1'}"><title>${esc(r.label)}: ${esc(p.format(r.value))}</title></rect>`)
-      out.push(`<text class="lab" x="${r2(x + w + 4)}" y="${y + 12}">${esc(p.format(r.value))}</text>`)
+      const scale = (v: number) => (Math.max(0, v) / max) * (panelW - 70)
+      const end = r.range ? Math.max(w, scale(r.range[1])) : w
+      if (r.range) {
+        const [lo, hi] = [x + scale(r.range[0]), x + scale(r.range[1])]
+        out.push(`<line class="rg" x1="${r2(lo)}" x2="${r2(hi)}" y1="${y + 8}" y2="${y + 8}" stroke-width="2"><title>${esc(r.label)}: ${esc(p.format(r.range[0]))} to ${esc(p.format(r.range[1]))}</title></line>`)
+        for (const at of [lo, hi]) out.push(`<line class="rg" x1="${r2(at)}" x2="${r2(at)}" y1="${y + 3}" y2="${y + 13}" stroke-width="2"/>`)
+      }
+      out.push(`<text class="lab" x="${r2(x + end + 4)}" y="${y + 12}">${esc(p.format(r.value))}</text>`)
     })
   })
   out.push('</svg>')

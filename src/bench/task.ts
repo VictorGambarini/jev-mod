@@ -8,7 +8,9 @@
 // that copy. A case with setup prompts builds one session first, which each arm forks; the
 // project as the setup left it is put back before each arm in the same folder, since a session
 // is resumed from the folder it was made in. The setup's spend is a row of its own per case
-// (`setup: true`), so a run's totals hold it.
+// (`setup: true`), so a run's totals hold it. With `--repeat N` every arm of a case runs N times,
+// all arms once and then again (each run forks the same setup, in folders of its own), a row per
+// run with `repeat` saying which.
 //
 // Every call loads only what the bench gives it (ISOLATED): no MCP server but those an arm passes
 // with --mcp-config, and no user settings, so none of the person's other plugins, hooks or user
@@ -33,7 +35,7 @@ import { plainConfig } from './plain'
 import { overlayFor } from './plan'
 import { buildProject } from './project'
 import { toLine } from './results'
-import { contextOf, parseClaude, readLedger, setupRow, verifyArms, type Result } from './task-rows'
+import { contextOf, parseClaude, readLedger, runOf, setupRow, verifyArms, type Result } from './task-rows'
 import type { Arm, ArmRun, ArmSetup, BackendRef, Row, RunMeta, TaskAdapter, TaskCase } from './types'
 
 export type TaskOptions = {
@@ -46,6 +48,8 @@ export type TaskOptions = {
   claudeArgs: string[]
   maxUsdPerCall: number
   timeoutMs: number
+  /** Runs of each case × arm (--repeat; default 1). Each is a row of its own, with `repeat` set when there are several. */
+  repeat?: number
 }
 
 /**
@@ -109,83 +113,88 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
         say(`${c.id}: setup ${setupFailed ? `failed (${setupFailed})` : `done (session ${session ?? 'none'})`}, $${setup.claude_cost_usd!.toFixed(3)} Claude`)
         if (!setupFailed) await f.cp(shared, `${dir}/pristine`, { recursive: true })
       }
-      const done: { arm: Arm; row: Row; run: ArmRun }[] = []
-      for (const [k, arm] of o.arms.entries()) {
-        const ledger = `${dir}/ledger-${k}`
-        const overlay = `${dir}/overlay-${k}.json`
-        // the arm's own folder outside the project (a local site's log), and its own copy of the project
-        const armDir = `${dir}/arm-${k}`
-        const work = shared ?? `${armDir}/project`
-        await f.mkdir(ledger, { recursive: true })
-        await f.mkdir(armDir, { recursive: true })
-        await f.writeFile(overlay, JSON.stringify(overlayFor(o.adapter, arm, ledger)))
-        const row: Row = { ...o.meta, backend: backendRef(arm), answered_model: null, settings: { ...o.meta.settings, ...arm.settings },
-          case: c.id, arm: arm.id, outcome: 'ok', items: [], calls: 0, latencies_ms: [], input_tokens: null, cost_usd: 0,
-          wall_ms: 0, claude_cost_usd: 0, claude_tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 } }
-        const fail = (error: string) => { row.outcome = 'error'; row.error = error }
-        if (setupFailed) fail(`setup: ${setupFailed}`)
-        else {
+      // every arm, then every arm again for each further repeat: a repeat's arms are verified together, as one run of the case
+      const repeats = Math.max(1, o.repeat ?? 1)
+      for (let r = 0; r < repeats; r++) {
+        const done: { arm: Arm; row: Row; run: ArmRun }[] = []
+        for (const [k, arm] of o.arms.entries()) {
+          const { tag, field } = runOf(k, r, repeats)
+          const ledger = `${dir}/ledger-${tag}`
+          const overlay = `${dir}/overlay-${tag}.json`
+          // the arm's own folder outside the project (a local site's log), and its own copy of the project
+          const armDir = `${dir}/arm-${tag}`
+          const work = shared ?? `${armDir}/project`
+          await f.mkdir(ledger, { recursive: true })
+          await f.mkdir(armDir, { recursive: true })
+          await f.writeFile(overlay, JSON.stringify(overlayFor(o.adapter, arm, ledger)))
+          const row: Row = { ...o.meta, backend: backendRef(arm), answered_model: null, settings: { ...o.meta.settings, ...arm.settings },
+            case: c.id, arm: arm.id, ...field, outcome: 'ok', items: [], calls: 0, latencies_ms: [], input_tokens: null, cost_usd: 0,
+            wall_ms: 0, claude_cost_usd: 0, claude_tokens: { input: 0, output: 0, cache_read: 0, cache_write: 0 } }
+          const fail = (error: string) => { row.outcome = 'error'; row.error = error }
+          if (setupFailed) fail(`setup: ${setupFailed}`)
+          else {
+            try {
+              if (shared) { if (k > 0 || r > 0) { await f.rm(shared, { recursive: true, force: true }); await f.cp(`${dir}/pristine`, shared, { recursive: true }) } }
+              else await buildProject(o.repo, c, work)
+            } catch (error) { fail(`project: ${(error as Error).message.slice(0, 120)}`) }
+          }
+          let extra: ArmSetup = {}
+          if (o.adapter.beforeArm && row.outcome === 'ok') {
+            try { extra = await o.adapter.beforeArm(c, arm, armDir, work) } catch (error) { fail(`beforeArm: ${(error as Error).message.slice(0, 120)}`) }
+          }
+          let mine = session
+          let final = ''
+          let context: number | null = null
           try {
-            if (shared) { if (k > 0) { await f.rm(shared, { recursive: true, force: true }); await f.cp(`${dir}/pristine`, shared, { recursive: true }) } }
-            else await buildProject(o.repo, c, work)
-          } catch (error) { fail(`project: ${(error as Error).message.slice(0, 120)}`) }
-        }
-        let extra: ArmSetup = {}
-        if (o.adapter.beforeArm && row.outcome === 'ok') {
-          try { extra = await o.adapter.beforeArm(c, arm, armDir, work) } catch (error) { fail(`beforeArm: ${(error as Error).message.slice(0, 120)}`) }
-        }
-        let mine = session
-        let final = ''
-        let context: number | null = null
-        try {
-          const env = { ...backendEnv(arm), ...(arm.kind === 'claude' ? plain.env : {}), ...extra.env }
-          const filled = (prompt: string) => prompt.replace(/\{\{(\w+)\}\}/g, (all, name: string) => extra.vars?.[name] ?? all)
-          for (const [s, step] of o.adapter.steps(c, arm).entries()) {
-            if (row.outcome === 'error') break
-            const r = await claude(filled(step.prompt), work, overlay, env, mine, s === 0 && mine !== null, tools, step.disallowedTools, extra.claudeArgs)
-            row.wall_ms! += r.ms
-            row.claude_cost_usd! += r.cost
-            for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
-            for (const [model, usd] of Object.entries(r.models ?? {})) (row.claude_models ??= {})[model] = (row.claude_models[model] ?? 0) + usd
-            if (r.turns !== undefined) row.claude_turns = (row.claude_turns ?? 0) + r.turns
-            if (!r.ok) { fail(r.error ?? 'claude failed'); break }
-            mine = r.session ?? mine
-            if (step.final) { final = r.text; context = contextOf(r.tokens) }
+            const env = { ...backendEnv(arm), ...(arm.kind === 'claude' ? plain.env : {}), ...extra.env }
+            const filled = (prompt: string) => prompt.replace(/\{\{(\w+)\}\}/g, (all, name: string) => extra.vars?.[name] ?? all)
+            for (const [s, step] of o.adapter.steps(c, arm).entries()) {
+              if (row.outcome === 'error') break
+              const r = await claude(filled(step.prompt), work, overlay, env, mine, s === 0 && mine !== null, tools, step.disallowedTools, extra.claudeArgs)
+              row.wall_ms! += r.ms
+              row.claude_cost_usd! += r.cost
+              for (const key of ['input', 'output', 'cache_read', 'cache_write'] as const) row.claude_tokens![key] += r.tokens[key]
+              for (const [model, usd] of Object.entries(r.models ?? {})) (row.claude_models ??= {})[model] = (row.claude_models[model] ?? 0) + usd
+              if (r.turns !== undefined) row.claude_turns = (row.claude_turns ?? 0) + r.turns
+              if (!r.ok) { fail(r.error ?? 'claude failed'); break }
+              mine = r.session ?? mine
+              if (step.final) { final = r.text; context = contextOf(r.tokens) }
+            }
+            // the decision model's calls and the compaction, as the mod wrote them to this arm's ledger
+            const files: { name: string; text: string }[] = []
+            for (const name of await f.readdir(ledger).catch(() => [] as string[])) {
+              try { files.push({ name, text: await f.readFile(`${ledger}/${name}`, 'utf8') }) } catch { /* gone */ }
+            }
+            const book = readLedger(files)
+            row.calls = book.calls
+            row.cost_usd = book.cost
+            if (book.model) row.answered_model = book.model
+            row.decision_calls = row.calls
+            if (Object.keys(book.byFeature).length) row.by_feature = book.byFeature
+            row.context_tokens = context
+            if (book.compaction) row.compaction = book.compaction
+            // plain Claude Code asks no decision model: one that did had jev-mod on, and is not plain
+            if (arm.kind === 'claude' && book.decisions > 0 && row.outcome === 'ok') fail(PLAIN_DECIDED)
+            if (row.outcome === 'ok') {
+              const checked = await o.adapter.check(c, final, work, armDir)
+              row.success = checked.success
+              row.score = checked.score
+              if (checked.detail) row.detail = checked.detail
+            }
+            done.push({ arm, row, run: { ledgerEntries: book.decisions, byFeature: book.byFeature, contextTokens: context, compaction: book.compaction } })
+          } finally {
+            try { await extra.stop?.() } catch { /* stopped or gone */ }
           }
-          // the decision model's calls and the compaction, as the mod wrote them to this arm's ledger
-          const files: { name: string; text: string }[] = []
-          for (const name of await f.readdir(ledger).catch(() => [] as string[])) {
-            try { files.push({ name, text: await f.readFile(`${ledger}/${name}`, 'utf8') }) } catch { /* gone */ }
-          }
-          const book = readLedger(files)
-          row.calls = book.calls
-          row.cost_usd = book.cost
-          if (book.model) row.answered_model = book.model
-          row.decision_calls = row.calls
-          if (Object.keys(book.byFeature).length) row.by_feature = book.byFeature
-          row.context_tokens = context
-          if (book.compaction) row.compaction = book.compaction
-          // plain Claude Code asks no decision model: one that did had jev-mod on, and is not plain
-          if (arm.kind === 'claude' && book.decisions > 0 && row.outcome === 'ok') fail(PLAIN_DECIDED)
-          if (row.outcome === 'ok') {
-            const checked = await o.adapter.check(c, final, work, armDir)
-            row.success = checked.success
-            row.score = checked.score
-            if (checked.detail) row.detail = checked.detail
-          }
-          done.push({ arm, row, run: { ledgerEntries: book.decisions, byFeature: book.byFeature, contextTokens: context, compaction: book.compaction } })
-        } finally {
-          try { await extra.stop?.() } catch { /* stopped or gone */ }
         }
-      }
-      verifyArms(o.adapter, c, done)
-      for (const { arm, row } of done) {
-        rows.push(row)
-        await f.appendFile(o.out, toLine(row) + '\n')
-        const kept = row.compaction ? `, kept ${row.compaction.kept} of ${row.compaction.messages} messages` : ''
-        const read = row.context_tokens ? `, question read ${Math.round(row.context_tokens / 1000)}k tokens` : ''
-        say(`${c.id} · ${arm.id}: ${row.outcome === 'ok' ? `score ${row.score?.toFixed(2)}` : `error (${row.error})`}${read}${kept}, ` +
-          `$${row.claude_cost_usd!.toFixed(3)} Claude, $${row.cost_usd.toFixed(5)} decisions`)
+        verifyArms(o.adapter, c, done)
+        for (const { arm, row } of done) {
+          rows.push(row)
+          await f.appendFile(o.out, toLine(row) + '\n')
+          const kept = row.compaction ? `, kept ${row.compaction.kept} of ${row.compaction.messages} messages` : ''
+          const read = row.context_tokens ? `, question read ${Math.round(row.context_tokens / 1000)}k tokens` : ''
+          say(`${c.id} · ${arm.id}${repeats > 1 ? ` · run ${r + 1}/${repeats}` : ''}: ${row.outcome === 'ok' ? `score ${row.score?.toFixed(2)}` : `error (${row.error})`}${read}${kept}, ` +
+            `$${row.claude_cost_usd!.toFixed(3)} Claude, $${row.cost_usd.toFixed(5)} decisions`)
+        }
       }
     }
   } finally {

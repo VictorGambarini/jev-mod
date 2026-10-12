@@ -86,3 +86,16 @@ export function recommend(points: readonly { threshold: number; accuracy: number
 export function mean(values: readonly number[]): number | null {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
 }
+
+/**
+ * A 95% Wilson score interval for k successes in n runs, as shares (0..1); null for no runs. It
+ * stays inside 0..1 and is sensible at k = 0 or k = n, where the plain normal one collapses.
+ */
+export function wilson(k: number, n: number, z = 1.96): { lo: number; hi: number } | null {
+  if (n <= 0) return null
+  const p = k / n
+  const z2 = z * z
+  const centre = (p + z2 / (2 * n)) / (1 + z2 / n)
+  const half = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / (1 + z2 / n)
+  return { lo: Math.max(0, centre - half), hi: Math.min(1, centre + half) }
+}

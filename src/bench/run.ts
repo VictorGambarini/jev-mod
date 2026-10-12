@@ -4,59 +4,25 @@
 //   bun src/bench/run.ts compact --backend typesafe --sweep drop=0.5:0.95:0.05    # one real pass; the sweep is offline
 //   bun src/bench/run.ts compact --level task --backend typesafe --sweep drop=0.6:0.9:0.1          # prints the plan only
 //   bun src/bench/run.ts compact --level task --backend typesafe --sweep drop=0.6:0.9:0.1 --yes    # spends money
+//   bun src/bench/run.ts browser --level task --backend openrouter --repeat 3                     # each case × arm three times
 
 import { VERSION } from '../version'
+import { type Args, parseArgs } from './args'
 import { runDecision, fakeHostFor } from './decision'
 import { BENCHES, fakeDir, resultsDir } from './features'
 import { chooseBackend } from './host'
-import { parseSweep, thresholds, type Sweep } from './metrics'
+import { thresholds } from './metrics'
 import { fs, proc, repoRoot, run, say, warn } from './node'
 import { armsFor, guard, plan } from './plan'
 import { fileName, toLine } from './results'
 import { runTasks } from './task'
-import type { Row, RunMeta, Setting } from './types'
-
-type Args = { feature: string; level: 'decision' | 'task'; backends: string[]; sweep: Sweep | null; settings: Record<string, Setting>;
-  cases: string[] | null; timeoutMs: number; yes: boolean; usdPerCall: number | null; maxUsdPerCall: number | null; claudeArgs: string[] }
+import type { Row, RunMeta } from './types'
 
 const USAGE = `usage: bun src/bench/run.ts <feature> [--level decision|task] --backend <name>[,<name>...]
   [--sweep name=from:to:step] [--set name=value ...] [--cases id,id] [--timeout ms]
-  task level only: [--yes] [--usd-per-call n] [--max-usd-per-call n] [--claude-arg <arg> ...]
+  task level only: [--yes] [--repeat n] [--usd-per-call n] [--max-usd-per-call n] [--claude-arg <arg> ...]
 features: ${Object.keys(BENCHES).join(', ')}
 backends: fake, default, typesafe, openrouter, venice, zen, or a name from backends.json`
-
-export function parseArgs(argv: string[]): Args {
-  const a: Args = { feature: '', level: 'decision', backends: [], sweep: null, settings: {}, cases: null, timeoutMs: 20_000,
-    yes: false, usdPerCall: null, maxUsdPerCall: null, claudeArgs: [] }
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]!
-    const value = () => {
-      const v = argv[++i]
-      if (v === undefined) throw new Error(`${arg} needs a value`)
-      return v
-    }
-    if (arg === '--level') { const v = value(); if (v !== 'decision' && v !== 'task') throw new Error('--level is decision or task'); a.level = v }
-    else if (arg === '--backend') a.backends.push(...value().split(',').map(s => s.trim()).filter(Boolean))
-    else if (arg === '--sweep') a.sweep = parseSweep(value())
-    else if (arg === '--set') {
-      const [k, ...rest] = value().split('=')
-      const v = rest.join('=')
-      a.settings[k!] = v === 'true' ? true : v === 'false' ? false : Number.isFinite(Number(v)) && v !== '' ? Number(v) : v
-    }
-    else if (arg === '--cases') a.cases = value().split(',').map(s => s.trim())
-    else if (arg === '--timeout') a.timeoutMs = Number(value())
-    else if (arg === '--yes') a.yes = true
-    else if (arg === '--usd-per-call') a.usdPerCall = Number(value())
-    else if (arg === '--max-usd-per-call') a.maxUsdPerCall = Number(value())
-    else if (arg === '--claude-arg') a.claudeArgs.push(value())
-    else if (arg.startsWith('-')) throw new Error(`unknown option ${arg}`)
-    else if (!a.feature) a.feature = arg
-    else throw new Error(`unexpected ${arg}`)
-  }
-  if (!a.feature) throw new Error('name a feature')
-  if (!a.backends.length) throw new Error('name a backend with --backend (fake to try it)')
-  return a
-}
 
 async function gitSha(repo: string): Promise<string> {
   const head = await run('git', ['rev-parse', 'HEAD'], { cwd: repo, timeoutMs: 5000 })
@@ -119,7 +85,7 @@ async function main(): Promise<number> {
   if (a.backends.includes('fake')) { warn('the fake backend is decision level only: a headless Claude Code run cannot reach it'); return 2 }
   const swept = a.sweep ? { name: a.sweep.name, values: thresholds(a.sweep) } : null
   const arms = armsFor(adapter, a.backends, swept, a.settings)
-  const p = plan(adapter, cases, arms, a.usdPerCall)
+  const p = plan(adapter, cases, arms, a.usdPerCall, undefined, a.repeat)
   const refused = guard(p, a.yes)
   if (refused) { say(refused); return a.yes ? 1 : 0 }
   say(p.text)
@@ -127,7 +93,7 @@ async function main(): Promise<number> {
   await f.mkdir(dir, { recursive: true })
   const out = `${dir}/${fileName(date, 'task', a.backends.join('+'), false)}`
   say(`writing ${out}`)
-  const rows = await runTasks({ adapter, arms, cases, meta, repo, out, claudeArgs: a.claudeArgs,
+  const rows = await runTasks({ adapter, arms, cases, meta, repo, out, claudeArgs: a.claudeArgs, repeat: a.repeat,
     maxUsdPerCall: a.maxUsdPerCall ?? adapter.maxUsdPerCall ?? 2, timeoutMs: 15 * 60_000 })
   const sum = (mine: readonly Row[], f: (r: Row) => number) => mine.reduce((n, r) => n + f(r), 0)
   const setup = rows.filter(r => r.setup)

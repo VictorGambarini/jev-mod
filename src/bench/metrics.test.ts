@@ -1,5 +1,5 @@
 import { test, expect } from 'claude-code/testing'
-import { acts, confusion, itemMetrics, parseSweep, percentile, recommend, scores, thresholds } from './metrics'
+import { acts, confusion, itemMetrics, parseSweep, percentile, recommend, scores, thresholds, wilson } from './metrics'
 import type { Item, Row } from './types'
 
 const r3 = (n: number | null) => (n === null ? null : Math.round(n * 1000) / 1000)
@@ -69,4 +69,15 @@ test('the recommendation is the peak; a tie goes to the safer side', () => {
   expect(recommend([], 'higher')).toBe(null)
   // within the tie band counts as a tie
   expect(recommend([{ threshold: 0.5, accuracy: 0.8 }, { threshold: 0.9, accuracy: 0.7995 }], 'higher', 1e-3)!.threshold).toBe(0.9)
+})
+
+test('the Wilson interval: hand-worked values, inside 0..1 at none and all, null for no runs', () => {
+  const at = (k: number, n: number) => { const w = wilson(k, n)!; return [r3(w.lo), r3(w.hi)] }
+  expect(at(5, 10)).toEqual([0.237, 0.763])
+  expect(at(10, 10)).toEqual([0.722, 1])
+  expect(at(0, 10)).toEqual([0, 0.278])
+  expect(at(2, 3)).toEqual([0.208, 0.939])
+  // more runs, a narrower interval at the same share
+  expect(wilson(30, 60)!.hi - wilson(30, 60)!.lo).toBeLessThan(wilson(5, 10)!.hi - wilson(5, 10)!.lo)
+  expect(wilson(0, 0)).toBe(null)
 })

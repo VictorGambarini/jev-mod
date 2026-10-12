@@ -118,13 +118,17 @@ test('the saved file holds the whole call and the whole result', () => {
   expect(file).toContain('(session s1)')
 })
 
-test('rebuilt: only a message with a trimmed result is rebuilt, without its handle; the call and the other results stay', () => {
+test('rebuilt: every message holding a tool result is rebuilt without its handle; a trimmed one gets its text, the rest stay', () => {
   const messages = [
     m('assistant', 'reading', { toolUses: [call('a'), call('b')], handle: 'h0' }),
     m('user', '', { toolResults: [{ ...result('a', 'A'), result: { stdout: 'A' } }, { ...result('b', 'B'), result: { stdout: 'B' } }], handle: 'h1' }),
     m('user', 'next', { handle: 'h2' }),
+    m('user', '', { toolResults: [result('c', 'C')], handle: 'h3' }),
   ]
   const out = rebuilt(messages, new Map([['a', 'A trimmed']]))
+  // a result message kept with its handle is written after the boundary with its old parent: a resumed session
+  // would walk back through everything the compaction removed
+  expect(out[3]).toEqual({ role: 'user', text: '', toolResults: [result('c', 'C')] })
   expect(out[0]).toBe(messages[0])
   expect(out[2]).toBe(messages[2])
   expect(out[1]).toEqual({ role: 'user', text: '', toolResults: [{ tool_use_id: 'a', text: 'A trimmed', isError: false },

@@ -97,10 +97,13 @@ test('a long result is trimmed to what Jev keeps, saved in full first; the call,
   const fake = io(() => ({ choice: 'keep', confidence: 0.9 }), (_r, end) => (end === 'h' ? { choice: '100', confidence: 0.9 } : { choice: '300', confidence: 0.9 }))
   const out = await compact(fake, messages)
   expect('messages' in out).toBe(true)
-  // every message stays (texts were judged keep); only message 4 is rebuilt, without its handle
+  // every message stays (texts were judged keep); each that holds a tool result is rebuilt without its handle,
+  // the rest are the engine's own
   expect(body(out)).toHaveLength(messages.length)
-  body(out).forEach((x: any, i: number) => { if (i !== 4) expect(x).toBe(messages[i]) })
-  expect(body(out)[4].handle).toBe(undefined)
+  body(out).forEach((x: any, i: number) => {
+    if ([2, 4, 6].includes(i)) expect([x.handle, x.toolResults.length]).toEqual([undefined, 1])
+    else expect(x).toBe(messages[i])
+  })
   const file = `${DIR}/t2.txt`
   const text = resultText(out, 't2')!
   expect(text.startsWith(`${LOG.slice(0, 100)}\n[jev-mod compact trimmed this Bash (cat app.log) result: `)).toBe(true)
@@ -131,7 +134,8 @@ test('a confident drop takes a text-only message; a message with a tool call sta
   const fake = io(() => ({ choice: 'drop', confidence: 0.9 }), () => ({ choice: '600', confidence: 0.9 }))
   const out = await compact(fake, messages)
   // 0 and 7 are text only and go; 1 (narration with a call) is never sent and stays; 600+600 still cuts the long log
-  expect(body(out).map((x: any) => messages.indexOf(x)).filter((i: number) => i >= 0)).toEqual([1, 2, 3, 5, 6, 8, 9, 10, 11, 12, 13])
+  expect(body(out).map((x: any) => messages.indexOf(x)).filter((i: number) => i >= 0)).toEqual([1, 3, 5, 8, 9, 10, 11, 12, 13])
+  expect(body(out)).toHaveLength(12) // and the three result messages, rebuilt
   expect(resultText(out, 't2')).toContain('keeping its first 600 and last 600')
   const turns = fake.asked.flatMap(b => Object.values(b.state.turns ?? {}))
   expect(turns).toEqual(['user: fix the failing test', 'assistant: ok, noted'])
@@ -147,9 +151,9 @@ test('a pair Jev confidently drops goes whole, call and result, saved first; the
   expect(callOf(out, 't2')).toBe(undefined)
   expect(resultText(out, 't2')).toBe(undefined)
   expect(resultText(out, 't3')).toContain(SECRET) // never sent: whole
-  // 1 keeps its narration (rebuilt without the call); 2, 3 and 4 held only the dropped pairs and go
+  // 1 keeps its narration (rebuilt without the call); 2, 3 and 4 held only the dropped pairs and go; 6 is rebuilt
   const kept = body(out)
-  expect(kept.map((x: any) => messages.indexOf(x))).toEqual([0, -1, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+  expect(kept.map((x: any) => messages.indexOf(x))).toEqual([0, -1, 5, -1, 7, 8, 9, 10, 11, 12, 13])
   expect(kept[1]).toEqual({ role: 'assistant', text: 'Let me run the tests', toolUses: [] })
   expect(Object.keys(fake.disk).filter(p => p.startsWith(DIR)).sort()).toEqual([`${DIR}/t1.txt`, `${DIR}/t2.txt`])
   expect(fake.disk[`${DIR}/t1.txt`]).toContain('FAIL src/a.test.ts\nexpected 2, got 3')

@@ -147,16 +147,18 @@ export function saved(p: Pair, session: string | null): string {
 
 /**
  * The messages with each trimmed result's text replaced (`texts`, by tool_use_id) and each
- * dropped pair's call and result taken out (`drop`, by tool_use_id). A message that changed is
- * handed back without the engine's `handle`, so the engine builds it from its role, text and tool
- * blocks, and a trimmed result loses its stored record (`result`), which held the bulk; one left
- * with no text and no tool block goes. Every other message is the engine's own, untouched.
+ * dropped pair's call and result taken out (`drop`, by tool_use_id). Every message that holds a
+ * tool result is handed back without the engine's `handle`, so the engine builds it from its role,
+ * text and tool blocks: a kept result message handed back with its handle is written after the
+ * compaction with its old parent (the call's original message, before the boundary), and a
+ * resumed session then walks back through the whole conversation the compaction removed. A
+ * trimmed result loses its stored record (`result`), which held the bulk. A message left with no
+ * text and no tool block goes. Every other message is the engine's own, untouched.
  */
 export function rebuilt<M extends Msg>(messages: readonly M[], texts: ReadonlyMap<string, string>, drop: ReadonlySet<string> = new Set()): M[] {
   const out: M[] = []
   for (const m of messages) {
-    const touched = m.toolResults?.some(r => texts.has(r.tool_use_id) || drop.has(r.tool_use_id))
-      || m.toolUses?.some(u => drop.has(u.tool_use_id))
+    const touched = !!m.toolResults?.length || m.toolUses?.some(u => drop.has(u.tool_use_id))
     if (!touched) { out.push(m); continue }
     const { handle: _handle, ...rest } = m
     const toolUses = (m.toolUses ?? []).filter(u => !drop.has(u.tool_use_id))

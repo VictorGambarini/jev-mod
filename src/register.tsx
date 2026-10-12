@@ -6,6 +6,7 @@ import { line } from './features/band/line'
 import { configured, modeOf, redactContactsSetting } from './core/config'
 import type { IO } from './core/io'
 import * as memory from './core/memory'
+import { changed } from './core/reads'
 import { setRedactContacts } from './engine/privacy'
 import * as accessGate from './features/access-gate'
 import * as browser from './features/browser'
@@ -85,10 +86,9 @@ const access = atom({ plugin: 'jev-mod', key: 'access' } as const, null as Acces
 let bandOn = true
 
 /** Redraw the band from the session's record, after a hook that may have changed it. */
-async function refresh($: any): Promise<void> {
+async function refresh($: any, io: IO = ioOf($)): Promise<void> {
   try {
-    bandOn = await modeOf(ioOf($), 'band') !== 'off'
-    const io = ioOf($)
+    bandOn = await modeOf(io, 'band') !== 'off'
     // Whether a feature that judges each prompt is on (the idle band's hint), and routing's mode
     // (a lane recorded before routing was switched off is not shown as this turn's).
     const [routingMode, skillsMode] = await Promise.all([modeOf(io, 'routing'), modeOf(io, 'skills')])
@@ -127,7 +127,9 @@ function ioOf($: any): IO {
         return []
       }
     },
-    writeFile: (path, text) => $.fs.write(path, text),
+    writeFile: async (path, text) => {
+      try { await $.fs.write(path, text) } finally { changed(path) }
+    },
     home: () => $.env.get('HOME'),
     env: name => envOf($, name),
     sleep: ms => $.clock.sleep(ms),
@@ -168,10 +170,10 @@ let findFilesOffered = false
  * find-files' tool, registered once it is on: at session start, or at the first prompt after it
  * was turned on. Registering is for the session; turned off, the tool stays and answers so.
  */
-async function offerFindFiles($: any): Promise<void> {
+async function offerFindFiles($: any, io: IO = ioOf($)): Promise<void> {
   if (findFilesOffered) return
   try {
-    if (!(await findFiles.offered(ioOf($)))) return
+    if (!(await findFiles.offered(io))) return
     await $.tool.register(findFiles.SPEC)
     findFilesOffered = true
   } catch { /* not offered: Glob and Grep as ever */ }
@@ -181,10 +183,10 @@ async function offerFindFiles($: any): Promise<void> {
 let reviewTriageOffered = false
 
 /** review-triage's tool, registered once it is on, as find-files' tool is. */
-async function offerReviewTriage($: any): Promise<void> {
+async function offerReviewTriage($: any, io: IO = ioOf($)): Promise<void> {
   if (reviewTriageOffered) return
   try {
-    if (!(await reviewTriage.offered(ioOf($)))) return
+    if (!(await reviewTriage.offered(io))) return
     await $.tool.register(reviewTriage.SPEC)
     reviewTriageOffered = true
   } catch { /* not offered */ }
@@ -194,10 +196,10 @@ async function offerReviewTriage($: any): Promise<void> {
 let browseOffered = false
 
 /** The browse tool, registered once the browser feature is on, as find-files' tool is. */
-async function offerBrowse($: any): Promise<void> {
+async function offerBrowse($: any, io: IO = ioOf($)): Promise<void> {
   if (browseOffered) return
   try {
-    if (!(await browser.offered(ioOf($)))) return
+    if (!(await browser.offered(io))) return
     await $.tool.register(browser.SPEC)
     browseOffered = true
   } catch { /* not offered */ }
@@ -227,13 +229,14 @@ export const register: Register = (on, given) => {
   options = { ...(given ?? {}) }
   setRedactContacts(options.redact_contacts === true || options.redact_contacts === 'true')
   on('session.start', async ($, e, next) => {
-    await loadPrivacy(ioOf($))
+    const io = ioOf($)
+    await loadPrivacy(io)
     await $.command.register(command.command)
-    await offerFindFiles($)
-    await offerReviewTriage($)
-    await offerBrowse($)
-    await onboard(ioOf($))
-    await refresh($)
+    await offerFindFiles($, io)
+    await offerReviewTriage($, io)
+    await offerBrowse($, io)
+    await onboard(io)
+    await refresh($, io)
     return next(e)
   }).catch(($, e, next) => next(e))
 
@@ -251,8 +254,8 @@ export const register: Register = (on, given) => {
     if (!text.trim() || text.trimStart().startsWith('/')) return next(e)
     await memory.load(io)
     const [suggestion, triaged] = await Promise.all([skills.analyse(io, text), reviewTriage.analyse(io, text), routing.analyse(io, text),
-      toolGate.analyse(io, text, e.origin), rulesGate.analyse(io, text, e.origin), offerFindFiles($), offerReviewTriage($), offerBrowse($)])
-    await refresh($)
+      toolGate.analyse(io, text, e.origin), rulesGate.analyse(io, text, e.origin), offerFindFiles($, io), offerReviewTriage($, io), offerBrowse($, io)])
+    await refresh($, io)
     const added = [suggestion, triaged].filter((c): c is string => Boolean(c))
     return next(added.length ? { ...e, context: [...(e.context ?? []), ...added] } : e)
   }).catch(($, e, next) => next(e))
@@ -270,8 +273,9 @@ export const register: Register = (on, given) => {
   on('classic.Stop', async ($, e, next) => {
     const ran = await next(e)
     if (e.agent_id || ran.block !== undefined || ran.preventContinuation) return ran
-    const note = await stopGate.check(ioOf($), { promptId: e.prompt_id, last: e.last_assistant_message })
-    await refresh($) // the gate's call is on the band's tally
+    const io = ioOf($)
+    const note = await stopGate.check(io, { promptId: e.prompt_id, last: e.last_assistant_message })
+    await refresh($, io) // the gate's call is on the band's tally
     return note ? { ...ran, block: note } : ran
   }).catch(($, e, next) => next(e))
 
@@ -281,7 +285,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     await routing.modelChosen(io, e)
-    await refresh($)
+    await refresh($, io)
     return ran
   }).catch(($, e, next) => next(e))
 
@@ -291,7 +295,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const routed = await routing.step(io, e)
-    await refresh($)
+    await refresh($, io)
     if (!routed) return yield* next(e)
     return yield* next({ ...e, model: routed.model, effort: routed.effort as typeof e.effort })
   }).catch(async function* ($, e, next) {
@@ -300,8 +304,9 @@ export const register: Register = (on, given) => {
 
   // A setting changed here (the band itself switched on or off) shows at once.
   on('command.run', { command: 'jev-mod' }, async ($, e) => {
-    const answer = await command.run(ioOf($), e.args, e.origin)
-    await refresh($)
+    const io = ioOf($)
+    const answer = await command.run(io, e.args, e.origin)
+    await refresh($, io)
     return answer
   })
     .catch(() => ({ text: 'jev-mod: the command failed before it finished; /jev-mod shows the settings as they are now.' }))
@@ -317,10 +322,11 @@ export const register: Register = (on, given) => {
   // Any compaction, though, makes output trimming forget the last runs of each command: the
   // model may no longer have the output a "still failing" marker would point back to.
   on('session.compact', async ($, e, next) => {
-    if (!e.agentId) await trimOutput.forget(ioOf($)).catch(() => {})
+    const io = ioOf($)
+    if (!e.agentId) await trimOutput.forget(io).catch(() => {})
     if (!compact.isOurs(e)) return next(e)
-    const compacted = await compact.compact(ioOf($), e.messages)
-    await refresh($)
+    const compacted = await compact.compact(io, e.messages)
+    await refresh($, io)
     return compacted
   }).catch(($, e, next) => next(e))
 
@@ -330,7 +336,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const result = await findFiles.find(io, e as unknown as { query?: unknown; path?: unknown; limit?: unknown })
-    await refresh($)
+    await refresh($, io)
     return { result }
   }).catch(() => ({ result: 'find_files failed before it finished; use Glob and Grep.' }))
 
@@ -339,7 +345,7 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const result = await reviewTriage.triage(io, e as unknown as { base?: unknown; paths?: unknown; intent?: unknown })
-    await refresh($)
+    await refresh($, io)
     return { result }
   }).catch(() => ({ result: 'verdict: full\ndo the full review; start with these files.\nreasons:\n- review_triage failed before it finished' }))
 
@@ -349,10 +355,10 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     await memory.load(io)
     const result = await browser.browse(io, e as unknown as Record<string, unknown>, {
-      progress: () => refresh($),
+      progress: () => refresh($, io),
       aborted: () => next.signal.aborted,
     })
-    await refresh($)
+    await refresh($, io)
     return { result }
   }).catch(() => ({ result: 'status: failed\nreason: browse failed before it finished; the browser was closed.' }))
 
@@ -393,7 +399,7 @@ export const register: Register = (on, given) => {
         prompt: text(input.prompt), subagent: Boolean(e.agentId) }, ran.result)
       if (result !== null) ran = { ...ran, result }
     }
-    await refresh($)
+    await refresh($, io)
     return ran
   }).catch(($, e, next) => next(e))
 
@@ -413,13 +419,13 @@ export const register: Register = (on, given) => {
     const io = ioOf($)
     const refused = await accessGate.check(io, e)
     if (refused) {
-      await refresh($)
+      await refresh($, io)
       return refused
     }
     if (verdict.decision !== 'allow') return verdict
     const gate = await toolGate.check(io, e)
     if (!gate) return verdict
-    await refresh($)
+    await refresh($, io)
     return gate
   }).catch(($, e, next) => next(e))
   // ── end access gate and tool-call gate ──
@@ -431,9 +437,10 @@ export const register: Register = (on, given) => {
   on('tool.check', { tool: ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'] }, async ($, e, next) => {
     const verdict = await next(e)
     if (verdict.decision === 'deny' || e.tool_use_id === undefined) return verdict
-    const gate = await rulesGate.check(ioOf($), e)
+    const io = ioOf($)
+    const gate = await rulesGate.check(io, e)
     if (!gate) return verdict
-    await refresh($)
+    await refresh($, io)
     return gate
   }).catch(($, e, next) => next(e))
   // ── end rules gate ──

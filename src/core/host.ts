@@ -1,5 +1,6 @@
 import type { Host } from '../engine/client'
 import type { IO } from './io'
+import { readOnce } from './reads'
 
 // The engine's Host (engine/client.ts) built from the mod's IO: environment, files, the OS
 // secret store, one POST with a deadline, the clock.
@@ -34,9 +35,7 @@ async function secret(io: IO, service: string, account: string): Promise<string 
 export function hostOf(io: IO): Host {
   return {
     env: name => io.env(name),
-    readFile: async path => {
-      try { return await io.readFile(path) } catch { return undefined }
-    },
+    readFile: path => readOnce(io, path),
     secret: (service, account) => secret(io, service, account),
     setting: async name => { const v = io.option(name); return typeof v === 'string' ? v : undefined },
     home: async () => (await io.home()) ?? '',

@@ -168,11 +168,12 @@ test('writing a looser protective mode, or its knobs, to the project file is ref
   const fake = io({}, files)
   expect(await write(fake, 'project', 'screening', 'mode', 'off')).toEqual({
     problem: 'project config may not lower screening: off is looser than on (default), and a project may only make it stricter' })
+  // a hook call reads each file once, so a file changed behind the IO's back is seen by a new IO
   files[USER] = conf({ 'tool-gate': { mode: 'shadow' } })
-  expect(await write(fake, 'project', 'tool-gate', 'mode', 'off')).toEqual({
+  expect(await write(io({}, files), 'project', 'tool-gate', 'mode', 'off')).toEqual({
     problem: 'project config may not lower tool-gate: off is looser than shadow (user), and a project may only make it stricter' })
   delete files[USER]
-  expect(await write(fake, 'project', 'tool-gate', 'timeoutMs', 1000)).toEqual({
+  expect(await write(io({}, files), 'project', 'tool-gate', 'timeoutMs', 1000)).toEqual({
     problem: 'project config may not set tool-gate.timeoutMs: tool-gate guards you, so only your own file sets its settings' })
   expect(PROJECT in files).toBe(false)
   expect(await write(fake, 'project', 'tool-gate', 'mode', 'on')).toEqual({ ok: true, path: PROJECT })
@@ -221,4 +222,21 @@ test('asking for one feature reads only that feature\'s files, not every feature
   expect((await setting(probe, 'skills')).mode).toBe('on')
   expect(seen.length).toBeLessThan(10)
   expect(seen.filter(path => path.endsWith('/BROWSER_OFF'))).toEqual([])
+})
+
+test('one IO reads each file once, sees its own write, and a new IO sees an edit made behind its back', async () => {
+  const files: Record<string, string> = { [USER]: conf({ skills: { mode: 'shadow' } }) }
+  let reads = 0
+  const counted = io({}, files)
+  const read = counted.readFile
+  counted.readFile = async (path: string) => { reads++; return read(path) }
+  expect((await setting(counted, 'skills')).mode).toBe('shadow')
+  const first = reads
+  for (let i = 0; i < 5; i++) await setting(counted, 'skills')
+  expect(reads).toBe(first) // nothing read again
+  expect(await write(counted, 'user', 'skills', 'mode', 'on')).toEqual({ ok: true, path: USER })
+  expect((await setting(counted, 'skills')).mode).toBe('on') // its own write is seen
+  files[USER] = conf({ skills: { mode: 'off' } })
+  expect((await setting(counted, 'skills')).mode).toBe('on') // behind its back: this call's copy stands
+  expect((await setting(io({}, files), 'skills')).mode).toBe('off') // the next call reads again
 })

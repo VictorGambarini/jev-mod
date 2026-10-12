@@ -1,6 +1,7 @@
 import { LOOPBACK_ON, readOverlay } from './bench-overlay'
 import { hostOf } from './host'
 import type { IO } from './io'
+import { changed } from './reads'
 import { jevDir } from './settings'
 import { checkKnob, checkMode, feature, FEATURES, strictness, type Feature, type KnobValue, type Mode } from './registry'
 
@@ -22,7 +23,7 @@ import { checkKnob, checkMode, feature, FEATURES, strictness, type Feature, type
 //
 // Both files look like {"features": {"skills": {"mode": "shadow", "<knob>": <value>}}}. A value
 // that does not check is passed over and reported, and so is a file that is not JSON: a typo
-// never turns screening off. Files are read on each use, so an edit holds from the next event.
+// never turns screening off. Files are read once per hook call (reads.ts), so an edit holds from the next event.
 
 export type Scope = 'user' | 'project'
 export type Source = 'kill file' | '/config' | 'bench overlay' | Scope | 'older setting' | 'default'
@@ -333,5 +334,6 @@ async function edit(io: IO, scope: Scope, id: string, change: (mine: Record<stri
   if (Object.keys(mine).length) sections[id] = mine
   else delete sections[id]
   await io.writeFile(path, JSON.stringify({ ...file, features: sections }, null, 2) + '\n')
+  changed(path)
   return { ok: true, path }
 }

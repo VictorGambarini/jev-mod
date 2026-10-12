@@ -1,4 +1,5 @@
 import type { IO } from './io'
+import { readOnce } from './reads'
 import { jevDir } from './settings'
 import { admitState, chargeState, limitConfig, type Limits, type LimitState } from '../engine/lanes'
 
@@ -8,10 +9,15 @@ import { admitState, chargeState, limitConfig, type Limits, type LimitState } fr
 //
 // Python holds an flock around each read-and-write; a mod cannot, so two processes deciding in
 // the same instant may lose one count. limits.py calls itself a brake, not an accountant: it
-// admits when the counter cannot be read, and so does this.
+// admits when the counter cannot be read, and so does this. The counter is read afresh each time
+// (it is changed by every decision, here and in other processes); limits.json is read once per call.
 
 async function readJson(io: IO, path: string): Promise<unknown> {
   try { return JSON.parse(await io.readFile(path)) } catch { return undefined }
+}
+
+function parse(text: string | undefined): unknown {
+  try { return text === undefined ? undefined : JSON.parse(text) } catch { return undefined }
 }
 
 export async function limitsOf(io: IO): Promise<Limits | undefined> {
@@ -28,7 +34,7 @@ export async function limitsOf(io: IO): Promise<Limits | undefined> {
   }
   return {
     admit: async shadow => {
-      const [allowed, reason, next] = admitState(await state(), limitConfig(await readJson(io, `${dir}/limits.json`)), Date.now(), shadow)
+      const [allowed, reason, next] = admitState(await state(), limitConfig(parse(await readOnce(io, `${dir}/limits.json`))), Date.now(), shadow)
       if (allowed) await write(next)
       return [allowed, reason]
     },

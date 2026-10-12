@@ -1,4 +1,5 @@
 import type { IO } from './io'
+import { readOnce } from './reads'
 
 // A settings overlay for benchmark runs, and nothing else. The bench (src/bench/) starts a
 // headless `claude -p` with JEV_MOD_BENCH_OVERLAY naming a JSON file, so one run can set a
@@ -72,8 +73,8 @@ export function parseOverlay(text: string): { overlay: Overlay } | { problem: st
 export async function readOverlay(io: IO): Promise<{ overlay?: Overlay; problem?: string }> {
   const path = ((await io.env(OVERLAY_ENV)) ?? '').trim()
   if (!path) return {}
-  let text: string
-  try { text = await io.readFile(path) } catch { return { problem: `bench overlay ${path} could not be read; it is passed over` } }
+  const text = await readOnce(io, path)
+  if (text === undefined) return { problem: `bench overlay ${path} could not be read; it is passed over` }
   const parsed = parseOverlay(text)
   return 'overlay' in parsed ? { overlay: parsed.overlay } : { problem: parsed.problem }
 }

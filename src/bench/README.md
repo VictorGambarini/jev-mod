@@ -193,6 +193,10 @@ to write a row with a field named like a key or a header, or a text value the pr
 mask. Case text is not stored either, only ids and structure: the cases are committed synthetic
 data, and real session content is stored only if you put it in a case yourself.
 
+The report reads only the files directly in `results/`. Runs made on older code are moved to
+`results/older/`, so a feature's table shows the code it ships with; they stay there for comparison.
+A row rescored after a checker fix says so in `detail.rescored`.
+
 The fake backend's results go to `bench/fake/decision-fake.fake.jsonl` (replaced on each run),
 and its plots and summary are named `*-fake.svg` and `summary-fake.md`, with FAKE in every title.
 Its answers lean toward the gold label with deterministic noise: they show that the pipeline

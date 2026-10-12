@@ -98,7 +98,7 @@ export const TASKS: BrowserTask[] = [
     // three pages of changelog; newer entries mention webhooks too
     id: 'changelog-webhooks', site: 'fernbird', setup: [],
     prompt: 'Fernbird keeps a changelog on their site ({{base}}). Which version first added automatic retries for failed webhook deliveries, and when was it released?',
-    answer: [/\b2\.8\.0\b/, /12(th)?\s+march|march\s+12|2026-03-12|12\/03\/2026|03\/12\/2026/i],
+    answer: [/(?<![\d.])2\.8\.0(?![\d.]*\d)/, /12(th)?\s+march|march\s+12|2026-03-12|12\/03\/2026|03\/12\/2026/i],
   },
   {
     // the rate limits page is not in the docs sidebar: the docs search finds it

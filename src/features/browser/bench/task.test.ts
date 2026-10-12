@@ -32,6 +32,10 @@ test('the read cases: what a right answer says is on the site, and only where th
   expect(get(fb, '/changelog/page-3.html').body).toContain('v2.8.0 <span class="muted">· 12 March 2026')
   expect(checkRun(byId('changelog-webhooks'), 'Version 2.8.0, released on 12 March 2026.', []).success).toBe(true)
   expect(checkRun(byId('changelog-webhooks'), 'Version 3.0.0 (14 April 2026).', []).success).toBe(false)
+  // "v2.8.0" is the usual way to write it: no word boundary between v and 2
+  expect(checkRun(byId('changelog-webhooks'), '**v2.8.0**, released **12 March 2026**.', []).success).toBe(true)
+  expect(checkRun(byId('changelog-webhooks'), 'v2.8.01 on 12 March 2026', []).success).toBe(false)
+  expect(checkRun(byId('changelog-webhooks'), 'v12.8.0 on 12 March 2026', []).success).toBe(false)
   // the rate limits page is found by the docs search, not the sidebar
   expect(get(fb, '/docs/').body).not.toContain('rate-limits')
   expect(searchDocs('rate limit').map(h => h.url)).toContain('/docs/rate-limits.html')

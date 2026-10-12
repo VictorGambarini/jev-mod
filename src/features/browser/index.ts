@@ -9,13 +9,13 @@ import * as memory from '../../core/memory'
 import { isPrivate, jevDir } from '../../core/settings'
 import { activeBackend, ask, costOf, JevError, MAX_STATE_CHARS, type Asked, type Host } from '../../engine/client'
 import { encode } from '../../engine/pyjson'
-import { isSensitive, redact } from '../../engine/privacy'
+import { redact } from '../../engine/privacy'
 import { screenResult, withholdText } from '../../engine/screen'
 import { launchChild, type Driver, type Launch, type Wire } from './child'
 import {
   actionKey, allowed, allowedHosts, bandText, botCheck, BOT_POLL_MS, BOT_WAIT_MS, buildTable, confirmRequest, DEAD_REPEATS, describe, doneRequest,
-  doneVerdict, eventText, fieldName, fingerprint, goalNames, MAX_EVENTS, MAX_ROWS, noteChecked, noteFound, notePage, ranked, READ_CHARS,
-  render, reveal, riskOf, safeLabel, said, scrub, shortHref, stepRequest, sureness, yes,
+  doneVerdict, eventText, fieldName, fingerprint, goalNames, holdsSecret, sameContent, MAX_EVENTS, MAX_ROWS, noteChecked, noteFound, notePage, ONCE_KINDS, asksSeveral, ranked, READ_CHARS, targetOf,
+  render, reveal, riskOf, safeLabel, said, scrub, shortHref, slug, stepRequest, sureness, yes,
   type Action, type Sure, type Found, type Values, type Observation, type Outcome, type Page, type PageEvent, type PageNote, type Signals, type Status,
   type Step,
 } from './rules'
@@ -24,13 +24,13 @@ import {
 // a fetch is not enough. The decision model picks each step from a table of what the page offers
 // (rules.ts); a child process holding Playwright does it (child.ts, driver.mjs). Every page's
 // text is scrubbed of the input values, redacted and screened before the decision model reads
-// it, and a page that looks like it holds secrets is sent as its elements only.
+// it, and a page that holds secrets (holdsSecret: not one that only names a password) is sent as its elements only.
 //
 // It stops, and says why, on: done (the pick, or the step request's goal_reached signal, then a
 // second check over the page's own text, which must find the exact thing the goal asks for on a
 // line of the page); needs_input; needs_confirm (a consequential step the
-// goal does not plainly ask for, or any consequential step once one was attempted with an unknown
-// result); blocked (no step sure enough by its confidence or its lead over the runner-up);
+// goal does not plainly ask for on that item, a second one of its kind on another item, or any
+// consequential step once one was attempted with an unknown result); blocked (no step sure enough by its confidence or its lead over the runner-up);
 // stuck (the step request's stuck signal); bot_check (a bot-protection page that did not clear
 // in 8 seconds); left_allowlist; the step budget; and any
 // failure (no key, private mode, the daily budget, a backend cool-off), which ends the run and
@@ -74,8 +74,10 @@ export const SPEC = {
     + 'the Pricing or Plans links count as progress"), not hop by hop, and name the kind of action when the goal needs '
     + 'one (buy, send, submit, sign up, delete). It stays on startUrl\'s site and its subdomains (plus allowHosts). '
     + 'startUrl, allowHosts and attach apply to a new call only; a call with resumeId ignores them. It '
-    + 'answers with a status: done; unverified; needs_input (call again with resumeId and the missing inputs); '
-    + 'needs_confirm (a consequential step: buy, pay, send, delete, post, sign up, submit a form. Ask the person, and '
+    + 'answers with a status: done; unverified; needs_input (call again with resumeId and an input of the exact name it gives, '
+    + 'or approve the row of an input already given); '
+    + 'needs_confirm (a consequential step: buy, pay, send, delete, post, sign up, submit a form, or a button that archives, '
+    + 'moves, marks, renames or adds to a cart; one item per call unless the goal asks for several. Ask the person, and '
     + 'only if they agree call again with resumeId and approve=<the action id>); blocked (no clear step: the top 3 with '
     + 'probabilities (before it stops so, or as stuck or at the step budget, the page is checked once more: a page that '
     + 'shows the goal ends as done); approve one, which runs it directly without the needs_confirm check, so Claude decides; or call '
@@ -147,6 +149,8 @@ type Session = {
   notes: PageNote[]
   /** The URL the last page read was at: a new one counts a visit in the notes. */
   lastUrl: string | null
+  /** Each consequential step this run took that went through: its kinds, the item it acted on (changeKey), its step and line. */
+  changes: { kinds: string[]; key: string; step: number; text: string }[]
 }
 
 const paused = new Map<string, Session>()
@@ -217,7 +221,7 @@ async function askJev(ctx: Ctx, state: Record<string, unknown>, questions: Recor
  */
 export function pageOf(obs: Observation, values: Values, textChars: number, readChars = READ_CHARS): Page {
   const raw = obs.text ?? ''
-  if (obs.sensitive || isSensitive(raw)) {
+  if (obs.sensitive || holdsSecret(raw)) {
     return { url: obs.url, title: obs.title, text: null,
       withheld: obs.sensitive ? 'the page has a password, card or one-time-code field' : 'the page text looks like it holds secrets' }
   }
@@ -384,7 +388,10 @@ async function perform(ctx: Ctx, s: Session, action: Action, sure?: Sure): Promi
     ...(action.kind === 'choose' ? { option: action.option, optionLabel: action.optionLabel } : {}),
     expect: action.el ? { tag: action.el.tag, label: action.el.label } : undefined }
   const done = said(action, values)
-  const risky = !!riskOf(action)
+  const risk = riskOf(action)
+  const risky = !!risk
+  const read = s.page && before && s.page.fp === fingerprint(before) ? s.page.page : null
+  const target = risk && before ? targetOf(action, read ?? { title: before.title, text: null }, values) : ''
   const res = await s.driver.act(wire)
   if (res.left) {
     s.steps.push({ n: s.steps.length + 1, line: `${done} → left the allowed hosts` })
@@ -440,13 +447,23 @@ async function perform(ctx: Ctx, s: Session, action: Action, sure?: Sure): Promi
     line += ' (no visible change)'
     const key = actionKey(before.url, action)
     s.dead.set(key, (s.dead.get(key) ?? 0) + 1)
+  } else if (before && action.kind === 'scroll' && sameContent(before, res.obs)) {
+    // The text is read whole whatever the scroll, so a scroll that brought no new text or element brings none the next time either.
+    line += ' (nothing new: the whole page was read already; not offered here again)'
+    s.dead.set(actionKey(before.url, action), Math.max(ctx.deadRepeats ?? DEAD_REPEATS, 1))
   } else if (before && res.obs.url !== before.url) line += ` → ${shortHref(res.obs.url)}`
+  if (risk && res.ok && before) s.changes.push({ kinds: risk.kinds, key: changeKey(before, target), step: s.steps.length + 1, text: `${done}${target ? `, acting on ${target}` : ''}` })
   // The confidence, and the lead when that is what cleared the floor.
   if (sure) line += sure.confidence >= ctx.floor ? ` (${sure.confidence.toFixed(2)})` : ` (${sure.confidence.toFixed(2)}, lead ${sure.lead.toFixed(2)})`
   s.steps.push({ n: s.steps.length + 1, line })
   absorb(s, res.obs, s.steps.length)
   await progress(ctx, line)
   return null
+}
+
+/** Which item a consequential step acts on: the page (host and path) and its target (targetOf). */
+function changeKey(obs: Observation, target: string): string {
+  return `${shortHref(obs.url)}|${target}`
 }
 
 /** The page check said not yet here: done is not offered on this page again, and its note says so. */
@@ -520,7 +537,7 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
     const pick = answer?.type === 'choice' ? answer.choice : 'abstain'
     const sure = sureness(answer, table)
     const confidence = sure.confidence
-    const action = table.find(a => a.id === pick)
+    let action = table.find(a => a.id === pick)
     const reached = yes(reply.answers.goal_reached) ?? 0
     const stuck = yes(reply.answers.stuck) ?? 0
 
@@ -557,7 +574,9 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
       { options: options.map(o => ({ id: o.id, p: o.p, text: o.action.text })) })
     }
 
-    if (!action || pick === 'abstain' || sure.sure < ctx.floor) {
+    // A step that changes something (riskOf) is taken on the model's own confidence: a lead over a weak runner-up is not enough for it.
+    const leadOnly = !!action && !!riskOf(action) && confidence < ctx.floor
+    if (!action || pick === 'abstain' || sure.sure < ctx.floor || leadOnly) {
       const gaveUp = pick === 'abstain' && sure.sure >= ctx.floor
       const last = await lastCheck(ctx, s, gaveUp ? 'nothing here moved toward the goal' : 'no step sure enough')
       if (last) return last
@@ -567,6 +586,7 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
       s.steps.push({ n: s.steps.length + 1, line: gaveUp ? `nothing here moves toward the goal (${confidence.toFixed(2)})`
         : `no step sure enough (best: ${pick} at ${confidence.toFixed(2)}, ${lead})` })
       return outcome(s, 'blocked', `${gaveUp ? 'the decision model judged that nothing on this page moves toward the goal'
+        : leadOnly ? `no step is sure enough to take (the floor is ${ctx.floor}; ${pick} would change something, and for that its own confidence must clear the floor, not its lead: it had ${confidence.toFixed(2)} and ${lead})`
         : `no step is sure enough to take (the floor is ${ctx.floor}, for its confidence or its lead over the runner-up; ${pick} had ${confidence.toFixed(2)} and ${lead})`}; its top choices were `
         + `${top.map(r => `${r.id} (${r.p.toFixed(2)})`).join(', ')}. Only the listed options can be approved (with resumeId and approve=<id>); or call again with a goal that says what counts as progress.`,
       { options: options.map(o => ({ id: o.id, p: o.p, text: o.action.text })) })
@@ -588,12 +608,25 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
     }
 
     if (action.kind === 'fill' && action.el) {
-      s.pending = { kind: 'needs_input', approvable: new Map() }
-      const name = fieldName(action.el)
-      s.steps.push({ n: s.steps.length + 1, line: `needs text for ${describe(action.el, values)}` })
-      return outcome(s, 'needs_input', `the field ${describe(action.el, values)} needs text that none of the given inputs holds. `
-        + `Call browse again with resumeId and inputs: {"${name}": "<the text>"} (any name; the value is never sent to the decision model).`,
-      { input: { name, text: describe(action.el, values) } })
+      const el = action.el
+      const name = fieldName(el)
+      const rows = table.filter(a => a.kind === 'type' && a.ref === el.id)
+      // An input given under the very name a needs_input answer asks for is this field's text: typed, never asked for again.
+      const named = rows.find(a => slug(a.input ?? '') === name)
+      if (named) {
+        action = named
+      } else {
+        s.pending = { kind: 'needs_input', approvable: new Map(rows.map(a => [a.id, a])) }
+        s.steps.push({ n: s.steps.length + 1, line: `needs text for ${describe(el, values)}` })
+        const given = Object.keys(values)
+        return outcome(s, 'needs_input', `the field ${describe(el, values)} needs text, and the decision model judged that `
+          + `${given.length ? `none of the given inputs (${given.map(n => `"${n}"`).join(', ')}) holds it` : 'no input was given for it'}. `
+          + `Call browse again with resumeId and an input named "${name}" holding the text (inputs: {"${name}": "<the text>"}); `
+          + `an input of exactly that name is typed into this field, and its value is never sent to the decision model.`
+          + (rows.length ? ` Or, if an input already given is this field's text, approve its row (resumeId and approve=<id>): `
+            + `${rows.map(a => `${a.id} for input "${a.input}"`).join(', ')}.` : ''),
+        { input: { name, text: describe(el, values) }, ...(rows.length ? { options: rows.map(a => ({ id: a.id, text: a.text })) } : {}) })
+      }
     }
 
     const risk = riskOf(action)
@@ -607,9 +640,21 @@ async function drive(ctx: Ctx, s: Session, approve: Action | null): Promise<Outc
       { options: [{ id: action.id, text: action.text, p: confidence }] })
     }
     if (risk) {
+      const target = targetOf(action, page, values)
+      // One item per call for an archive, a delete, a send, a buy or a post, unless the goal asks for several.
+      const earlier = s.changes.find(c => c.kinds.some(k => risk.kinds.includes(k)) && c.key !== changeKey(obs, target))
+      if (earlier && risk.kinds.some(k => ONCE_KINDS.has(k)) && !asksSeveral(s.goal)) {
+        s.pending = { kind: 'needs_confirm', approvable: new Map([[action.id, action]]) }
+        s.steps.push({ n: s.steps.length + 1, line: `stopped before: ${action.text}${target ? `, acting on ${target}` : ''} (step ${earlier.step} did that to another item)` })
+        return outcome(s, 'needs_confirm', `the next step would ${risk.why.replace(/^it looks like it would /, '')} a second time, on another item: `
+          + `${action.text}${target ? `, acting on ${target}` : ''}. Not done: step ${earlier.step} already did it ("${earlier.text}"), and the goal `
+          + `does not ask for more than one. If that step did what the goal asks, the goal is done; only if the person wants this item changed too, `
+          + `call browse with resumeId and approve "${action.id}".`,
+        { options: [{ id: action.id, text: action.text, p: confidence }] })
+      }
       let p: number | null = null
       if (goalNames(s.goal, risk.kinds, risk.label)) {
-        const c = confirmRequest(s.goal, page, action, risk, values)
+        const c = confirmRequest(s.goal, page, action, risk, values, { target, earlier: s.changes.map(c => c.text) })
         p = yes((await askJev(ctx, c.state, c.questions, CHECK_MS)).answers.asked)
       }
       if (p === null || p < ctx.confirm) {
@@ -715,7 +760,7 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
       return fail('private mode: nothing is sent to the decision backend, and browse needs it to pick each step')
     }
     if (coolingOff()) return fail('the decision backend is cooling off after a failure; try again in a few minutes')
-    if (goal && isSensitive(goal)) return fail('the goal looks like it holds a secret; put secrets in inputs, which the decision model never sees')
+    if (goal && holdsSecret(goal)) return fail('the goal looks like it holds a secret; put secrets in inputs, which the decision model never sees')
 
     // A named backend's own tuning wins over the knobs: its confidences are not Jev's numbers.
     // Only a value the backend sets: Jev's shipped 0.65 for choose.min_confidence stopped nearly
@@ -779,7 +824,7 @@ export async function browse(io: IO, input: Input, deps: Deps = {}): Promise<str
       s = { id: randomId(), driver: launched.driver, goal, hosts, values: { ...values }, steps: [], obs: null, page: null,
         dead: new Map(), notDone: null, claimedDone: false, pending: null, expires: 0, attached: cdp !== null, uncertain: null,
         covered: new Map(), signals: { reached: 0, confirmed: 0, stuck: 0 }, events: [], eventsMore: 0, found: [],
-        notes: [], lastUrl: null }
+        notes: [], lastUrl: null, changes: [] }
     }
 
     running.add(s)

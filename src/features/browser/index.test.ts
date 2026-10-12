@@ -87,7 +87,7 @@ function io(brain: Brain, opts: { settings?: Record<string, unknown>; key?: bool
 
 // ── the fake site ────────────────────────────────────────────────────────────
 
-type PageDef = { title: string; text: string; elements: Element[]; sensitive?: boolean; frames?: string[] }
+type PageDef = { title: string; text: string; elements: Element[]; sensitive?: boolean; frames?: string[]; more?: boolean }
 
 const link = (id: string, label: string, href: string): Element => ({ id, tag: 'a', role: 'link', label, href })
 const button = (id: string, label: string, submits = false): Element =>
@@ -130,6 +130,23 @@ const SITE: Record<string, PageDef> = {
   // bot checks: Cloudflare's clears after two waits (BOT_CLEARS), DataDome's never does
   'https://shop.test/cf': { ...BOT_PAGES.cloudflare!.obs },
   'https://shop.test/dd': { ...BOT_PAGES.datadome!.obs },
+  // a webmail inbox: each row's Archive is a script button (no form), and the Archive folder is a link
+  'https://shop.test/inbox': {
+    title: 'Inbox · Tui Mail',
+    text: 'Inbox\nHemi Walker | October roster | 6 Oct | Archive Delete\nMere Tane | Re: October roster | 8 Oct | Archive Delete\n'
+      + 'Hemi Walker | Roster swap for Saturday? | 2 Oct | Archive Delete',
+    elements: [link('e1', 'Archive', 'https://shop.test/archived'), button('e2', 'Archive: October roster'), button('e3', 'Archive: Re: October roster'),
+      button('e4', 'Archive: Roster swap for Saturday?'), button('e5', 'Delete: October roster')],
+  },
+  // a long help page that mentions a password and a card number in passing; the answer is in its last line, far past the view
+  'https://shop.test/faq': {
+    title: 'Help and FAQ', more: true,
+    text: `Help and frequently asked questions\nI forgot my password.\nUse "Forgot password" on the sign-in page; the link lasts an hour.\n`
+      + 'How do I check my gift card balance?\nEnter the card number on the checkout page.\n'
+      + `${'Our stores stock tents, packs and stoves, and staff are happy to help you choose. '.repeat(120)}\n`
+      + 'How long is the warranty on the Alpine Down Jacket?\n3 years, covering the shell, the zips and the down fill.',
+    elements: [link('e1', 'Shop', 'https://shop.test/')],
+  },
   'https://shop.test/login': {
     title: 'Sign in', text: 'Enter your password to continue.', sensitive: true,
     elements: [field('e1', 'Email'), { ...field('e2', 'Password'), role: 'textbox' }, button('e3', 'Sign in', true)],
@@ -153,6 +170,7 @@ class FakeDriver implements Driver {
   emit: PageEvent[] = []
   typed: Record<string, string> = {}
   chosen: Record<string, number> = {}
+  scrollY = 0
   values: Record<string, string>
   acts: Wire[] = []
   added: Record<string, string>[] = []
@@ -171,8 +189,8 @@ class FakeDriver implements Driver {
     const text = q ? `${page.text} You searched for ${q}.` : page.text
     const events = this.emit
     this.emit = []
-    return { url: this.url, title: q ? `${page.title}: ${q}` : page.title, text, elements, sensitive: page.sensitive, more: false, canGoBack: false,
-      frames: page.frames, events }
+    return { url: this.url, title: q ? `${page.title}: ${q}` : page.title, text, elements, sensitive: page.sensitive, more: page.more ?? false, canGoBack: false,
+      frames: page.frames, events, scrollY: this.scrollY }
   }
   async observe() {
     if (this.crashed) throw new Error('the browser has closed')
@@ -204,6 +222,8 @@ class FakeDriver implements Driver {
     } else if (w.kind === 'choose' && el) {
       if (el.options?.[w.option!] !== w.optionLabel) return { ok: false, stale: true, obs: this.view() }
       this.chosen[el.id] = w.option!
+    } else if (w.kind === 'scroll') {
+      this.scrollY += 900 // the text and the elements stay as they were: the driver reads them whole
     } else if (w.kind === 'enter' && el?.form?.search) {
       this.url = `https://shop.test/search?q=${encodeURIComponent(this.typed[el.id] ?? '')}`
       this.typed = {}
@@ -381,9 +401,10 @@ test('blocked: under the step floor, the top three come back with their probabil
   const again = await browse(fake, { goal: 'Find something vague', resumeId: resumeOf(text), approve: 'click-e1' }, { launch })
   expect(launched[0]!.url).toBe('https://shop.test/pricing') // the approved click was taken
   expect(again).toContain('3. clicked link "Pricing" → shop.test/pricing')
-  // there "Buy now" (0.35) leads the rest of its table by far, so it clears the floor; the buy still stops for the person
-  expect(statusOf(again)).toBe('status: needs_confirm')
-  expect(again).toContain('4. stopped before: click button "Buy now"')
+  // there "Buy now" (0.35) leads the rest of its table by far, but a step that changes something needs its own confidence over the floor
+  expect(statusOf(again)).toBe('status: blocked')
+  expect(again).toContain('click-e1 would change something, and for that its own confidence must clear the floor, not its lead: it had 0.35')
+  expect(launched[0]!.url).toBe('https://shop.test/pricing') // never bought
   closeAll()
 })
 
@@ -419,9 +440,11 @@ test('needs_input names the field; a resume with the value types it, and no valu
   const first = await browse(fake, { goal: 'Search the shop with my query and apply my coupon', startUrl: 'https://shop.test/', inputs: { query: QUERY } }, { launch })
   expect(statusOf(first)).toBe('status: needs_input')
   expect(first).toContain('the field textbox "Coupon code"')
-  expect(first).toContain('{"coupon_code": "<the text>"}')
+  expect(first).toContain('none of the given inputs ("query") holds it')
+  expect(first).toContain('an input named "coupon_code" holding the text (inputs: {"coupon_code": "<the text>"})')
   expect(first).toContain('input needed: coupon_code:')
-  expect(first).not.toContain('options:') // an input name is not an approvable row
+  // the inputs already given can be typed there instead, by approving their row (an input's name is not a row)
+  expect(first).toContain('options:\n- type-query-e5: type the value of input "query" in textbox "Coupon code"')
   expect(launched[0]!.o.values).toEqual({ query: QUERY }) // the driver holds the values
   const second = await browse(fake, { goal: 'Search the shop with my query and apply my coupon', resumeId: resumeOf(first),
     inputs: { query: QUERY, coupon_code: SECRET } }, { launch })
@@ -758,22 +781,22 @@ test('a covered button is not clicked: the step says what covers it, and it is n
 })
 
 test('a list option is chosen without an input; a step that failed is not offered on that page again', async () => {
-  const fake = io({ picks: [{ choice: 'choose-e1-2', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'click-e2', p: 0.9 }, { choice: 'abstain', p: 0.9 }] })
+  const fake = io({ picks: [{ choice: 'choose-e1-2', p: 0.9 }, { choice: 'click-e3', p: 0.9 }, { choice: 'click-e3', p: 0.9 }, { choice: 'abstain', p: 0.9 }] })
   const { launched, launch } = site()
-  const text = await browse(fake, { goal: 'Put size M socks in the cart', startUrl: 'https://shop.test/socks' }, { launch: async (i, o) => {
+  const text = await browse(fake, { goal: 'Choose size M socks', startUrl: 'https://shop.test/socks' }, { launch: async (i, o) => {
     const r = await launch(i, o)
-    launched[0]!.failing['Add to cart'] = 'timeout'
+    launched[0]!.failing.Home = 'timeout'
     return r
   } })
   const d = launched[0]!
   expect(d.acts[0]).toEqual({ kind: 'choose', ref: 'e1', input: undefined, option: 2, optionLabel: 'M', expect: { tag: 'select', label: 'Size Choose a size S M' } })
   expect(d.chosen).toEqual({ e1: 2 })
   expect(text).toContain('1. chose "M" in combobox "Size Choose a size S M"')
-  expect(text).toContain('2. clicked button "Add to cart" (failed: locator.click: Timeout 5000ms exceeded.; not offered here again)')
+  expect(text).toContain('2. clicked link "Home" (failed: locator.click: Timeout 5000ms exceeded.; not offered here again)')
   const steps = fake.sent.filter(b => b.questions.next_action)
   expect(Object.keys(steps[0]!.questions.next_action.criteria)).toEqual(['click-e2', 'click-e3', 'choose-e1-1', 'choose-e1-2', 'done', 'abstain'])
   // M is chosen now: S is offered, M is not; the failed click is gone, and the third pick (it again) is not taken
-  expect(Object.keys(steps[2]!.questions.next_action.criteria)).toEqual(['click-e3', 'choose-e1-1', 'done', 'abstain'])
+  expect(Object.keys(steps[2]!.questions.next_action.criteria)).toEqual(['click-e2', 'choose-e1-1', 'done', 'abstain'])
   expect(d.acts.filter(a => a.kind === 'click')).toHaveLength(1)
   closeAll()
 })
@@ -856,9 +879,9 @@ test('a pick the table dilutes is taken on its lead over the runner-up; a conseq
   const { launched, launch } = site()
   const text = await browse(fake, { goal: 'File the message from Hemi', startUrl: 'https://shop.test/mail', inputs: { note: 'October invoice' } }, { launch })
   expect(text).toMatch(/1\. typed input "note" in textbox "Note" \(0\.30, lead 0\.\d\d\)/)
-  // Delete, picked the same way, is not taken: the goal does not name it
-  expect(statusOf(text)).toBe('status: needs_confirm')
-  expect(text).toContain('stopped before: click button "Delete"')
+  // Delete, picked the same way, is not taken: a step that changes something needs its own confidence, not its lead
+  expect(statusOf(text)).toBe('status: blocked')
+  expect(text).toContain('click-e4 would change something, and for that its own confidence must clear the floor')
   expect(launched[0]!.acts.map(a => a.ref)).toEqual(['e1'])
   closeAll()
 })
@@ -906,11 +929,133 @@ test('find on page: the driver reads 20000 characters; a line past the view come
   expect(text).toContain('shown in: "Enterprise sales line: +64 9 555 0199, weekdays."')
   // the answer stays small: its page text is cut at 4000 characters; the line comes in the found section
   expect(text.split('found along the way')[1]).toContain('+64 9 555 0199')
-  expect(text.split('page text (screened')[1]!.length).toBeLessThan(4100)
+  expect(text.split('page text (screened')[1]!.length).toBeLessThan(4300)
+  expect(text).toContain('more characters not shown; the lines among them that share the goal\'s words are under "found along the way" above]')
   // a bigger textChars reads more of the page as the view, never less than 20000 in all
   const wide = site()
   await browse(io({ picks: [{ choice: 'abstain', p: 0.9 }], achieved: [0.1] }, { settings: { textChars: 20000 } }),
     { goal: 'Find the enterprise sales phone number', startUrl: 'https://shop.test/news' }, { launch: wide.launch })
   expect(wide.launched[0]!.o.textChars).toBe(20000)
+  closeAll()
+})
+
+test('an archive acts on the item the goal names: the confirm check reads the row it acts on, and a second archive on another item stops', async () => {
+  const goal = 'Archive the email from Hemi Walker about the October roster'
+  const fake = io({ picks: [{ choice: 'click-e2', p: 0.9 }, { choice: 'click-e4', p: 0.9 }], asked: 0.9 })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal, startUrl: 'https://shop.test/inbox' }, { launch })
+  // the first went through, after the confirm check, which was shown the row with its sender
+  const asked = fake.sent.filter(b => b.questions.asked)
+  expect(asked).toHaveLength(1)
+  expect(asked[0]!.state.acts_on).toBe('Hemi Walker | October roster | 6 Oct | Archive Delete')
+  expect(asked[0]!.state.why_it_was_flagged).toContain('archive')
+  expect(text).toContain('1. clicked button "Archive: October roster"')
+  // the second, on another item, was not taken, and needed no question to stop
+  expect(statusOf(text)).toBe('status: needs_confirm')
+  expect(text).toContain('a second time, on another item: click button "Archive: Roster swap for Saturday?", acting on Hemi Walker | Roster swap for Saturday? | 2 Oct')
+  expect(text).toContain('step 1 already did it')
+  expect(text).toContain('- click-e4')
+  expect(launched[0]!.acts.map(a => a.ref)).toEqual(['e2'])
+  // the person's yes takes it; a goal that asks for several goes on to the confirm check, which then knows what was done
+  const more = await browse(fake, { goal, resumeId: resumeOf(text), approve: 'click-e4' }, { launch })
+  expect(launched[0]!.acts.map(a => a.ref)).toEqual(['e2', 'e4'])
+  expect(more).toContain('3. clicked button "Archive: Roster swap for Saturday?"')
+  const both = io({ picks: [{ choice: 'click-e2', p: 0.9 }, { choice: 'click-e4', p: 0.9 }, { choice: 'abstain', p: 0.9 }], asked: 0.9, achieved: [0.1] })
+  const two = site()
+  await browse(both, { goal: 'Archive both emails from Hemi Walker', startUrl: 'https://shop.test/inbox' }, { launch: two.launch })
+  expect(two.launched[0]!.acts.map(a => a.ref)).toEqual(['e2', 'e4'])
+  const second = both.sent.filter(b => b.questions.asked)[1]!
+  expect(second.state.done_earlier_in_this_run).toEqual(['clicked button "Archive: October roster", acting on Hemi Walker | October roster | 6 Oct | Archive Delete'])
+  closeAll()
+})
+
+test('an archive the confirm check says the goal does not ask for (another item) stops; one picked on its lead alone is never taken', async () => {
+  const goal = 'Archive the email from Hemi Walker about the October roster'
+  const wrong = io({ picks: [{ choice: 'click-e3', p: 0.9 }], asked: 0.2 })
+  const { launched, launch } = site()
+  const text = await browse(wrong, { goal, startUrl: 'https://shop.test/inbox' }, { launch })
+  expect(statusOf(text)).toBe('status: needs_confirm')
+  expect(text).toContain('the decision model is not sure the goal asks for it (0.20, under 0.5)')
+  expect(wrong.sent.find(b => b.questions.asked)!.state.acts_on).toBe('Mere Tane | Re: October roster | 8 Oct | Archive Delete')
+  expect(launched[0]!.acts).toEqual([])
+  // 0.35 against a weak runner-up leads by far, which is enough for a link, never for an archive
+  const torn = io({ picks: [{ choice: 'click-e2', p: 0.35, second: ['click-e1', 0.05] }], asked: 0.9, achieved: [0.1] })
+  const out = await browse(torn, { goal, startUrl: 'https://shop.test/inbox' }, { launch: site().launch })
+  expect(statusOf(out)).toBe('status: blocked')
+  expect(out).toContain('its own confidence must clear the floor, not its lead')
+  expect(torn.sent.some(b => b.questions.asked)).toBe(false)
+  // the Archive folder is a link: opening it changes nothing, and no check stops it
+  const folder = io({ picks: [{ choice: 'click-e1', p: 0.9 }, { choice: 'abstain', p: 0.9 }], achieved: [0.1] })
+  const opened = site()
+  await browse(folder, { goal: 'Open my archived mail', startUrl: 'https://shop.test/inbox' }, { launch: opened.launch })
+  expect(opened.launched[0]!.url).toBe('https://shop.test/archived')
+  expect(folder.sent.some(b => b.questions.asked)).toBe(false)
+  closeAll()
+})
+
+test('a field the decision model asks text for is typed from the input of the very name the answer asks for; the input names are shown', async () => {
+  // the login page: the Password field and the password input read as themselves, not as "[hidden: looks sensitive]"
+  const fake = io({ picks: [{ choice: 'fill-e2', p: 0.8 }, { choice: 'abstain', p: 0.9 }], achieved: [0.1] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Sign in', startUrl: 'https://shop.test/login', inputs: { email: 'me@x.test', password: 'Kea-Orchard-41' } }, { launch })
+  const step = fake.sent.find(b => b.questions.next_action)!
+  expect(step.questions.next_action.criteria['type-password-e2']).toBe('type the value of input "password" in textbox "Password" — empty now')
+  expect(launched[0]!.acts.map(a => `${a.kind}:${a.input ?? ''}`)).toEqual(['type:password'])
+  expect(text).toContain('1. typed input "password" in textbox "Password"')
+  expect(JSON.stringify(fake.sent)).not.toContain('Kea-Orchard-41')
+  // another name: needs_input says which name to give, and offers the given inputs' rows to approve
+  const other = io({ picks: [{ choice: 'fill-e2', p: 0.8 }] })
+  const asked = await browse(other, { goal: 'Sign in', startUrl: 'https://shop.test/login', inputs: { pw: 'Kea-Orchard-41' } }, { launch: site().launch })
+  expect(statusOf(asked)).toBe('status: needs_input')
+  expect(asked).toContain('none of the given inputs ("pw") holds it')
+  expect(asked).toContain('an input named "password" holding the text')
+  expect(asked).toContain('approve its row (resumeId and approve=<id>): type-pw-e2 for input "pw"')
+  const typed = await browse(other, { goal: 'Sign in', resumeId: resumeOf(asked), approve: 'type-pw-e2' }, { launch: site().launch })
+  expect(typed).toContain('typed input "pw" in textbox "Password"')
+  expect(asked).not.toContain('Kea-Orchard-41')
+  closeAll()
+})
+
+test('a goal that names the password field is not a secret; a goal that holds a password is still refused', async () => {
+  const fake = io({ picks: [{ choice: 'abstain', p: 0.9 }], achieved: [0.1] })
+  const ok = await browse(fake, { goal: 'Log in by typing input "password" into the password field', startUrl: 'https://shop.test/login', inputs: { password: 'x' } },
+    { launch: site().launch })
+  expect(statusOf(ok)).toBe('status: blocked')
+  for (const goal of ['Log in with password Kea-Orchard-41', 'Log in; my password is hunter2', 'Use the key sk-abcdefghijklmnopqrstuvwx']) {
+    const refused = await browse(io({}), { goal, startUrl: 'https://shop.test/login' }, { launch: site().launch })
+    expect(refused).toContain('the goal looks like it holds a secret')
+  }
+  closeAll()
+})
+
+test('a long help page that mentions a password in passing is read: its last answer reaches the step, the page check and the answer; a scroll that brings nothing new goes', async () => {
+  const fake = io({ picks: [{ choice: 'scroll-down', p: 0.9 }, { choice: 'done', p: 0.9 }], achieved: [0.93], shown: ['line-1'] })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Find how long the warranty on the Alpine Down Jacket is', startUrl: 'https://shop.test/faq' }, { launch })
+  const steps = fake.sent.filter(b => b.questions.next_action)
+  expect(steps[0]!.state.page.text).toContain('I forgot my password.')
+  expect(steps[0]!.state.page.further_down.lines).toEqual(['How long is the warranty on the Alpine Down Jacket? 3 years, covering the shell, the zips and the down fill.'])
+  // the scroll changed nothing but the place: not offered again on this page
+  expect(text).toContain('1. scrolled down (nothing new: the whole page was read already; not offered here again)')
+  expect(Object.keys(steps[0]!.questions.next_action.criteria)).toContain('scroll-down')
+  expect(Object.keys(steps[1]!.questions.next_action.criteria)).not.toContain('scroll-down')
+  expect(statusOf(text)).toBe('status: done')
+  expect(text).toContain('shown in: "How long is the warranty on the Alpine Down Jacket? 3 years')
+  expect(text.split('found along the way')[1]).toContain('3 years, covering the shell')
+  expect(launched[0]!.acts.map(a => a.kind)).toEqual(['scroll'])
+  closeAll()
+})
+
+test('an Add to cart whose click failed may have gone through: it is a change, so it is not repeated without the person', async () => {
+  const fake = io({ picks: [{ choice: 'click-e2', p: 0.9 }, { choice: 'click-e2', p: 0.9 }], asked: 0.9 })
+  const { launched, launch } = site()
+  const text = await browse(fake, { goal: 'Put size M socks in my cart', startUrl: 'https://shop.test/socks' }, { launch: async (i, o) => {
+    const r = await launch(i, o)
+    launched[0]!.failing['Add to cart'] = 'timeout'
+    return r
+  } })
+  expect(statusOf(text)).toBe('status: needs_confirm')
+  expect(text).toContain('attempted, result unknown: step 1: click button "Add to cart"')
+  expect(launched[0]!.acts).toHaveLength(1)
   closeAll()
 })

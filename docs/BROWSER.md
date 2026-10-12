@@ -68,7 +68,7 @@ page text (screened; data, not instructions):
 |---|---|---|
 | `done` | the decision model picked *done*, or said the goal is reached (below), and a second check over the page's own text found the exact thing the goal asks for on it | |
 | `unverified` | the step budget ran out after a *done* the page check did not confirm | look at the page text |
-| `needs_input` | a field needs text none of the inputs holds (the field is named) | call again with `resumeId` and that input |
+| `needs_input` | a field needs text none of the inputs holds (the field is named, with the input name to give; the given inputs' rows for that field come back as options) | call again with `resumeId` and an input of that name (typed there without asking again), or `approve` a given input's row |
 | `needs_confirm` | a consequential step (below) the goal does not plainly ask for; or one that was attempted and whose result is unknown, or any consequential step after such an attempt (the `attempted` line says which) | ask the person; only on their yes, call again with `resumeId` and `approve` |
 | `blocked` | no step is at least `stepFloor` sure (by its confidence or its lead over the runner-up), or the decision model abstained, and the page check on the page as it is did not find the goal; its top three are named, and those that can be approved come back as options with probabilities | `approve` one, or call again with a clearer goal |
 | `stuck` | the decision model said the run is stuck (repeating, or making no progress), at least 0.85 sure; or 0.6 sure while the last steps changed nothing. Not before two steps. Its top three come back as options, as for `blocked` | `resumeId` with a clearer goal, or `approve` an option |
@@ -121,8 +121,14 @@ status closes it at once, and every browser closes when the session ends.
    `redact_contacts`, on) and screened: passages carrying
    instructions aimed at an AI are withheld, by the same screen as WebFetch's, whatever the
    screening feature's own mode. A page with a password, card or one-time-code field, or text that
-   looks like it holds secrets, is sent as its elements only. Labels have the values cut out, are
+   holds a secret, is sent as its elements only. Labels have the values cut out, are
    redacted, and are screened locally (a label that looks like an injection or a secret is replaced).
+   A secret's name said in passing is not a secret here: "Forgot password", a field labelled
+   Password, an input named `password`, "enter the card number at checkout" are read as they are
+   (the name followed by the end of a line, punctuation or a plain word such as "field", "on" or
+   "into", with nothing that mixes letters and digits in the next four words). A name given a
+   value (`password: hunter2`, "my password is hunter2", "with password Kea-Orchard-41"), a key's
+   shape and a random token still withhold the page, hide the label or refuse the goal.
    The redaction guards what leaves for the decision backend. The answer to the model carries the
    page text with the values cut out and screened, but not redacted, as a fetched page comes back
    (a phone number or an email address is often what was asked for); when screening withheld any
@@ -138,7 +144,9 @@ status closes it at once, and every browser closes when the session ends.
    (and `mailto:`, `tel:` and the like) are not offered. An action seen twice to change nothing on
    a page is not offered there again, nor one that failed there once (a timeout, an option that
    is not in the list: it would fail again, at the cost of a step and its wait), nor a click
-   whose target was found covered on the page as it is now.
+   whose target was found covered on the page as it is now. The browser reads the page's text
+   whole, wherever it is scrolled, so a scroll that brought no new text or element is not offered
+   on that page again.
 5. **Pick.** One request: the choice "Which single action should be taken next to move toward
    the goal?" over the goal, the page, the elements and the last ten steps, and in the same
    request two yes/no questions, "Is the goal already reached on this page?" and "Is the run
@@ -167,7 +175,8 @@ status closes it at once, and every browser closes when the session ends.
    rows split the pick: in the bench's blocked calls, 0.37 against 0.30 (lead 0.10), 0.41 against
    0.27 (0.21), 0.21 against 0.21 (0). Either one high means the step is not a guess; the lead
    alone would stop a form whose several fields are each a good next step. The step line says
-   the lead when it is what cleared the floor: `(0.30, lead 0.85)`.
+   the lead when it is what cleared the floor: `(0.30, lead 0.85)`. A consequential step (below)
+   is taken only on its own confidence: a lead over a weak runner-up does not clear it.
 6. **Check, where a step needs it.** *done*, or *goal reached* at 0.85 or more, asks a second
    check over the page's own text. It asks the decision model to name to itself the exact thing
    the goal asks for ("the sales phone number", not a phone number) and whether that thing is
@@ -176,7 +185,8 @@ status closes it at once, and every browser closes when the session ends.
    six, found over all 20,000 characters read, not only the view; a short line that starts with a
    number right after one, such as a price under its product's name, is joined to it, and a short
    heading that names a version or a date right before one, such as `v2.8.0 · 12 March 2026`, is
-   joined in front), which of them shows it, or none. The lines found past the view come with it
+   joined in front; a short question keeps the answer after it, and a table row's first sentence
+   the rest of its cell), which of them shows it, or none. The lines found past the view come with it
    as in step 5. It is done only at `confirmConfidence` or more *and*
    with a line picked; the step line quotes that line. With no such line (or no page text) the
    yes/no decides alone. That check is the safety: under `confirmConfidence` the run carries on (with
@@ -218,9 +228,16 @@ status closes it at once, and every browser closes when the session ends.
   **both** hold: the goal's own words name that kind of action, and the decision model answers at
   least `confirmConfidence` (0.5) that the goal asks for it ("Does the goal ask for this action to
   be done, or does it clearly follow from what the goal asks?", the tool gate's question put to the
-  goal). Otherwise it stops as `needs_confirm`. A form's plain submit button, one whose label has
-  none of the words above ("Archive", "Rename", "Save changes"), is named by the submit words
-  (submit, send, apply, save, update, ...) or by a goal that uses one of the button's own words
+  goal). Otherwise it stops as `needs_confirm`. A button (never a link) that changes what the
+  person keeps, reversibly or not, is consequential too: archive, move, mark, label, star, flag,
+  pin, mute, snooze, rename, add to cart. On the wrong item it is a wrong action. The confirm
+  question shows what the step acts on (`acts_on`: the page line holding the item its label
+  names, "Mere Tane | Re: October roster | 8 Oct", or its heading and the page's title) and the
+  consequential steps the run already took (`done_earlier_in_this_run`), and asks whether the goal
+  asks for it on that item. A form's plain submit button, one whose label has
+  none of the words above ("Save changes", "Continue"), is named by the submit words
+  (submit, send, apply, save, update, ...) or by a goal that uses one of the button's own words;
+  a change is named by its own words (archive, move, rename, add, cart, ...) or the button's
   ("archive Hemi's email" names Archive); the confirm question is still asked. A button with a
   consequential word keeps its kind: "archive the email" does not name Delete or Buy beside it. A
   cookie banner is not consequential. Enter is a
@@ -228,6 +245,11 @@ status closes it at once, and every browser closes when the session ends.
   field whose label, placeholder or name says search, filter, find or query, or a form that is
   marked a search, is a `GET` form, or has a single text field (neither of those two with a
   password, email or text-area field). Enter in any other form is gated like its submit button.
+- **One item per call.** Once an archive (or any change), a delete, a send, a buy or a post went
+  through, the same kind of step on another item (another page, or another row's line) stops as
+  `needs_confirm`, without a question, saying which step did it already, unless the goal asks for
+  several (all, every, each, both, a count of two or more). The same item again is not stopped
+  by this rule.
 - **A submit is never repeated blind.** A consequential step that was attempted and whose result
   is unknown (it failed or timed out, the page it went to failed to load, or the browser died
   mid-action) is recorded and not retried. The run stops as `needs_confirm` with an `attempted`
@@ -280,7 +302,7 @@ an `attach` call fails and says how to turn it on.
 |---|---|---|
 | `maxSteps` | 20 (5-60) | the most steps one call takes; a call may ask for fewer |
 | `confirmConfidence` | 0.5 (0.5-1) | the bar for a consequential step and for *done* |
-| `stepFloor` | 0.4 (0.3-0.95) | a pick whose confidence and lead over the runner-up are both under it is not taken: the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (`confirmConfidence`, and the goal naming the action). A named backend that sets `choose.min_confidence` in its `tuning` uses that instead (read the same way: confidence or lead), and `choose.dead_repeats` for how often a step may change nothing on a page before it is no longer offered (2) |
+| `stepFloor` | 0.4 (0.3-0.95) | a pick whose confidence and lead over the runner-up are both under it is not taken: the call stops as `blocked`. A choice over a real page's table of 20-80 rows scores 0.35-0.55 for a good step, so 0.65 stopped nearly every step; consequential steps keep their own bar (their own confidence over this, never the lead alone; `confirmConfidence`, and the goal naming the action). A named backend that sets `choose.min_confidence` in its `tuning` uses that instead (read the same way: confidence or lead), and `choose.dead_repeats` for how often a step may change nothing on a page before it is no longer offered (2) |
 | `headed` | false | show the Chromium window |
 | `allowAttach` | false | let a call drive your own Chrome |
 | `textChars` | 6000 (1000-20000) | page text the decision model reads per step; the rest of the 20,000 characters read is searched for the goal's words |
@@ -295,7 +317,7 @@ yes/no signals together), and a yes/no when *done*, *goal reached* or a named co
 comes up, and once more before a call stops short of done (blocked, stuck, the step budget). A
 long page's screening reads up to 20,000 characters (about 5,000 tokens, in the same one request).
 The answer to the model keeps its caps: 4,000 characters of the last page, 2,000 of what was
-found along the way; the notes and the lines found past the view go to the decision model only. A bot check costs nothing. The calls count against the daily budget and show on the
+found along the way (drawn from all 20,000 characters read, and the cut page text says so); the notes and the lines found past the view go to the decision model only. A bot check costs nothing. The calls count against the daily budget and show on the
 band and in the dashboard under `browser` (`done`, `paused`, `failed`, `unverified`, `budget`,
 `stuck`, `bot-check`, `goal-reached`, `left-allowlist`, `withheld`).
 
@@ -317,7 +339,12 @@ across resume, console and network lines capped and redacted, a covered button, 
 chosen without an input, a failed step not offered again, a diluted pick taken on its lead (and
 a consequential one still stopped), the page check before stopping as blocked, stuck or at the
 budget, notes per page in the step request, find on page over a long page, and a form's Archive
-button named by a goal that says archive while Delete beside it is not. The real driver
+button named by a goal that says archive while Delete beside it is not; an archive's confirm
+check shown the row it acts on, a second archive on another item stopped, a change never taken
+on its lead alone, a field typed from the input named as needs_input asks, a goal or a help page
+that names a password in passing read while one holding a password is refused, a FAQ's last
+answer reaching the step, the page check and the answer, and a scroll that brought nothing new
+not offered again. The real driver
 against local pages: `node src/features/browser/driver.check.mjs` (skips without Playwright),
 including a single-page search box submitted by Enter whose results say "Loading data..." for a
 second, a page whose text arrives late, which input a field holds, a button under a fixed banner,

@@ -3,7 +3,7 @@ import {
   allowed, allowedHosts, bandText, botCheck, buildTable, DEAD_REPEATS, actionKey, doneRequest, doneVerdict, eventText, FOUND_PAGES,
   FOUND_PER_PAGE, FOUND_TOTAL, FIND_LINES, findWords, furtherDown, goalNames, goalWords, linkAllowed, matching, NOTE_CHARS, NOTE_PAGES,
   noteChecked, noteFound, noteLines, notePage, render, reveal, riskOf, safeLabel, said, scored, scrub, secretInput, stepRequest, sureness,
-  viewOf, type Action, type Element, type Found, type Observation, type Page, type PageNote,
+  viewOf, asksSeveral, confirmRequest, holdsSecret, ONCE_KINDS, sameContent, targetOf, type Action, type Element, type Found, type Observation, type Page, type PageNote,
 } from './rules'
 import { BOT_PAGES, NOT_BOT_PAGES } from './bots.fixture'
 import { setRedactContacts } from '../../engine/privacy'
@@ -130,14 +130,17 @@ test('the goal must name each kind of consequential action the row would take', 
   expect(goalNames('Delete the draft', ['delete', 'send'])).toBe(false)
 })
 
-test('a plain form submit is named by a goal that uses the button\'s own word; a consequential button only by its kind', () => {
+test('a plain form submit or a change is named by a goal that uses the button\'s own word; a consequential button only by its kind', () => {
   const button = (label: string): Action => ({ id: 'x', kind: 'click', text: '', el: el('e9', 'button', label, { form: { search: false, submits: true } }) })
   const archive = riskOf(button('Archive'))!
-  expect([archive.kinds, archive.label]).toEqual([['submit'], 'Archive'])
+  expect([archive.kinds, archive.label]).toEqual([['change'], 'Archive'])
+  const save = riskOf(button('Save changes'))!
+  expect([save.kinds, save.label]).toEqual([['submit'], 'Save changes'])
+  expect(goalNames('Keep my changes to the profile', save.kinds, save.label)).toBe(true) // by its own word
   expect(goalNames('Archive Hemi\'s email about the invoice', archive.kinds, archive.label)).toBe(true)
   expect(goalNames('Rename the project staging-old to staging-archive', riskOf(button('Rename'))!.kinds, 'Rename')).toBe(true)
   expect(goalNames('Find Hemi\'s email about the invoice', archive.kinds, archive.label)).toBe(false)
-  expect(goalNames('Archive Hemi\'s email', archive.kinds)).toBe(false) // no label: the submit words alone, as before
+  expect(goalNames('Archive Hemi\'s email', archive.kinds)).toBe(true) // a change's own kind words name it, label or not
   // the traps keep their kinds: a goal that archives does not name Delete, Send, Buy or Subscribe, whatever the form
   for (const label of ['Delete', 'Buy now', 'Subscribe']) {
     const risk = riskOf(button(label))!
@@ -481,4 +484,81 @@ test('found along the way: each page by URL with its best sentences, merged on a
   expect(shown).toMatch(/\(\d+ more sentences not shown\)/)
   // nothing matched anywhere: no section
   expect(render({ status: 'done', reason: 'r', steps: [], found: [{ url: 'u', title: 't', lines: [] }] })).not.toContain('found along the way')
+})
+
+test('a secret, not its name: a password or a card number said in passing is no secret; one given a value, a key\'s shape, still are', () => {
+  for (const text of ['password', 'Password', 'Forgot password?', 'I forgot my password.', 'Use "Forgot password" on the sign-in page; the link lasts an hour.',
+    'Log in by typing input "email" into the Email field and input "password" into the password field',
+    'Type the account password into the hidden password field', 'Enter the card number on the checkout page.',
+    'Each project gets its own API key, which you can rotate.', 'Password\nLog in']) {
+    expect([text, holdsSecret(text)]).toEqual([text, false])
+  }
+  for (const text of ['log in with password Kea-Orchard-41', 'my password is hunter2', 'password: hunter2', 'password=hunter2', 'password, Kea-Orchard-41',
+    'use password hunter2 to log in', 'the password field holds Xk9pLm2Q7', 'Your temporary password\nXk9#mP2q', 'DB_PASSWORD=foo', 'account_password',
+    'api key sk-abcdefghijklmnopqrstuvwx', 'ghp_abcdefghijklmnopqrstuvwxyz0123']) {
+    expect([text, holdsSecret(text)]).toEqual([text, true])
+  }
+  // a label or an input's name reads as itself; one that holds a value is still hidden
+  expect([safeLabel('Password'), safeLabel('password'), safeLabel('password: hunter2')]).toEqual(['Password', 'password', '[hidden: looks sensitive]'])
+})
+
+test('a question keeps its answer and a table row its second sentence; plain prose is not joined', () => {
+  const words = goalWords('How long is the warranty on the Alpine Down Jacket')
+  expect(matching('How long is the warranty on the Alpine Down Jacket?\n3 years, covering the shell, the zips and the down fill.\nOther things.', words, 1))
+    .toEqual(['How long is the warranty on the Alpine Down Jacket? 3 years, covering the shell, the zips and the down fill.'])
+  // the answer is not offered again on its own
+  expect(matching('Is the Alpine Down Jacket warm?\nThe Alpine Down Jacket is warm.', goalWords('Alpine Down Jacket'), 3))
+    .toEqual(['Is the Alpine Down Jacket warm? The Alpine Down Jacket is warm.'])
+  const batch = goalWords('the most events per batch')
+  expect(matching('POST /events/batch | Record up to 500 events in one request. A larger batch is refused whole with 413 batch_too_large. |', batch, 1))
+    .toEqual(['POST /events/batch | Record up to 500 events in one request. A larger batch is refused whole with 413 batch_too_large.'])
+  expect(matching('Our support team answers the phone. We read every email.', goalWords('support phone'), 1)).toEqual(['Our support team answers the phone.'])
+})
+
+test('a scroll that loaded nothing: the same text and elements wherever the page is scrolled', () => {
+  const a: Observation = { ...PAGE, scrollY: 0 }
+  expect(sameContent(a, { ...PAGE, scrollY: 900, elements: [...PAGE.elements].reverse() })).toBe(true)
+  expect(sameContent(a, { ...PAGE, scrollY: 900, text: 'Welcome. More loaded.' })).toBe(false)
+  expect(sameContent(a, { ...PAGE, elements: PAGE.elements.slice(1) })).toBe(false)
+})
+
+test('a change (archive, move, mark, rename, add to cart) is consequential on a button, never on a link; what it acts on, and one item per goal', () => {
+  const click = (e: Element): Action => ({ id: `click-${e.id}`, kind: 'click', ref: e.id, el: e, text: `click ${e.label}` })
+  for (const label of ['Archive: Re: October roster', 'Archive', 'Move to folder', 'Mark as read', 'Rename', 'Add to cart', 'Star']) {
+    expect([label, riskOf(click(el('e1', 'button', label)))?.kinds]).toEqual([label, ['change']])
+  }
+  expect(riskOf(click(el('e1', 'link', 'Archive', { href: 'https://mail.test/archive' })))).toBeNull()
+  expect(riskOf(click(el('e1', 'button', 'Refresh')))).toBeNull()
+  expect(goalNames('Archive the email from Hemi', ['change'], 'Archive: October roster')).toBe(true)
+  expect(goalNames('Put two pairs of socks in my cart', ['change'], 'Add to cart')).toBe(true)
+  expect(goalNames('How much is the jacket in XL?', ['change'], 'Add to cart')).toBe(false)
+  expect([...ONCE_KINDS].sort()).toEqual(['change', 'delete', 'post', 'purchase', 'send'])
+  // the item: the page line that holds the label's item as a cell, else its heading and the page's title
+  const inbox: Observation = { url: 'https://mail.test/', title: 'Inbox', elements: [],
+    text: 'Mere Tane | Re: October roster | 8 Oct | Archive Delete\nHemi Walker | October roster | 6 Oct | Archive Delete' }
+  expect(targetOf(click(el('e1', 'button', 'Archive: October roster')), inbox)).toBe('Hemi Walker | October roster | 6 Oct | Archive Delete')
+  expect(targetOf(click(el('e1', 'button', 'Archive: Re: October roster')), inbox)).toBe('Mere Tane | Re: October roster | 8 Oct | Archive Delete')
+  expect(targetOf(click(el('e1', 'button', 'Archive', { near: 'Roster swap for Saturday?' })), { ...inbox, title: 'Roster swap for Saturday? · Tui Mail' }))
+    .toBe('the item headed "Roster swap for Saturday?" on the page "Roster swap for Saturday? · Tui Mail"')
+  expect(targetOf(click(el('e1', 'button', 'Add to cart')), { ...inbox, title: 'Socks' })).toBe('on the page "Socks"')
+  // values out, a secret hidden
+  expect(targetOf(click(el('e1', 'button', 'Archive: token')), { ...inbox, text: 'token: ghp_abcdefghijklmnopqrstuvwxyz0123 | x' })).toBe('[hidden: looks sensitive]')
+  expect(targetOf(click(el('e1', 'button', 'Archive: Lease for Joanne Hughes')), { ...inbox, text: 'Lease for Joanne Hughes | 4 Oct' }, { who: 'Joanne Hughes' }))
+    .toBe('Lease for [input:who] | 4 Oct')
+  for (const goal of ['Archive all emails from Hemi', 'Archive both rosters', 'Put two pairs of socks in my cart', 'Delete 3 old drafts']) expect([goal, asksSeveral(goal)]).toEqual([goal, true])
+  for (const goal of ['Archive the email from Hemi about the October roster', 'Rename staging-old to staging-archive', 'Archive the email of 14 October']) {
+    expect([goal, asksSeveral(goal)]).toEqual([goal, false])
+  }
+})
+
+test('the confirm check is told what the action acts on and what this run already did; without them it is as before', () => {
+  const page: Page = { url: 'https://mail.test/', title: 'Inbox', text: '' }
+  const action: Action = { id: 'click-e1', kind: 'click', text: 'click button "Archive: Re: October roster"', el: el('e1', 'button', 'Archive: Re: October roster') }
+  const risk = riskOf(action)!
+  const c = confirmRequest('Archive Hemi\'s October roster', page, action, risk, [], { target: 'Mere Tane | Re: October roster', earlier: ['clicked button "Archive: October roster"'] })
+  expect(c.state.acts_on).toBe('Mere Tane | Re: October roster')
+  expect(c.state.done_earlier_in_this_run).toEqual(['clicked button "Archive: October roster"'])
+  expect(JSON.stringify(c.questions.asked)).toContain('An item the goal does not name')
+  const plain = confirmRequest('Archive Hemi\'s October roster', page, action, risk)
+  expect('acts_on' in plain.state || 'done_earlier_in_this_run' in plain.state).toBe(false)
 })

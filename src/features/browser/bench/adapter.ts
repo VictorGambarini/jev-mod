@@ -21,7 +21,7 @@ import type { DecisionAdapter, Item, Metrics, Row } from '../../../bench/types'
 import { feature } from '../../../core/registry'
 import { EARLY_STOP, judgedStuck, pageOf, stalled } from '../index'
 import {
-  allowedHosts, buildTable, confirmRequest, doneRequest, doneVerdict, goalNames, riskOf, stepRequest, yes, type Action, type Observation, type Step,
+  allowedHosts, buildTable, confirmRequest, doneRequest, doneVerdict, goalNames, riskOf, stepRequest, targetOf, yes, type Action, type Observation, type Step,
 } from '../rules'
 import { CASES, type PageCase } from './cases'
 
@@ -105,7 +105,7 @@ export const adapter: DecisionAdapter<PageCase> = {
           // the loop asks only when the goal's own words name the kind of action; otherwise it stops unasked
           let p: number | null = null
           if (goalNames(c.goal, risk.kinds, risk.label)) {
-            const confirm = confirmRequest(c.goal, page, action, risk)
+            const confirm = confirmRequest(c.goal, page, action, risk, [], { target: targetOf(action, page) })
             const reply = await ask(ctx.host, confirm.state, confirm.questions, options)
             calls.push(reply)
             p = yes(reply.answers.asked)

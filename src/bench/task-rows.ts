@@ -107,3 +107,15 @@ export function verifyArms(adapter: TaskAdapter, c: TaskCase, done: readonly { a
     delete row.score
   }
 }
+
+/** Which run of its case and arm a row is, from 1: a row written without `repeat` is one run. */
+export const repeatOf = (r: Pick<Row, 'repeat'>): number => (typeof r.repeat === 'number' && r.repeat >= 1 ? r.repeat : 1)
+
+/**
+ * What tells one run of arm `k` from another in its case's scratch folder (`arm-<tag>`,
+ * `ledger-<tag>`), and the row's `repeat`: run `r` (from 0) of `n`. With one run, as before
+ * `--repeat`: the arm's number alone, and no `repeat` field.
+ */
+export function runOf(k: number, r: number, n: number): { tag: string; field: Pick<Row, 'repeat'> } {
+  return n > 1 ? { tag: `${k}-r${r + 1}`, field: { repeat: r + 1 } } : { tag: `${k}`, field: {} }
+}

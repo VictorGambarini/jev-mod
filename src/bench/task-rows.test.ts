@@ -1,7 +1,7 @@
 import { test, expect } from 'claude-code/testing'
 import { MARK } from '../features/compact'
 import { task as compactTask, TASKS } from '../features/compact/bench/task'
-import { contextOf, parseClaude, readLedger, setupRow, verifyArms } from './task-rows'
+import { contextOf, parseClaude, readLedger, repeatOf, runOf, setupRow, verifyArms } from './task-rows'
 import type { Arm, ArmRun, Row, RunMeta } from './types'
 
 // The task runner's pure parts: the setup's own row, and the adapter's verdict on arms that did
@@ -102,4 +102,14 @@ test('a jev-mod arm compacts with /compact and the marker in one step; every que
   expect(steps[1]!.disallowedTools).toContain('Bash')
   expect(compactTask.steps(TASKS[0]!, arm('claude', 'claude'))[0]!.prompt).toBe('/compact')
   expect(compactTask.steps(TASKS[0]!, arm('no compaction', 'claude')).length).toBe(1)
+})
+
+test('a repeated run has folders and a row field of its own; one run keeps the old names and no field, and reads as run 1', () => {
+  expect(runOf(2, 0, 1)).toEqual({ tag: '2', field: {} })
+  expect(runOf(0, 0, 3)).toEqual({ tag: '0-r1', field: { repeat: 1 } })
+  expect(runOf(1, 2, 3)).toEqual({ tag: '1-r3', field: { repeat: 3 } })
+  const tags = [0, 1, 2].flatMap(r => [0, 1].map(k => runOf(k, r, 3).tag))
+  expect(new Set(tags).size).toBe(6)
+  expect(repeatOf(okRow(arm('claude', 'claude')))).toBe(1)
+  expect(repeatOf({ ...okRow(arm('claude', 'claude')), ...runOf(0, 1, 2).field })).toBe(2)
 })

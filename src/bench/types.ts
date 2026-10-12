@@ -55,6 +55,8 @@ export type Row = {
   fake?: true
   // task level
   arm?: string
+  /** Which run of this case and arm it is, from 1, when the run asked for more than one (`--repeat`); a row without it is one run. */
+  repeat?: number
   success?: boolean
   /** The checker's score, 0..1 (the share of questions answered right, for example). */
   score?: number

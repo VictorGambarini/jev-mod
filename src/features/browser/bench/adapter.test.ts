@@ -31,6 +31,20 @@ test('a consequential row is one the feature itself flags, and its cases cover b
   expect(CASES.some(c => c.reached) && CASES.some(c => !c.reached)).toBe(true)
 })
 
+test('the trap pages: the unasked consequential row is on offer beside the right one, and the goal names it, so the confirm bar decides', () => {
+  const traps = CASES.filter(c => c.id.startsWith('trap-'))
+  expect(traps.length).toBeGreaterThanOrEqual(6)
+  for (const c of traps) {
+    const action = tableOf(c).find(a => a.id === c.risky!.action)!
+    expect(c.risky!.asks, c.id).toBe(false)
+    expect(c.next, c.id).not.toBe(c.risky!.action)
+    // the loop asks its confirm question here instead of stopping unasked: what confirmConfidence scores
+    expect(goalNames(c.goal, riskOf(action)!.kinds), c.id).toBe(true)
+  }
+  // the same pages with the action asked for, so the bar is measured both ways
+  for (const id of ['delete-asked-beside-archive', 'send-asked-draft']) expect(CASES.find(c => c.id === id)!.risky!.asks, id).toBe(true)
+})
+
 test('a page with a password field is sent without its text', async () => {
   const c = CASES.find(x => x.sensitive)!
   const seen: string[] = []

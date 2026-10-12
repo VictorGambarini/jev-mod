@@ -18,16 +18,18 @@ export function armsFor(adapter: TaskAdapter, backends: readonly string[], swept
   return arms
 }
 
-export type Plan = { cases: number; arms: number; claudeCalls: number; setupCalls: number; decisionCalls: number
+export type Plan = { cases: number; arms: number; repeat: number; claudeCalls: number; setupCalls: number; decisionCalls: number
   setupUsd: number; armsUsd: number; usd: number; text: string }
 
 /**
  * The calls and their estimated cost. `usdPerCall`, when given (--usd-per-call), prices every
  * Claude call alike; otherwise each step's own `usd`, the case's setup price (or the adapter's per
- * setup call), or its usdPerCall. The adapter's estimate note says how it priced them.
+ * setup call), or its usdPerCall. The adapter's estimate note says how it priced them. `repeat`
+ * (--repeat) runs every case × arm that many times: the arms' calls and decisions are multiplied
+ * by it; a case's shared setup still runs once, and every repeat forks it.
  */
 export function plan(adapter: TaskAdapter, cases: readonly TaskCase[], arms: readonly Arm[], usdPerCall: number | null = null,
-  decisionUsdPerCall = 0.0005): Plan {
+  decisionUsdPerCall = 0.0005, repeat = 1): Plan {
   let setupCalls = 0
   let armCalls = 0
   let decisionCalls = 0
@@ -38,25 +40,26 @@ export function plan(adapter: TaskAdapter, cases: readonly TaskCase[], arms: rea
     setupUsd += usdPerCall !== null ? c.setup.length * usdPerCall : c.setupUsd ?? c.setup.length * (adapter.setupUsdPerCall ?? adapter.usdPerCall)
     for (const arm of arms) {
       for (const step of adapter.steps(c, arm)) {
-        armCalls++
-        armsUsd += usdPerCall ?? step.usd ?? adapter.usdPerCall
+        armCalls += repeat
+        armsUsd += repeat * (usdPerCall ?? step.usd ?? adapter.usdPerCall)
       }
-      if (arm.kind === 'jev-mod') decisionCalls += adapter.decisionCallsPerArm
+      if (arm.kind === 'jev-mod') decisionCalls += repeat * adapter.decisionCallsPerArm
     }
   }
   const claudeCalls = setupCalls + armCalls
   const usd = setupUsd + armsUsd + decisionCalls * decisionUsdPerCall
   const priced = usdPerCall === null ? 'per step' : `~$${usdPerCall.toFixed(2)} a call`
   const text = [
-    `${adapter.feature}, task level: ${cases.length} case(s) × ${arms.length} arm(s)`,
+    `${adapter.feature}, task level: ${cases.length} case(s) × ${arms.length} arm(s)${repeat > 1 ? ` × ${repeat} runs each` : ''}`,
     ...arms.map(a => `  arm: ${a.id}`),
-    `  ${claudeCalls} headless Claude calls: ${setupCalls} for the shared setup (once per case), ${armCalls} for the arms' steps`,
+    `  ${claudeCalls} headless Claude calls: ${setupCalls} for the shared setup (once per case), ${armCalls} for the arms' steps` +
+      `${repeat > 1 ? ` (${repeat} runs of each)` : ''}`,
     `  about ${decisionCalls} decision-model calls`,
     `  estimate: about $${usd.toFixed(2)} in all: setup $${setupUsd.toFixed(2)}, arms $${armsUsd.toFixed(2)}, ` +
       `decisions $${(decisionCalls * decisionUsdPerCall).toFixed(2)} (Claude priced ${priced}; set --usd-per-call to change it)`,
     ...(usdPerCall === null ? adapter.estimateNote?.(cases) ?? [] : []),
   ].join('\n')
-  return { cases: cases.length, arms: arms.length, claudeCalls, setupCalls, decisionCalls, setupUsd, armsUsd, usd, text }
+  return { cases: cases.length, arms: arms.length, repeat, claudeCalls, setupCalls, decisionCalls, setupUsd, armsUsd, usd, text }
 }
 
 /** Why the run may not start, or null: a task-level run spends real money, so it needs --yes. */

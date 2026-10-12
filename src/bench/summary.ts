@@ -3,7 +3,7 @@
 // time and cost. It returns the plots (SVG text), a Markdown block for the feature's README, and
 // the suggested settings; report.ts writes them. Pure; summary.test.ts.
 
-import { mean, percentile, recommend, thresholds } from './metrics'
+import { mean, percentile, recommend, thresholds, wilson } from './metrics'
 import { barPanels, lineChart } from './svg'
 import type { DecisionAdapter, Metrics, Row } from './types'
 
@@ -64,6 +64,13 @@ export type ArmSummary = {
   context: number | null
   /** What the mod's compactions kept and dropped, in messages, over the runs that recorded one. */
   compaction: { messages: number; kept: number; dropped: number } | null
+  /** Scored runs that succeeded, of the scored runs: `success` is their share. */
+  passed: number
+  scored: number
+  /** A 95% Wilson interval around `success`, over every scored run of the arm (runs of one case counted as separate runs). */
+  interval: { lo: number; hi: number } | null
+  /** Per case, in the order first seen: scored runs that succeeded, scored runs, and runs in all (failed ones too). */
+  perCase: { case: string; passed: number; scored: number; runs: number }[]
 }
 
 export type Summary = {
@@ -77,6 +84,8 @@ export type Summary = {
   setup: { cases: number; claudeCost: number; wallMs: number } | null
   /** The task level's whole spend: every arm run (failed ones too) and the setup. */
   spend: { claude: number; decisions: number } | null
+  /** Some arm ran some case more than once (`--repeat`, or several result files): the report then shows each case's pass count and the arm's interval. */
+  repeated: boolean
   versions: string[]
 }
 
@@ -167,7 +176,14 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
       const decisionCost = num(r => r.cost_usd)
       const featureCost = num(r => featureSpend(r, adapter.feature))
       const walls = mine.map(r => r.wall_ms).filter((n): n is number => typeof n === 'number')
+      const scored = ok.filter(r => r.success !== undefined)
+      const passed = scored.filter(r => r.success).length
+      const perCase = [...groupBy(mine, r => r.case)].map(([id, runs]) => {
+        const s = runs.filter(r => r.outcome === 'ok' && r.success !== undefined)
+        return { case: id, passed: s.filter(r => r.success).length, scored: s.length, runs: runs.length }
+      })
       return {
+        passed, scored: scored.length, interval: wilson(passed, scored.length), perCase,
         kind: key === 'claude' ? 'plain' as const : key.startsWith('jev-mod') ? 'jev-mod' as const : 'other' as const,
         wallMedian: percentile(ok.map(r => r.wall_ms).filter((n): n is number => typeof n === 'number'), 50),
         wallTotal: walls.length ? walls.reduce((a, b) => a + b, 0) : null,
@@ -188,12 +204,14 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
     ? { cases: setupRows.length, claudeCost: total(setupRows, r => r.claude_cost_usd), wallMs: total(setupRows, r => r.wall_ms) } : null
   const spend = task.length ? { claude: total(task, r => r.claude_cost_usd), decisions: total(task, r => r.cost_usd) } : null
   const versions = [...new Set(rows.map(r => `${r.jevmod}@${r.git.slice(0, 7)}`))]
-  return { feature: adapter.feature, fake, sweep, backends, baselines, arms, setup, spend, versions }
+  const repeated = arms.some(a => a.perCase.some(c => c.runs > 1))
+  return { feature: adapter.feature, fake, sweep, backends, baselines, arms, setup, spend, repeated, versions }
 }
 
 const pct = (n: number | null | undefined) => (n === null || n === undefined ? '–' : `${(n * 100).toFixed(1)}%`)
 const usd = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n === 0 ? '$0' : n < 0.01 ? `$${n.toFixed(5)}` : `$${n.toFixed(3)}`)
 const tok = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${Math.round(n)}`)
+const span = (i: { lo: number; hi: number }) => `${(i.lo * 100).toFixed(0)}–${(i.hi * 100).toFixed(0)}%`
 const ms = (n: number | null | undefined) => (n === null || n === undefined ? '–' : n >= 10_000 ? `${(n / 1000).toFixed(1)} s` : `${Math.round(n)} ms`)
 
 const scoreOf = (adapter: DecisionAdapter, m: Metrics) => (adapter.objective?.score ?? ((x: Metrics) => x.accuracy))(m)
@@ -241,13 +259,18 @@ export function plots(adapter: DecisionAdapter, s: Summary): Record<string, stri
   }
   if (s.arms.length) {
     const rows = (f: (a: ArmSummary) => number | null) => s.arms.map(a => ({ label: armLabel(a), value: f(a), tone: a.kind === 'plain' ? 'plain' as const : undefined }))
+    // with repeated runs the success bar carries its 95% interval
+    const ranged = rows(a => a.success).map((row, i) => {
+      const at = s.arms[i]!.interval
+      return s.repeated && at ? { ...row, range: [at.lo, at.hi] as [number, number] } : row
+    })
     const extra = (title: string, format: (n: number) => string, f: (a: ArmSummary) => number | null) =>
       s.arms.some(a => f(a) !== null) ? [{ title, format, rows: rows(f) }] : []
     out.task = barPanels({
       title: `${adapter.title}: plain Claude Code (orange) against jev-mod, end to end${tag}`, fake,
-      subtitle: 'accuracy: success and score · speed: median wall time per run · cost per run: Claude, the feature\'s decisions, other jev-mod decisions, all',
+      subtitle: `accuracy: success${s.repeated ? ' over all runs (line: its 95% interval)' : ''} and score · speed: median wall time per run · cost per run: Claude, the feature's decisions, other jev-mod decisions, all`,
       panels: [
-        { title: 'success', format: n => pct(n), max: 1, rows: rows(a => a.success) },
+        { title: 'success', format: n => pct(n), max: 1, rows: ranged },
         { title: 'score', format: n => pct(n), max: 1, rows: rows(a => a.score) },
         { title: 'wall time (median)', format: ms, rows: rows(a => a.wallMedian) },
         { title: 'Claude cost', format: usd, rows: rows(a => a.claudeCost) },
@@ -321,11 +344,13 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
   if (s.arms.length) {
     show('task')
     if (images.task) lines.push('')
-    lines.push('| arm | runs | success | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |', '|---|---|---|---|---|---|---|---|---|---|')
+    lines.push(`| arm | runs | success${s.repeated ? ' (95% interval)' : ''} | mean score | median time | total time | Claude cost | feature decision cost | other jev-mod decision cost | total cost |`, '|---|---|---|---|---|---|---|---|---|---|')
     const failed = (a: ArmSummary) => Object.entries(a.errors).map(([code, n]) => `${n} ${code}`).join(', ')
-    for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${pct(a.success)} | ${pct(a.score)} | ${ms(a.wallMedian)} | ${ms(a.wallTotal)} | ${usd(a.claudeCost)} | ${usd(a.featureCost)} | ${usd(a.otherCost)} | ${usd(a.totalCost)} |`)
+    const success = (a: ArmSummary) => `${pct(a.success)}${s.repeated && a.interval ? ` (${span(a.interval)})` : ''}`
+    for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${a.runs}${failed(a) ? ` (failed: ${failed(a)})` : ''} | ${success(a)} | ${pct(a.score)} | ${ms(a.wallMedian)} | ${ms(a.wallTotal)} | ${usd(a.claudeCost)} | ${usd(a.featureCost)} | ${usd(a.otherCost)} | ${usd(a.totalCost)} |`)
     lines.push('',
       '- success: the share of scored runs the checker marked right; mean score: its partial credit (the share of questions answered right, say).',
+      ...(s.repeated ? ['- some cases ran more than once: success, score, time and cost are over every run. The interval is a 95% Wilson interval over the arm\'s scored runs, each run counted on its own, so it shows run-to-run noise; two arms whose intervals overlap widely are not told apart by this run. Each case\'s pass count is in the table below.'] : []),
       '- median time: over scored runs; total time: every run of the arm, failed ones too.',
       `- costs are per scored run. Feature decision cost: what ${adapter.feature}'s own decisions cost; other jev-mod decision cost: what other jev-mod features still asked in the arm (a protective feature the bench may not switch off, as the person has it). Total cost is Claude plus both. A failed run is never scored.`,
       '- plain Claude Code runs with jev-mod switched off whole, so it makes no decisions; a plain run that shows any is an error (`decisions_in_plain_arm`). Runs from jev-mod 0.12.0 and before switched off only the features that change what the model sees.', '')
@@ -335,10 +360,24 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
       if (a.success === null) { lines.push(`- ${a.key}: no scored run${failed(a) ? ` (${failed(a)})` : ''}.`); continue }
       if (!plain) continue
       const vs = (x: string, y: string) => `${x} (plain Claude Code ${y})`
-      lines.push(`- ${a.key}: right on ${vs(pct(a.success), pct(plain.success))} of runs, median ${vs(ms(a.wallMedian), ms(plain.wallMedian))}, ` +
+      lines.push(`- ${a.key}: right on ${vs(s.repeated && a.interval ? `${pct(a.success)} [${span(a.interval)}]` : pct(a.success), s.repeated && plain.interval ? `${pct(plain.success)} [${span(plain.interval)}]` : pct(plain.success))} of runs, median ${vs(ms(a.wallMedian), ms(plain.wallMedian))}, ` +
         `${vs(usd(a.totalCost), usd(plain.totalCost))} per run (Claude ${usd(a.claudeCost)}, ${adapter.feature}'s decisions ${usd(a.featureCost)}, other jev-mod decisions ${usd(a.otherCost)}).`)
     }
     if (s.arms.some(x => x.kind === 'jev-mod')) lines.push('')
+    if (s.repeated) {
+      // each case's pass count per arm: k/n scored runs, and how many runs failed outright
+      const ids = [...new Set(s.arms.flatMap(a => a.perCase.map(c => c.case)))]
+      lines.push(`| case | ${s.arms.map(armLabel).join(' | ')} |`, `|---|${s.arms.map(() => '---|').join('')}`)
+      for (const id of ids) {
+        const cell = (a: ArmSummary) => {
+          const c = a.perCase.find(x => x.case === id)
+          if (!c) return '–'
+          return `${c.passed}/${c.scored}${c.runs > c.scored ? ` (+${c.runs - c.scored} failed)` : ''}`
+        }
+        lines.push(`| ${id} | ${s.arms.map(cell).join(' | ')} |`)
+      }
+      lines.push('', '- each cell: scored runs the checker marked right, of the scored runs of that case; a run that failed outright is never scored.', '')
+    }
     if (s.arms.some(a => a.context !== null || a.compaction)) {
       const kd = (a: ArmSummary) => (a.compaction ? `${Math.round(a.compaction.kept)} / ${Math.round(a.compaction.dropped)} of ${Math.round(a.compaction.messages)}` : '–')
       lines.push('| arm | question context | kept / dropped | Claude tokens |', '|---|---|---|---|')

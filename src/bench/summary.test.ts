@@ -181,9 +181,10 @@ test('task rows give a comparison table with accuracy, speed and cost, plain Cla
   })
   const plainBackend = { backend: { name: 'claude code', kind: 'baseline' as const, model: null } }
   const rs = [
-    task('claude', { ...plainBackend, wall_ms: 40_000, claude_cost_usd: 0.6, cost_usd: 0 }),
-    task('claude', { ...plainBackend, wall_ms: 80_000, claude_cost_usd: 0.8, cost_usd: 0, success: false, score: 0.5 }),
-    task('claude', { ...plainBackend, wall_ms: 60_000, claude_cost_usd: 0.7, cost_usd: 0 }),
+    // three cases, one run each (several runs of one case add an interval and a per-case table: the repeated-runs test)
+    task('claude', { ...plainBackend, case: 'c1', wall_ms: 40_000, claude_cost_usd: 0.6, cost_usd: 0 }),
+    task('claude', { ...plainBackend, case: 'c2', wall_ms: 80_000, claude_cost_usd: 0.8, cost_usd: 0, success: false, score: 0.5 }),
+    task('claude', { ...plainBackend, case: 'c3', wall_ms: 60_000, claude_cost_usd: 0.7, cost_usd: 0 }),
     task('jev-mod typesafe minConfidence=0.8', { wall_ms: 20_000, claude_cost_usd: 0.3, cost_usd: 0.01,
       by_feature: { [explained.feature]: { requests: 2, calls: 2, cost_usd: 0.008 }, screening: { requests: 1, calls: 1, cost_usd: 0.002 } } }),
   ]
@@ -206,4 +207,52 @@ test('task rows give a comparison table with accuracy, speed and cost, plain Cla
   const svg = plots(explained, s).task!
   for (const word of ['success', 'score', 'wall time (median)', 'Claude cost', 'feature decision cost', 'other decision cost', 'total cost']) expect(svg).toContain(word)
   expect(svg).not.toContain('question context')
+})
+
+test('repeated runs: success over every run with its interval, each case\'s pass count, the median over every run; one run each reads as before', () => {
+  const plainBackend = { backend: { name: 'claude code', kind: 'baseline' as const, model: null } }
+  const task = (arm: string, c: string, repeat: number | undefined, success: boolean, wall: number, over: Partial<Row> = {}): Row => ({
+    ...row('typesafe', 'jev-1.13', []), level: 'task', arm, case: c, ...(repeat ? { repeat } : {}), outcome: 'ok', success, score: success ? 1 : 0,
+    wall_ms: wall, claude_cost_usd: 0.3, cost_usd: 0, ...(arm === 'claude' ? plainBackend : {}), ...over,
+  })
+  const jev = 'jev-mod openrouter'
+  const rs = [
+    task('claude', 'a', 1, true, 10_000), task('claude', 'a', 2, true, 20_000), task('claude', 'a', 3, false, 30_000),
+    task('claude', 'b', 1, true, 40_000), task('claude', 'b', 2, true, 50_000), task('claude', 'b', 3, true, 60_000),
+    task(jev, 'a', 1, true, 5_000), task(jev, 'a', 2, true, 6_000), task(jev, 'a', 3, true, 7_000),
+    task(jev, 'b', 1, false, 8_000), task(jev, 'b', 2, true, 9_000), task(jev, 'b', 3, false, 10_000, { outcome: 'error', error: 'timeout', success: undefined, score: undefined }),
+  ]
+  const s = summarise(explained, rs, false)
+  expect(s.repeated).toBe(true)
+  const [plain, mod] = s.arms
+  expect([plain!.passed, plain!.scored, plain!.success]).toEqual([5, 6, 5 / 6])
+  expect([mod!.passed, mod!.scored, mod!.runs]).toEqual([4, 5, 6])
+  expect(mod!.perCase).toEqual([{ case: 'a', passed: 3, scored: 3, runs: 3 }, { case: 'b', passed: 1, scored: 2, runs: 3 }])
+  // the median is over every scored run of every case
+  expect([plain!.wallMedian, mod!.wallMedian]).toEqual([30_000, 7_000])
+  const w = plain!.interval!
+  expect([Math.round(w.lo * 1000), Math.round(w.hi * 1000)]).toEqual([436, 970])
+  const md = markdown(explained, s, {})
+  expect(md).toContain('| arm | runs | success (95% interval) | mean score |')
+  expect(md).toContain('| plain Claude Code | 6 | 83.3% (44–97%) |')
+  expect(md).toContain(`| ${jev} | 6 (failed: 1 timeout) | 80.0% (38–96%) |`)
+  expect(md).toContain(`| case | plain Claude Code | ${jev} |`)
+  expect(md).toContain('| a | 2/3 | 3/3 |')
+  expect(md).toContain('| b | 3/3 | 1/2 (+1 failed) |')
+  expect(md).toContain('a 95% Wilson interval')
+  expect(md).toContain(`- ${jev}: right on 80.0% [38–96%] (plain Claude Code 83.3% [44–97%]) of runs`)
+  const svg = plots(explained, s).task!
+  expect(svg).toContain('class="rg"')
+  expect(svg).toContain('its 95% interval')
+
+  // rows from before --repeat, one per case and arm with no repeat field, read as one run each: no interval, no per-case table
+  const old = rs.filter(r => r.repeat === 1).map(({ repeat: _, ...r }) => r as Row)
+  const o = summarise(explained, old, false)
+  expect(o.repeated).toBe(false)
+  expect(o.arms[0]!.perCase).toEqual([{ case: 'a', passed: 1, scored: 1, runs: 1 }, { case: 'b', passed: 1, scored: 1, runs: 1 }])
+  const omd = markdown(explained, o, {})
+  expect(omd).toContain('| arm | runs | success | mean score |')
+  expect(omd).not.toContain('| case |')
+  expect(omd).not.toContain('Wilson')
+  expect(plots(explained, o).task).not.toContain('class="rg"')
 })

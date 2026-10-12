@@ -178,6 +178,7 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
             if (book.model) row.answered_model = book.model
             row.decision_calls = row.calls
             if (Object.keys(book.byFeature).length) row.by_feature = book.byFeature
+            if (Object.keys(book.tools).length) row.tool_calls = book.tools
             row.context_tokens = context
             if (book.compaction) row.compaction = book.compaction
             // plain Claude Code asks no decision model: one that did had jev-mod on, and is not plain

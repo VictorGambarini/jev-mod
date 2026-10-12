@@ -14,6 +14,7 @@
 import { choice, type Answer, type Question } from '../../engine/client'
 import { redact } from '../../engine/privacy'
 import { encode } from '../../engine/pyjson'
+import { definitions, importLines, isTestPath, langOf, normal, strip } from './symbols'
 
 export const HEAD_LINES = 40
 export const MAX_TERMS = 16
@@ -178,22 +179,60 @@ export function headOf(text: string): Head {
 
 // ── the local score ──────────────────────────────────────────────────────────
 
+/**
+ * How much each term counts: the query's own words 1, the words the model added (synonyms,
+ * likely names) EXTRA_WEIGHT, so its guesses widen the search without drowning the query.
+ */
+export type Weights = ReadonlyMap<string, number>
+export const EXTRA_WEIGHT = 0.7
+const weightOf = (weights: Weights | undefined, term: string) => weights?.get(term) ?? 1
+
 /** The path's share: the file's own name counts more than the folders above it. */
-export function pathScore(path: string, terms: readonly string[]): number {
+export function pathScore(path: string, terms: readonly string[], weights?: Weights): number {
   const slash = path.lastIndexOf('/')
   const name = stemsOf(path.slice(slash + 1).replace(/\.[^.]+$/, ''))
   const dirs = stemsOf(slash > 0 ? path.slice(0, slash) : '')
-  return terms.reduce((sum, t) => sum + (hit(t, name) ? 3 : hit(t, dirs) ? 1.5 : 0), 0)
+  return terms.reduce((sum, t) => sum + weightOf(weights, t) * (hit(t, name) ? 3 : hit(t, dirs) ? 1.5 : 0), 0)
 }
 
 /** The head's share: its header comment and the names it defines count most, its imports less, the rest least. */
-export function headScore(head: Head, terms: readonly string[]): number {
+export function headScore(head: Head, terms: readonly string[], weights?: Weights): number {
   if (!terms.length) return 0
   const header = stemsOf(head.header)
   const symbols = stemsOf(head.symbols.join(' '))
   const imports = stemsOf(head.imports.join(' '))
   const rest = stemsOf(head.lines.join(' '))
-  return terms.reduce((sum, t) => sum + (hit(t, symbols) ? 2.5 : hit(t, header) ? 2 : hit(t, imports) ? 1 : hit(t, rest) ? 0.5 : 0), 0)
+  return terms.reduce((sum, t) => sum + weightOf(weights, t) * (hit(t, symbols) ? 2.5 : hit(t, header) ? 2 : hit(t, imports) ? 1 : hit(t, rest) ? 0.5 : 0), 0)
+}
+
+/** What a file gets for defining a name the model guessed exactly (any case style): the strongest single sign. */
+export const NAME_BOOST = 4
+
+/** The model's guessed names as normal forms (letters and digits, lowercase), at most MAX_TERMS. */
+export function namesOf(identifiers: readonly string[]): Set<string> {
+  return new Set(identifiers.map(normal).filter(n => n.length >= 3).slice(0, MAX_TERMS))
+}
+
+/** NAME_BOOST when one of `defined` is one of the guessed names, else 0. */
+export function nameScore(defined: readonly string[], names: ReadonlySet<string>): number {
+  return names.size && defined.some(d => names.has(normal(d))) ? NAME_BOOST : 0
+}
+
+/**
+ * The search's words: the query's terms, then the model's extra words (synonyms, likely names)
+ * that the query does not already hold, at most MAX_TERMS of them, with their weights.
+ */
+export function searchTerms(query: string, extra: readonly string[]): { terms: string[]; queryTerms: string[]; weights: Map<string, number> } {
+  const queryTerms = termsOf(query)
+  const added = termsOf(extra.join(' ')).filter(t => !queryTerms.includes(t))
+  const weights = new Map<string, number>([...queryTerms.map(t => [t, 1] as const), ...added.map(t => [t, EXTRA_WEIGHT] as const)])
+  return { terms: [...queryTerms, ...added], queryTerms, weights }
+}
+
+/** A string or a list of strings from the model, as a list of words and names (commas and spaces split a string). */
+export function listOf(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[,\n]/) : []
+  return items.filter((v): v is string => typeof v === 'string').flatMap(v => v.split(/\s+/)).map(v => v.trim()).filter(Boolean).slice(0, 40)
 }
 
 /** Lines anywhere in the file that mention a term (as git grep -c counts them): a little, with diminishing returns. */
@@ -202,6 +241,13 @@ export function bodyScore(matchingLines: number): number {
 }
 
 export type Candidate = { path: string; score: number; head?: Head }
+
+/**
+ * What a test file's local score is multiplied by: the question is where the code lives, and in a
+ * large project its tests repeat its words often enough to crowd it out of the candidates.
+ */
+export const TEST_FACTOR = 0.6
+export const testFactor = (path: string) => (isTestPath(path) ? TEST_FACTOR : 1)
 
 /** The candidates, best first; ties by shorter path, then by name. */
 export function byScore<T extends { path: string; score: number }>(list: readonly T[]): T[] {
@@ -314,19 +360,122 @@ export function rank(candidates: readonly Candidate[], answers: ReadonlyMap<numb
   return ranked.map(({ id: _id, ...rest }) => rest)
 }
 
+// ── the shortcut ─────────────────────────────────────────────────────────────
+
+/** How far ahead the leading files must be: each at least this times the score of the file after them. */
+export const LEAD_RATIO = 1.5
+/** The least score a leading file needs: a path, a name and a header that all match, roughly. */
+export const LEAD_MIN_SCORE = 6
+/** The share of the query's own words a leading file must hold in its path, the names it defines or its header comment. */
+export const LEAD_COVERAGE = 0.75
+/** At most this many files can lead together. */
+export const LEAD_MOST = 3
+
+/** The share of `terms` that a candidate holds where it counts most: its path, the names it defines, its header. */
+export function coverage(c: Candidate, terms: readonly string[]): number {
+  if (!terms.length) return 0
+  const strong = stemsOf([c.path, c.head?.header ?? '', ...(c.head?.symbols ?? [])].join(' '))
+  return hits(terms, strong) / terms.length
+}
+
+/**
+ * How many files lead the local ranking clearly enough to answer without the decision model, or
+ * 0. The first k (1 to LEAD_MOST) lead when the k-th scores at least LEAD_RATIO times the next one
+ * (or nothing follows), each scores LEAD_MIN_SCORE or more, and each holds LEAD_COVERAGE of the
+ * query's own words (not the model's added ones) in its path, names or header. A query of one word
+ * never leads: one word matched says too little. On the decision-level cases (rank.test.ts,
+ * bench/adapter.test.ts) it fires on about half of the queries, always with an implementing file
+ * first, and never on a query with nothing to find.
+ */
+export function clearLead(candidates: readonly Candidate[], queryTerms: readonly string[]): number {
+  if (queryTerms.length < 2) return 0
+  for (let k = 1; k <= Math.min(LEAD_MOST, candidates.length); k++) {
+    const c = candidates[k - 1]!
+    if (c.score < LEAD_MIN_SCORE || coverage(c, queryTerms) < LEAD_COVERAGE) return 0
+    const next = candidates[k]
+    if (!next || c.score >= LEAD_RATIO * next.score) return k
+  }
+  return 0
+}
+
+// ── exact places ─────────────────────────────────────────────────────────────
+
+/** One line worth reading first in a returned file: its number and its text, cut short. */
+export type Place = { line: number; text: string }
+export const PLACE_CHARS = 100
+/** Files past this size are not read for places (generated or data). */
+export const PLACE_MAX_FILE = 1_000_000
+
+/**
+ * The lines of a file to read first, at most `max`: the definitions whose names hold the most of
+ * the terms, then the code lines that hold the most (comments and strings do not count in a
+ * language symbols.ts knows; any line counts in one it does not, such as SQL or Markdown).
+ * Imports are left out. Definitions first, then by how many terms, then by line.
+ */
+export function placesIn(text: string, path: string, terms: readonly string[], max: number): Place[] {
+  if (!terms.length || max <= 0 || text.length > PLACE_MAX_FILE) return []
+  const lang = langOf(path)
+  const raw = text.split('\n')
+  const code = lang ? strip(text, lang).split('\n') : raw
+  const skip = lang ? importLines(code, lang) : new Set<number>()
+  const defs = (lang ? definitions(text, lang) : [])
+    .map(d => ({ line: d.line, n: hits(terms, stemsOf(d.name)) }))
+    .filter(d => d.n > 0)
+    .sort((a, b) => b.n - a.n || a.line - b.line)
+  const lines = code.map((l, i) => ({ line: i + 1, n: l.trim() && !skip.has(i + 1) ? hits(terms, stemsOf(l)) : 0 }))
+    .filter(l => l.n > 0)
+    .sort((a, b) => b.n - a.n || a.line - b.line)
+  const seen = new Set<number>()
+  const out: Place[] = []
+  for (const { line } of [...defs, ...lines]) {
+    if (out.length >= max) break
+    if (seen.has(line)) continue
+    seen.add(line)
+    const t = raw[line - 1]!.trim().replace(/\s+/g, ' ')
+    out.push({ line, text: t.length > PLACE_CHARS ? `${t.slice(0, PLACE_CHARS - 3)}...` : t })
+  }
+  return out
+}
+
+/** How many places each returned file gets: the first few more. */
+export const placesFor = (rank: number) => (rank < 3 ? 3 : 1)
+
 // ── what the model reads ─────────────────────────────────────────────────────
 
-export type Outcome = { by: 'jev' | 'local'; note?: string; batches?: { batches: number; failed: number }; searched: number; folder: string }
+export type Outcome = {
+  /** jev: ranked by the decision model; clear: the local ranking led clearly, not asked; local: the local ranking, as a fallback. */
+  by: 'jev' | 'clear' | 'local'
+  note?: string
+  batches?: { batches: number; failed: number }
+  /** For `clear`: how many files led. */
+  lead?: number
+  searched: number
+  folder: string
+}
 
-/** The tool's answer: a header line saying how it was ranked, then one line per file. */
-export function render(query: string, ranked: readonly Ranked[], limit: number, outcome: Outcome): string {
-  const shown = ranked.filter(r => outcome.by === 'local' || r.verdict !== 'unrelated' || r.relevance >= UNJUDGED).slice(0, limit)
-  const how = outcome.by === 'jev' ? `ranked by the decision model${outcome.batches ? ` (${outcome.batches.batches - outcome.batches.failed} of ${outcome.batches.batches} batches judged)` : ''}` : `local ranking only${outcome.note ? ` (${outcome.note})` : ''}`
+/** The files an answer lists: the first `limit`, leaving out what the decision model judged unrelated. */
+export function shownOf<T extends Ranked>(ranked: readonly T[], limit: number, by: Outcome['by']): T[] {
+  return ranked.filter(r => by !== 'jev' || r.verdict !== 'unrelated' || r.relevance >= UNJUDGED).slice(0, limit)
+}
+
+/** The tool's answer: a header line saying how it was ranked, then one line per file, each with its places under it. */
+export function render(query: string, ranked: readonly (Ranked & { places?: readonly Place[] })[], limit: number, outcome: Outcome): string {
+  const shown = shownOf(ranked, limit, outcome.by)
+  const how = outcome.by === 'jev' ? `ranked by the decision model${outcome.batches ? ` (${outcome.batches.batches - outcome.batches.failed} of ${outcome.batches.batches} batches judged)` : ''}`
+    : outcome.by === 'clear' ? `ranked locally: the first ${outcome.lead === 1 ? 'file leads' : `${outcome.lead} files lead`} clearly by the query's words, so the decision model was not asked`
+      : `local ranking only${outcome.note ? ` (${outcome.note})` : ''}`
   const head = `${shown.length} file${shown.length === 1 ? '' : 's'} for "${query.slice(0, 120)}" in ${outcome.folder}, ${how}; ${outcome.searched} files searched.`
-  if (!shown.length) return `${head}\nNothing matched; try other words, or Grep for a name you know.`
-  const lines = shown.map((r, i) => {
+  if (!shown.length) {
+    if (outcome.by === 'jev' && ranked.length && ranked.every(r => r.verdict === 'unrelated')) {
+      const near = ranked.slice().sort((a, b) => b.local - a.local).slice(0, 3).map(r => r.path).join(', ')
+      return `${head}\nNothing here implements it: the decision model judged all ${ranked.length} of the best matches by words unrelated ` +
+        `(the closest by words: ${near}). If you expected a match, try other words or \`identifiers\`, or Grep for a name you know.`
+    }
+    return `${head}\nNothing matched; try other words or \`identifiers\`, or Grep for a name you know.`
+  }
+  const lines = shown.flatMap((r, i) => {
     const score = r.verdict ? `${r.verdict} ${r.confidence!.toFixed(2)}` : `score ${r.local.toFixed(1)}`
-    return `${i + 1}. ${r.path} [${score}] ${r.reason}`
+    return [`${i + 1}. ${r.path} [${score}] ${r.reason}`, ...(r.places ?? []).map(p => `   ${p.line}: ${p.text}`)]
   })
   return [head, ...lines].join('\n')
 }

@@ -94,6 +94,18 @@ test('the ledger: decision calls are added up, the last compaction is what the a
   expect([skipped.decisions, skipped.compaction?.skip]).toEqual([0, 'nothing to judge'])
 })
 
+test('the ledger: a call of one of the mod\'s own tools is counted by how it answered, and is not a decision', () => {
+  const book = readLedger([
+    { name: 'tool-1.json', text: JSON.stringify({ at: 1, kind: 'tool', feature: 'find-files', how: 'symbol' }) },
+    { name: 'tool-2.json', text: JSON.stringify({ at: 2, kind: 'tool', feature: 'find-files', how: 'symbol' }) },
+    { name: 'tool-3.json', text: JSON.stringify({ at: 3, kind: 'tool', feature: 'find-files', how: 'jev' }) },
+    { name: '4.json', text: JSON.stringify({ at: 4, feature: 'find-files', calls: 1, cost: 0.0001, model: 'jev-1.13', error: null }) },
+  ])
+  expect(book.tools).toEqual({ 'find-files': { symbol: 2, jev: 1 } })
+  expect(book.decisions).toBe(1)
+  expect(readLedger([]).tools).toEqual({})
+})
+
 test('a jev-mod arm compacts with /compact and the marker in one step; every question step refuses all tools', () => {
   const steps = compactTask.steps(TASKS[0]!, arm('jev-mod openrouter drop=0.6', 'jev-mod', 'openrouter'))
   expect(steps[0]!.prompt).toBe(`/compact ${MARK}`)

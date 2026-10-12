@@ -105,6 +105,20 @@ export async function ledger(io: IO, entry: { feature?: string; calls: number; c
 }
 
 /**
+ * Write that one of the mod's own tools was called (find-files: which way it answered), to the
+ * overlay's ledger folder, when it names one: the bench's proof that the model reached for it,
+ * since an answer that asked no decision model leaves no decision entry. Never throws.
+ */
+export async function ledgerTool(io: IO, entry: { feature: string; how: string }): Promise<void> {
+  try {
+    const folder = (await readOverlay(io)).overlay?.ledger
+    if (!folder) return
+    const name = `tool-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.json`
+    await io.writeFile(`${folder}/${name}`, JSON.stringify({ at: Date.now(), kind: 'tool', feature: entry.feature, how: entry.how }))
+  } catch { /* the ledger is the bench's; a tool never fails for it */ }
+}
+
+/**
  * Write what one /jev-mod compaction did (messages before, kept, dropped; tool pairs dropped,
  * tool results trimmed, the characters that took out, the files saved, and the thinking-only
  * messages dropped; why nothing went when nothing did) to the overlay's ledger folder, when it

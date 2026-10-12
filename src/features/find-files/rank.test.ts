@@ -1,8 +1,9 @@
 import { test, expect } from 'claude-code/testing'
 import type { Answer } from '../../engine/client'
 import {
-  BATCH, bodyScore, byScore, cardOf, cardText, headOf, headScore, inside, pack, pathScore, rank, render, request,
-  resolvePath, stem, termsOf, UNJUDGED, wanted, wordsOf, type Candidate,
+  BATCH, bodyScore, byScore, cardOf, cardText, clearLead, coverage, EXTRA_WEIGHT, headOf, headScore, inside, LEAD_MIN_SCORE, listOf,
+  NAME_BOOST, namesOf, nameScore, pack, pathScore, placesFor, placesIn, rank, render, request, resolvePath, searchTerms, stem, termsOf,
+  UNJUDGED, wanted, wordsOf, type Candidate,
 } from './rank'
 
 test('words: camelCase, snake_case, kebab-case and paths come apart, lowercased', () => {
@@ -168,4 +169,104 @@ test('paths: relative to the root, . and .. resolved, and inside the root or not
   expect(inside('/p/repo', '/p/repo/src')).toBe(true)
   expect(inside('/p/repo', '/p/repository')).toBe(false)
   expect(inside('/p/repo', resolvePath('/p/repo', '../other'))).toBe(false)
+})
+
+test('the model\'s extra words: added after the query\'s, weighed less, split from strings or lists', () => {
+  const { terms, queryTerms, weights } = searchTerms('money back for a customer', ['refund', 'chargeback', 'customer', 'refundPayment'])
+  expect(queryTerms).toEqual(['custom', 'money', 'back'])
+  expect(terms).toEqual(['custom', 'money', 'back', 'chargeback', 'payment', 'refund'])
+  expect(weights.get('money')).toBe(1)
+  expect(weights.get('refund')).toBe(EXTRA_WEIGHT)
+  // a file named for an added word scores, less than one named for the query's own
+  expect(Math.abs(pathScore('src/refund.ts', terms, weights) - 3 * EXTRA_WEIGHT)).toBeLessThan(1e-9)
+  expect(pathScore('src/money.ts', terms, weights)).toBe(3)
+  expect(listOf('refund, chargeback\nreversal')).toEqual(['refund', 'chargeback', 'reversal'])
+  expect(listOf(['refundPayment', 3, ' retry_policy '])).toEqual(['refundPayment', 'retry_policy'])
+  expect(listOf(undefined)).toEqual([])
+})
+
+test('a guessed name the file defines, in any case style, is the strongest single sign', () => {
+  const names = namesOf(['refund_payment', 'ab'])
+  expect([...names]).toEqual(['refundpayment'])
+  expect(nameScore(['refundPayment', 'other'], names)).toBe(NAME_BOOST)
+  expect(nameScore(['refundPaymentLater'], names)).toBe(0)
+  expect(nameScore(['x'], new Set())).toBe(0)
+})
+
+const cand = (path: string, score: number, header = '', symbols: string[] = []): Candidate =>
+  ({ path, score, head: { header, symbols, imports: [], lines: [] } })
+
+test('the shortcut: one to three files far ahead, each holding most of the query\'s words where it counts', () => {
+  const q = termsOf('retry backoff')
+  const retry = cand('src/net/retry.ts', 10, 'Retries with exponential backoff.')
+  // far ahead, and both words in its path and header: it leads
+  expect(clearLead([retry, cand('src/b.ts', 6), cand('src/c.ts', 2)], q)).toBe(1)
+  expect(clearLead([retry], q)).toBe(1)
+  // not far enough ahead
+  expect(clearLead([retry, cand('src/b.ts', 7)], q)).toBe(0)
+  // two close together, far ahead of the rest: both lead
+  const backoff = cand('src/net/backoff.ts', 9, 'Backoff delays for each retry.')
+  expect(clearLead([retry, backoff, cand('src/c.ts', 5)], q)).toBe(2)
+  // far ahead, but the words are only in its body: no
+  expect(clearLead([cand('src/util.ts', 10, 'Helpers.'), cand('src/b.ts', 2)], q)).toBe(0)
+  // too low a score to say anything
+  expect(clearLead([cand('src/retry-backoff.ts', LEAD_MIN_SCORE - 1), cand('src/b.ts', 1)], q)).toBe(0)
+  // one word says too little
+  expect(clearLead([retry, cand('src/b.ts', 1)], termsOf('retry'))).toBe(0)
+  // more than three close together: no
+  const many = [10, 10, 10, 10, 2].map((n, i) => cand(`src/retry-backoff-${i}.ts`, n))
+  expect(clearLead(many, q)).toBe(0)
+  expect(coverage(retry, q)).toBe(1)
+  expect(coverage(cand('src/x.ts', 1, 'retry only'), q)).toBe(0.5)
+})
+
+test('places: definitions named by the terms first, then the code lines with the most terms; comments, strings and imports skipped', () => {
+  const text = [
+    "import { sleep } from './retry-clock'", // 1: an import, skipped
+    '// retry with backoff: the comment does not count', // 2
+    'const LOG = "retry backoff"', // 3: only in a string
+    'export async function withBackoff(fn) {', // 4: a definition named by a term
+    '  for (let retry = 0; retry < 5; retry++) {', // 5: code, one term
+    '    await sleep(backoffDelay(retry))', // 6: code, two terms
+    '  }',
+    '}',
+    'export function unrelated() {}',
+  ].join('\n')
+  const terms = termsOf('retry backoff')
+  expect(placesIn(text, 'src/net/retry.ts', terms, 3)).toEqual([
+    { line: 4, text: 'export async function withBackoff(fn) {' },
+    { line: 6, text: 'await sleep(backoffDelay(retry))' },
+    { line: 5, text: 'for (let retry = 0; retry < 5; retry++) {' },
+  ])
+  expect(placesIn(text, 'src/net/retry.ts', terms, 1)).toEqual([{ line: 4, text: 'export async function withBackoff(fn) {' }])
+  // a file in a language without rules (SQL): any line counts
+  expect(placesIn('-- invoices\nALTER TABLE invoices ADD COLUMN paid_at timestamptz;\n', 'migrations/0031.sql', termsOf('invoices paid'), 2)
+    .map(p => p.line)).toEqual([2, 1])
+  // long lines are cut
+  expect(placesIn(`const retry = "${'x'.repeat(200)}" + retry`, 'a.ts', terms, 1)[0]!.text.length).toBe(100)
+  expect(placesIn(text, 'a.ts', [], 3)).toEqual([])
+  expect([0, 1, 2, 3, 9].map(placesFor)).toEqual([3, 3, 3, 1, 1])
+})
+
+test('render: the shortcut says the decision model was not asked; places sit under their file', () => {
+  const ranked = rank([cand('src/net/retry.ts', 10, 'Retries with exponential backoff.')], new Map(), termsOf('retry backoff'))
+  const out = render('retry backoff', [{ ...ranked[0]!, places: [{ line: 4, text: 'export async function withBackoff(fn) {' }] }], 10,
+    { by: 'clear', lead: 1, searched: 12, folder: '/p' })
+  expect(out.split('\n')).toEqual([
+    '1 file for "retry backoff" in /p, ranked locally: the first file leads clearly by the query\'s words, so the decision model was not asked; 12 files searched.',
+    '1. src/net/retry.ts [score 10.0] Retries with exponential backoff.',
+    '   4: export async function withBackoff(fn) {',
+  ])
+})
+
+test('render: when the decision model judged every candidate unrelated, it says nothing here implements it', () => {
+  const candidates = [cand('src/a.ts', 3), cand('src/b.ts', 5)]
+  const unrelated = pick('unrelated', { implements: 0.02, related: 0.03, unrelated: 0.95 })
+  const out = render('voice ordering', rank(candidates, new Map([[0, unrelated], [1, unrelated]]), []), 10, { by: 'jev', searched: 40, folder: '/p' })
+  expect(out).toContain('0 files for "voice ordering"')
+  expect(out).toContain('Nothing here implements it: the decision model judged all 2 of the best matches by words unrelated (the closest by words: src/b.ts, src/a.ts)')
+  // one left unjudged (a secret-looking card): not "nothing"; it is listed
+  const partly = render('voice ordering', rank(candidates, new Map([[0, unrelated]]), []), 10, { by: 'jev', searched: 40, folder: '/p' })
+  expect(partly).not.toContain('Nothing here implements it')
+  expect(partly).toContain('1. src/b.ts')
 })

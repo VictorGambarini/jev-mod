@@ -1,6 +1,8 @@
 import { test, expect } from 'claude-code/testing'
 import { armsFor, overlayFor, plan } from '../../../bench/plan'
-import { answersOf, LINE_SLACK, promptOf, score, task, TASKS, USD } from './task'
+import type { Row } from '../../../bench/types'
+import { ALL, answersOf, LINE_SLACK, promptOf, REPO_TASKS, report, score, task, TASKS, USD, WHAT } from './task'
+import { cloneName, REPO, runFolderOf } from './task-repo'
 
 // The pure parts of the task bench. The fixture on disk and the whole runner (with a stand-in `claude`)
 // are checked by `bun src/features/find-files/bench/task-check.ts`: tests here have no file system.
@@ -8,7 +10,7 @@ import { answersOf, LINE_SLACK, promptOf, score, task, TASKS, USD } from './task
 const byId = (id: string) => TASKS.find(t => t.id === id)!
 const pathOf = (path: string, line: number | null = null) => ({ path, line })
 
-test('ten tasks, ids unique, nothing set up, every gold file named, line questions have a line and the pattern it matches', () => {
+test('ten small-fixture tasks, ids unique, nothing set up, every gold file named, line questions have a line and the pattern it matches', () => {
   expect(TASKS.length).toBe(10)
   expect(new Set(TASKS.map(t => t.id)).size).toBe(TASKS.length)
   expect(TASKS.some(t => t.gold.length > 1)).toBe(true)
@@ -100,4 +102,75 @@ test('the plan: no setup, one call per case and arm, priced per arm; edits are r
     expect(step!.disallowedTools).toEqual(expect.arrayContaining(['Edit', 'Write']))
   }
   expect(TASKS[0]!.allowedTools).toContain('mcp__jev-mod__find_files')
+})
+
+const repoById = (id: string) => REPO_TASKS.find(t => t.id === id)!
+
+test('the large project: pinned, its cases named saleor-*, each with what it tests, gold lines with patterns, three with no answer', () => {
+  expect(REPO.commit).toMatch(/^[0-9a-f]{40}$/)
+  expect(REPO.license).toBe('BSD-3-Clause')
+  expect(cloneName()).toBe(`saleor-${REPO.commit.slice(0, 12)}`)
+  expect(new Set(ALL.map(t => t.id)).size).toBe(ALL.length)
+  expect(ALL.length).toBe(TASKS.length + REPO_TASKS.length)
+  expect(REPO_TASKS.length).toBeGreaterThanOrEqual(12)
+  expect(Object.keys(WHAT).sort()).toEqual(REPO_TASKS.map(t => t.id).sort())
+  for (const t of REPO_TASKS) {
+    expect(t.id).toMatch(/^saleor-/)
+    expect(t.suite).toBe('repo')
+    expect(t.git).toBe(false) // the clone is already a repository
+    expect(typeof t.prepare).toBe('function')
+    expect(t.allowedTools).toEqual(TASKS[0]!.allowedTools)
+    for (const g of t.gold) if (t.format === 'lines') { expect(g.line).toBeGreaterThan(0); expect(g.needle).toBeInstanceOf(RegExp) }
+  }
+  expect(REPO_TASKS.filter(t => !t.gold.length).map(t => t.id)).toEqual(['saleor-none-loyalty', 'saleor-none-sms', 'saleor-none-captcha'])
+  // paraphrases never name what they look for
+  expect(repoById('saleor-giftcard-expiry').ask.toLowerCase()).not.toContain('gift')
+  expect(repoById('saleor-guest-cart-expiry').ask.toLowerCase()).not.toMatch(/anonymous|checkout/)
+  expect(repoById('saleor-webhook-proof').ask.toLowerCase()).not.toMatch(/signature|hmac|webhook/)
+  expect(repoById('saleor-stock-hold').ask.toLowerCase()).not.toMatch(/reserv/)
+  expect(repoById('saleor-failing-app-share').ask.toLowerCase()).not.toMatch(/breaker|threshold/)
+})
+
+test('the large project\'s prompt allows NONE; the small fixture\'s does not', () => {
+  expect(promptOf(repoById('saleor-none-sms'))).toContain('put the single line `NONE` under ANSWERS')
+  expect(promptOf(TASKS[0]!)).not.toContain('NONE')
+})
+
+test('a question with no right answer: NONE (no path) is right, any path is wrong', () => {
+  const t = repoById('saleor-none-loyalty')
+  expect(score(t, answersOf('Nothing does this.\n\nANSWERS\nNONE\n'))).toMatchObject({ success: true, score: 1 })
+  expect(score(t, answersOf('ANSWERS\nsaleor/order/actions.py\n'))).toMatchObject({ success: false, score: 0 })
+  expect(score(t, []).detail).toMatchObject({ answered: 0, gold: 0, wrong: [] })
+})
+
+test('the run folder of an arm\'s project: three levels up', () => {
+  expect(runFolderOf('/tmp/jev-mod-bench-x/saleor-stock-hold/arm-1/project')).toBe('/tmp/jev-mod-bench-x')
+  expect(runFolderOf('/tmp/jev-mod-bench-x/saleor-stock-hold/arm-1-r2/project/')).toBe('/tmp/jev-mod-bench-x')
+})
+
+test('the plan of the large project alone: priced per question at its own rate, the clone said', () => {
+  const arms = armsFor(task, ['openrouter'], null, {})
+  const p = plan(task, REPO_TASKS, arms)
+  expect([p.setupCalls, p.claudeCalls]).toEqual([0, 2 * REPO_TASKS.length])
+  expect(Math.round(p.armsUsd * 100)).toBe(Math.round(2 * REPO_TASKS.length * USD.repo * 100))
+  expect(p.text).toContain(`${REPO_TASKS.length} large-project question(s)`)
+  expect(p.text).toContain(REPO.commit.slice(0, 12))
+})
+
+const row = (c: string, arm: string, extra: Partial<Row>): Row => ({ schema: 1, run: 'r', feature: 'find-files', level: 'task', jevmod: '0', git: 'g', date: 'd',
+  backend: { name: 'x', kind: 'provider', model: null }, answered_model: null, settings: {}, sweep: null, case: c, arm, outcome: 'ok', items: [], calls: 0,
+  latencies_ms: [], input_tokens: null, cost_usd: 0, wall_ms: 1000, claude_cost_usd: 0.2, success: true, score: 1, ...extra })
+
+test('the report block: each suite apart, and whether and how find_files was called', () => {
+  const md = report([
+    row('webhook-retry', 'claude', {}),
+    row('saleor-stock-hold', 'claude', { success: false, score: 0, wall_ms: 3000 }),
+    row('saleor-stock-hold', 'jev-mod openrouter', { tool_calls: { 'find-files': { clear: 1 } } }),
+    row('saleor-none-sms', 'jev-mod openrouter', { tool_calls: { 'find-files': { jev: 1, symbol: 2 } }, cost_usd: 0.0002 }),
+    row('saleor-none-sms', 'claude', { outcome: 'error', error: 'claude exited 1' }),
+  ])
+  const lines = md.split('\n')
+  expect(lines).toContain('| large project | claude | 2 (1 failed) | 0% | 0% | 3000 ms | $0.200 | $0.00000 | 0 of 2 | - |')
+  expect(lines).toContain('| large project | jev-mod openrouter | 2 | 100% | 100% | 1000 ms | $0.200 | $0.00010 | 2 of 2 | clear 1, jev 1, symbol 2 |')
+  expect(lines).toContain('| small fixture | claude | 1 | 100% | 100% | 1000 ms | $0.200 | $0.00000 | 0 of 1 | - |')
 })

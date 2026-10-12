@@ -3,9 +3,9 @@ import { fakeHost } from '../../../bench/fake'
 import { fakeHostFor, runDecision } from '../../../bench/decision'
 import type { Row } from '../../../bench/types'
 import { isSensitive } from '../../../engine/privacy'
-import { askAbout } from '../index'
-import { termsOf } from '../rank'
-import { adapter } from './adapter'
+import { askAbout, grepCounts, list, narrow } from '../index'
+import { clearLead, termsOf } from '../rank'
+import { adapter, projectIo } from './adapter'
 import { FILES, QUERIES } from './cases'
 
 const meta = { schema: 1 as const, run: 'r', feature: 'find-files', level: 'decision' as const, jevmod: '0.12.0', git: 'abc', date: 'd', settings: {}, sweep: null }
@@ -77,4 +77,21 @@ test('a backend that does not answer leaves the case an error with its code, and
   expect(rows).toHaveLength(1)
   expect(rows[0]!.outcome).toBe('error')
   expect(rows[0]!.items).toEqual([])
+})
+
+test('the shortcut on these queries: it fires on about half, always with an implementing file first, never where there is none', async () => {
+  const io = projectIo()
+  const listing = await list(io, '/shop')
+  let fired = 0
+  for (const q of QUERIES) {
+    const terms = termsOf(q.query)
+    const candidates = await narrow(io, '/shop', listing.files, terms, 60, await grepCounts(io, '/shop', terms))
+    const lead = clearLead(candidates, terms)
+    if (!lead) continue
+    fired++
+    expect(q.implements).toContain(candidates[0]!.path)
+  }
+  expect(QUERIES.filter(q => !q.implements.length).length).toBeGreaterThanOrEqual(3)
+  expect(fired).toBeGreaterThanOrEqual(20)
+  expect(fired).toBeLessThan(QUERIES.length)
 })

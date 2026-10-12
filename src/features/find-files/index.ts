@@ -1,4 +1,5 @@
 import * as activity from '../../core/activity'
+import { ledgerTool } from '../../core/bench-overlay'
 import { modeOf, setting } from '../../core/config'
 import { hostOf } from '../../core/host'
 import type { IO } from '../../core/io'
@@ -9,9 +10,11 @@ import { ask, costOf, JevError, type Answer, type Asked, type Host } from '../..
 import type { Limits } from '../../engine/lanes'
 import { isSensitive } from '../../engine/privacy'
 import {
-  bodyScore, byScore, cardOf, cardText, headOf, headScore, inside, pack, pathScore, rank, render, request,
-  resolvePath, SKIP_DIRS, termsOf, wanted, type Candidate, type Outcome,
+  bodyScore, byScore, cardOf, cardText, clearLead, headOf, headScore, inside, listOf, NAME_BOOST, namesOf, nameScore, pack,
+  pathScore, placesFor, placesIn, rank, render, request, resolvePath, searchTerms, shownOf, SKIP_DIRS, testFactor, wanted,
+  type Candidate, type Outcome, type Place, type Ranked, type Weights,
 } from './rank'
+import { definers, loadIndex, lookup, renderLookup, symbolProblem } from './symbol-index'
 
 // find-files: a tool the model calls to ask where the code that does something lives, instead
 // of a chain of greps. The files under the folder are narrowed locally (rank.ts: path, first
@@ -38,20 +41,30 @@ const MIN_READ_WALK = 400
 
 export const SPEC = {
   name: TOOL,
-  description: 'Find the files that implement something, described in plain words ("where retries with backoff are '
-    + 'done", "the code that parses the config file"). Returns a ranked list of file paths, each with a short reason, '
-    + 'so you can open the right file instead of running a chain of Grep and Glob calls. Use Grep instead when you '
-    + 'know an exact name or string. It searches the project (or `path`, a folder inside it), skips build and dependency '
-    + 'folders (and honours .gitignore in a git project), and sends the decision model only short cards made from '
-    + 'each file\'s first lines.',
+  description: 'Find where something is implemented in this project when you do not know the names the code uses: '
+    + 'describe it in `query` ("where failed webhook deliveries are retried", "the code that decides whether a coupon still '
+    + 'applies"). Returns the files that implement it, ranked, each with the lines to read first (definitions first), so one '
+    + 'call replaces a chain of Grep, Glob and Read. Fill `identifiers` (names the code may give it: functions, classes, '
+    + 'variables, files, in any case style) and `synonyms` (other words the code or its comments may use): the search matches '
+    + 'words, so your guesses widen it. When it answers that nothing here implements it, the best matches by words were all '
+    + 'judged unrelated.\n'
+    + 'Or give `symbol`, one exact name, for where it is defined, imported, called and used: in code only (not in comments '
+    + 'or strings, and not inside longer names: refundPayment never matches refundPaymentLater), with path:line for each. '
+    + 'Use it for "where is X defined" and "what calls X".\n'
+    + 'Not for one exact string or a file name you already know: Grep or Glob does that in one call. It searches the '
+    + 'project (or `path`, a folder inside it), skips build and dependency folders and honours .gitignore; a plain-words '
+    + 'query sends the decision model only short redacted cards made from each candidate file\'s first lines.',
   inputSchema: {
     type: 'object',
     properties: {
-      query: { type: 'string', description: 'What the code does, in plain words.' },
+      query: { type: 'string', description: 'What the code does, in plain words. Give this or `symbol`.' },
+      identifiers: { type: 'array', items: { type: 'string' }, description: 'With `query`: names the code may use for it (refundPayment, retry_policy, InvoiceRenderer, webhooks/dispatcher). Optional; your guesses, not facts.' },
+      synonyms: { type: 'array', items: { type: 'string' }, description: 'With `query`: other words for it and related terms the code or its comments may use (refund: chargeback, reversal, money back). Optional.' },
+      symbol: { type: 'string', description: 'One exact name (an identifier) to find the definitions, imports, calls and other uses of. Give this or `query`.' },
       path: { type: 'string', description: 'A folder to search, absolute or relative to the project root. Default: the project root.' },
-      limit: { type: 'integer', minimum: 1, maximum: 50, description: 'How many files to return. Default: the `limit` setting (10 unless changed).' },
+      limit: { type: 'integer', minimum: 1, maximum: 50, description: 'With `query`: how many files to return. Default: the `limit` setting (10 unless changed).' },
     },
-    required: ['query'],
+    required: [],
   },
   isDeferred: false,
 }
@@ -101,13 +114,16 @@ async function walk(io: IO, folder: string): Promise<string[]> {
 
 /**
  * How many lines of each file mention a term, from `git grep -c` (tracked and untracked files,
- * .gitignore honoured); null when git could not say, so the heads are read as a walk's are.
+ * .gitignore honoured); null when git could not say, so the heads are read as a walk's are. The
+ * terms go as one case-blind alternation: git's case-blind search for many fixed strings is two
+ * orders of magnitude slower (25 s against 0.1 s for a dozen terms over 4,500 files).
  */
 export async function grepCounts(io: IO, folder: string, terms: readonly string[]): Promise<Map<string, number> | null> {
   const counts = new Map<string, number>()
+  if (!terms.length) return counts
   try {
-    const ran = await io.run(['git', '-C', folder, 'grep', '--untracked', '-I', '-i', '-c', '-F',
-      ...terms.flatMap(t => ['-e', t]), '--', '.'], { timeoutMs: 5000 })
+    const ran = await io.run(['git', '-C', folder, 'grep', '--untracked', '-I', '-i', '-c', '-E',
+      '-e', terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), '--', '.'], { timeoutMs: 5000 })
     if (ran.exitCode === 1) return counts // nothing matched
     if (ran.exitCode !== 0) return null
     for (const line of ran.stdout.split('\n')) {
@@ -122,20 +138,26 @@ export async function grepCounts(io: IO, folder: string, terms: readonly string[
 
 // ── the local step ───────────────────────────────────────────────────────────
 
+/** What narrows beyond the terms: how much each counts, and the names the model guessed. */
+export type NarrowBy = { weights?: Weights; names?: ReadonlySet<string>; boost?: ReadonlyMap<string, number> }
+
 /**
  * The best `keep` candidates: scored by path and body, the best few read for their head and
  * scored again. With git's counts, a file nothing matched in is not read; without them (a walk)
- * the head is the only look inside a file, so more are read, unmatched paths included.
+ * the head is the only look inside a file, so more are read, unmatched paths included. A file
+ * that defines one of the guessed names (`names` in its head, `boost` from the symbol index)
+ * gets NAME_BOOST.
  */
 export async function narrow(io: IO, folder: string, files: readonly string[], terms: readonly string[], keep: number,
-  counts: ReadonlyMap<string, number> | null): Promise<Candidate[]> {
-  const first = byScore(files.map(path => ({ path, score: pathScore(path, terms) + bodyScore(counts?.get(path) ?? 0) })))
+  counts: ReadonlyMap<string, number> | null, by: NarrowBy = {}): Promise<Candidate[]> {
+  const first = byScore(files.map(path => ({ path, score: testFactor(path) * (pathScore(path, terms, by.weights) + bodyScore(counts?.get(path) ?? 0) + (by.boost?.get(path) ?? 0)) })))
     .filter(c => counts === null || c.score > 0)
     .slice(0, Math.max(keep * READ_FACTOR, counts === null ? MIN_READ_WALK : MIN_READ))
   const read = await Promise.all(first.map(async c => {
     try {
       const head = headOf(await io.readFile(`${folder}/${c.path}`))
-      return { ...c, head, score: c.score + headScore(head, terms) }
+      const named = by.boost?.has(c.path) ? 0 : nameScore(head.symbols, by.names ?? new Set())
+      return { ...c, head, score: c.score + testFactor(c.path) * (headScore(head, terms, by.weights) + named) }
     } catch {
       return c
     }
@@ -205,36 +227,94 @@ async function judge(io: IO, query: string, candidates: readonly Candidate[], te
 
 // ── the tool ─────────────────────────────────────────────────────────────────
 
-type Input = { query?: unknown; path?: unknown; limit?: unknown }
+export type Input = { query?: unknown; path?: unknown; limit?: unknown; synonyms?: unknown; identifiers?: unknown; symbol?: unknown }
 
-/** The tool's answer, as text for the model. Never throws: a failure is said in the text. */
+/** How long a plain-words query may spend on the symbol index for the model's guessed names. */
+const NAMES_BUDGET_MS = 2500
+
+/** The places of the files the answer will show, read now: each file once, a failure leaves it without. */
+async function withPlaces(io: IO, folder: string, ranked: readonly Ranked[], limit: number, by: Outcome['by'], terms: readonly string[]):
+  Promise<(Ranked & { places?: Place[] })[]> {
+  const shown = new Set(shownOf(ranked, limit, by).map(r => r.path))
+  let i = 0
+  return Promise.all(ranked.map(async r => {
+    if (!shown.has(r.path)) return r
+    const max = placesFor(i++)
+    try { return { ...r, places: placesIn(await io.readFile(`${folder}/${r.path}`), r.path, terms, max) } } catch { return r }
+  }))
+}
+
+/** The symbol lookup: where `symbol` is defined and used, read from the code, no decision model. */
+async function findSymbol(io: IO, folder: string, symbol: string): Promise<string> {
+  const problem = symbolProblem(symbol)
+  if (problem) return problem
+  const listing = await list(io, folder)
+  if (!listing.files.length) return `find_files: no files found under ${folder}.`
+  const found = await lookup(io, folder, listing.files, listing.git, symbol)
+  void activity.count(io, ID, 'symbol')
+  return renderLookup(found, folder)
+}
+
+/** How an answer was reached, for the bench's ledger: by the decision model, the clear local lead, the local fallback, the symbol lookup, or none. */
+type How = 'jev' | 'clear' | 'local' | 'symbol' | 'none'
+
+/**
+ * The tool's answer, as text for the model. Never throws: a failure is said in the text. In a
+ * bench run, each call is written to the ledger with how it was answered (core/bench-overlay.ts).
+ */
 export async function find(io: IO, input: Input): Promise<string> {
+  const { text, how } = await answer(io, input)
+  await ledgerTool(io, { feature: ID, how })
+  return text
+}
+
+async function answer(io: IO, input: Input): Promise<{ text: string; how: How }> {
+  const none = (text: string) => ({ text, how: 'none' as const })
   try {
     const mine = await setting(io, ID)
-    if (mine.mode !== 'on') return 'find_files is off (/jev-mod find-files on turns it on); use Glob and Grep.'
+    if (mine.mode !== 'on') return none('find_files is off (/jev-mod find-files on turns it on); use Glob and Grep.')
+    const symbol = typeof input.symbol === 'string' ? input.symbol.trim() : ''
     const query = typeof input.query === 'string' ? input.query.trim() : ''
-    if (!query) return 'find_files needs a query: what the code does, in plain words.'
+    if (!query && !symbol) return none('find_files needs a `query` (what the code does, in plain words) or a `symbol` (a name to find the definition and uses of).')
     const knobLimit = Number(mine.knobs.limit?.value ?? 10)
     const limit = Math.max(1, Math.min(50, Math.trunc(typeof input.limit === 'number' ? input.limit : knobLimit) || knobLimit))
     const maxCandidates = Math.max(limit, Number(mine.knobs.maxCandidates?.value ?? 60))
     const timeoutMs = Number(mine.knobs.timeoutMs?.value ?? 8000)
+    const shortcut = mine.knobs.shortcut?.value !== false
 
     const root = await io.projectRoot()
     const given = typeof input.path === 'string' && input.path.trim() ? input.path.trim() : '.'
-    if (!root && !given.startsWith('/')) return 'find_files: the project root is not known here; give `path` as an absolute folder.'
+    if (!root && !given.startsWith('/')) return none('find_files: the project root is not known here; give `path` as an absolute folder.')
     const folder = resolvePath(root ?? '/', given)
-    if (root && !inside(resolvePath('/', root), folder)) return `find_files searches inside the project (${root}) only; ${folder} is outside it.`
+    if (root && !inside(resolvePath('/', root), folder)) return none(`find_files searches inside the project (${root}) only; ${folder} is outside it.`)
+    if (symbol) return { text: await findSymbol(io, folder, symbol), how: 'symbol' }
 
-    const terms = termsOf(query)
-    if (!terms.length) return `find_files: "${query}" has no words to search for; describe what the code does.`
+    const identifiers = listOf(input.identifiers)
+    const { terms, queryTerms, weights } = searchTerms(query, [...listOf(input.synonyms), ...identifiers])
+    if (!terms.length) return none(`find_files: "${query}" has no words to search for; describe what the code does.`)
     const listing = await list(io, folder)
-    if (!listing.files.length) return `find_files: no files found under ${folder}.`
+    if (!listing.files.length) return none(`find_files: no files found under ${folder}.`)
     const counts = listing.git ? await grepCounts(io, folder, terms) : null
-    const candidates = await narrow(io, folder, listing.files, terms, maxCandidates, counts)
+    const names = namesOf(identifiers)
+    let boost: Map<string, number> | undefined
+    if (names.size) {
+      try {
+        const index = await loadIndex(io, folder, listing.files, NAMES_BUDGET_MS)
+        boost = new Map([...definers(index, names)].map(path => [path, NAME_BOOST]))
+      } catch { /* the heads still show names */ }
+    }
+    const candidates = await narrow(io, folder, listing.files, terms, maxCandidates, counts, { weights, names, ...(boost ? { boost } : {}) })
     const outcome: Outcome = { by: 'local', searched: listing.files.length, folder }
     if (!candidates.length) {
       void activity.count(io, ID, 'local-only')
-      return render(query, [], limit, outcome)
+      return { text: render(query, [], limit, outcome), how: 'local' }
+    }
+
+    const lead = shortcut ? clearLead(candidates, queryTerms) : 0
+    if (lead) {
+      void activity.count(io, ID, 'clear')
+      const ranked = rank(candidates, new Map(), terms)
+      return { text: render(query, await withPlaces(io, folder, ranked, limit, 'clear', terms), limit, { ...outcome, by: 'clear', lead }), how: 'clear' }
     }
 
     let note: string | undefined
@@ -256,12 +336,13 @@ export async function find(io: IO, input: Input): Promise<string> {
     const ranked = rank(candidates, answers, terms)
     if (answers.size) {
       void activity.count(io, ID, 'ranked')
-      return render(query, ranked, limit, { ...outcome, by: 'jev', ...(unjudged ? { batches: unjudged } : {}) })
+      const text = render(query, await withPlaces(io, folder, ranked, limit, 'jev', terms), limit, { ...outcome, by: 'jev', ...(unjudged ? { batches: unjudged } : {}) })
+      return { text, how: 'jev' }
     }
     void activity.count(io, ID, 'local-only')
-    return render(query, ranked, limit, { ...outcome, note })
+    return { text: render(query, await withPlaces(io, folder, ranked, limit, 'local', terms), limit, { ...outcome, note }), how: 'local' }
   } catch (error) {
     void activity.count(io, ID, 'failed')
-    return `find_files failed (${error instanceof Error ? error.message : String(error)}); use Glob and Grep.`
+    return none(`find_files failed (${error instanceof Error ? error.message : String(error)}); use Glob and Grep.`)
   }
 }

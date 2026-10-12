@@ -26,7 +26,7 @@ const MAX_CANDIDATES = (knobs.maxCandidates as { default: number }).default
 const MOST = 50
 
 /** The few things of an IO that listing, counting and reading use, answered from the synthetic project like git would. */
-function projectIo(): IO {
+export function projectIo(): IO {
   const paths = Object.keys(FILES)
   return {
     readFile: async (path: string) => {
@@ -38,7 +38,7 @@ function projectIo(): IO {
       if (argv[0] !== 'git') return { exitCode: 127, stdout: '', stderr: 'not found' }
       if (argv[3] === 'ls-files') return { exitCode: 0, stdout: `${paths.join('\0')}\0`, stderr: '' }
       if (argv[3] === 'grep') {
-        const terms = argv.filter((_, i) => argv[i - 1] === '-e').map(t => t.toLowerCase())
+        const terms = argv.filter((_, i) => argv[i - 1] === '-e').flatMap(e => e.split('|')).map(t => t.toLowerCase())
         const lines = paths.map(p => [p, FILES[p]!.split('\n').filter(l => terms.some(t => l.toLowerCase().includes(t))).length] as const)
           .filter(([, n]) => n > 0).map(([p, n]) => `${p}:${n}`)
         return { exitCode: lines.length ? 0 : 1, stdout: lines.join('\n'), stderr: '' }

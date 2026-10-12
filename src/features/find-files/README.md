@@ -1,22 +1,42 @@
 # Find files (`find-files`)
 
-A tool the model calls to find the files that implement something described in plain words.
+A tool the model calls to find the code that does something described in plain words, or where a name is defined and used.
 
 Modes: `on`, `off`. Default: `off`. There is no shadow: the model calls the tool by choice, so there is nothing to watch it do unasked.
 
 ## What it decides
 
-Which files implement what the model describes ("where retries with backoff are done"). The model gets a ranked list of paths with a reason each, in place of a chain of greps. Each file is judged *implements*, *related* or *unrelated*.
+Which files implement what the model describes ("where failed webhook deliveries are retried"). The model gets a ranked list of paths, each with a reason and the lines to read first, in place of a chain of greps. Each candidate file is judged *implements*, *related* or *unrelated*. When every candidate is judged unrelated, the answer says that nothing here implements it.
+
+Given `symbol` (one exact name) instead, nothing is decided by a model: the answer is read from the code (see "Symbol lookup").
 
 ## When it runs
 
 When the model calls `find_files` (`mcp__jev-mod__find_files`), which is offered while the feature is on. With `off`, the tool is not offered (a session started while it was on keeps it, and it answers that it is off).
 
+The description tells the model to use it when it does not know the names the code uses, and for "where is X defined" or "what calls X" with `symbol`, and not for one exact string or a file name it already knows (Grep or Glob does that in one call).
+
 ## How it decides
 
-1. The project's files (git's list, so `.gitignore` is honoured; a plain walk without git) are scored locally by the query's words in each path, its first lines and how many lines mention them.
-2. The best `maxCandidates` (60) go to the decision model as short redacted cards: path, header comment, the names it defines, and a few matching lines.
-3. The decision model judges each *implements*, *related* or *unrelated*, and the model gets the ranked list.
+The tool takes `query` (what the code does, in plain words) or `symbol`. With `query`, the model may also give:
+
+- `identifiers`: names it guesses the code uses (refundPayment, retry_policy, InvoiceRenderer), in any case style;
+- `synonyms`: other words for the thing and related terms (refund: chargeback, reversal).
+
+Then:
+
+1. The project's files (git's list, so `.gitignore` is honoured; a plain walk without git) are scored locally by the words in each path, its first lines (header comment, the names it defines, imports) and how many lines mention them. The model's extra words count 0.7 of the query's own; a file that defines one of the guessed names exactly (from its first lines, or from the symbol index) gets a bonus of 4; a test file counts 0.6 of its score, so its repeated words do not crowd out the code.
+2. **The shortcut** (`shortcut`, on by default): when one to three files lead clearly, they are the answer and the decision model is not asked. A file leads when it scores at least 1.5 times the file after it (the k-th of k files, the (k+1)-th), scores 6 or more, and holds three quarters of the query's own words (not the added ones) in its path, the names it defines or its header comment. A one-word query never leads. On the decision-level cases it fires on about half the queries, always with an implementing file first, and never on a query with nothing to find (`bench/adapter.test.ts`). The answer says it was ranked locally and why.
+3. Otherwise the best `maxCandidates` (60) go to the decision model as short redacted cards: path, header comment, the names it defines, and a few matching lines. It judges each *implements*, *related* or *unrelated*; the list is ordered by that, and files judged unrelated are left out. When all of them are judged unrelated, the answer says nothing here implements it, with the closest by words.
+4. **Places:** each file listed comes with the lines to read first (three for the first three files, one after): the definitions whose names hold the most of the words, then the code lines holding the most (comments, strings and imports do not count in a language it knows; any line counts in one it does not, such as SQL).
+
+## Symbol lookup
+
+`symbol` takes one identifier. The answer lists, with `path:line` and the line's text: where it is **defined** (and as what: function, method, class, type, variable, field), **called**, **used** otherwise, and **imported**, in code only. A mention in a comment or a string does not count, and neither does a longer name holding it (`refundPayment` never matches `refundPaymentLater`); a Python keyword argument of the same name is not the symbol. Test files are listed after the code. Names alike (another case style, `refund_payment`; a longer name, `refundPaymentLater`) are named apart, not counted.
+
+- **How:** `git grep -w -l` finds the files holding the word (ripgrep without git; every code file read without either), each is stripped of comments and strings, and each line holding the name gets its role from per-language rules (regular expressions on the stripped lines, no parser): TypeScript and JavaScript, Python, Go, Rust, Java and its kin (Kotlin, C#, Swift, Scala, C, C++, PHP, Dart), Ruby.
+- **The index:** every code file's definitions, kept per project folder under `<XDG_CACHE_HOME or ~/.cache>/jev-mod/find-files/` (the folder 0700) and keyed by each file's git blob, so a commit or a checkout re-reads only the files it changed; files changed but not committed, and untracked ones, are read every time and never kept. A call spends at most 4 s adding to it, and the next call goes on. It names the definitions alike to the one asked for and gives `identifiers` their bonus. Without git it is not kept.
+- **What it asks:** no decision model, so it costs nothing and needs no key.
 
 ## Settings
 
@@ -25,30 +45,56 @@ When the model calls `find_files` (`mcp__jev-mod__find_files`), which is offered
 | `maxCandidates` | 60 | 10-200 | How many of the best local matches the decision model judges per query: more finds more, and costs more. |
 | `limit` | 10 | 1-50 | How many files the tool returns when the model does not say. |
 | `timeoutMs` | 8000 | 1000-30000 | How long the tool waits for the decision model before it answers with the local ranking. |
+| `shortcut` | on | on, off | When the local ranking already has one to three files far ahead, answer with it and do not ask the decision model. |
 
 ## Failing open, privacy and budget
 
-It always answers. With no key, private mode, the daily budget, a backend cool-off, no answer within `timeoutMs`, or a failing backend, the local ranking comes back, labelled as such. A card or query that looks like it holds a secret is not sent; cards are redacted.
+It always answers. With no key, private mode, the daily budget, a backend cool-off, no answer within `timeoutMs`, or a failing backend, the local ranking comes back, labelled as such. A card or query that looks like it holds a secret is not sent; cards are redacted. The model's `identifiers` and `synonyms` only steer the local scoring and the lines on each card; they are never sent. The symbol lookup sends nothing.
 
 ## Limits
 
 - Only the first 20,000 files git lists are scored; a walk without git stops after 5,000.
-- The local ranking is word matching, so a description with none of the code's words may miss the file.
+- The local ranking is word matching, so a description with none of the code's words may miss the file; `identifiers` and `synonyms` are how the model widens it.
+- The shortcut trusts words: a file whose name and header say the query's words, far ahead of the rest, is answered without a judge.
+- The symbol rules are regular expressions, not a parser: a call through another object with a method of the same name is still listed as a call (marked "as a member"), and a definition written in an unusual shape may be read as a use. Each line comes with its text so the model can tell. At most 400 files holding the word are read, and at most 40 lines are listed per role.
 
 ## Benchmarks
 
-**Task level: against plain Claude Code.** One task is a question a person asks about a codebase ("which file defines the retry schedule for webhook deliveries?", "what calls refundPayment?", "find every place that reads TAX_RATE", "which migrations change the invoices table?"), asked once with `claude -p` in a fresh copy of a project: tillbox, a TypeScript billing and orders API of 320 files (`bench/task-fixture/`, made by `bench/task-fixture-gen.py`), with near-misses that share the words of each answer (a retry policy for payment calls, a rounding helper, `TAX_RATE_OVERRIDE`, `refundPaymentLater`, the signing side of the webhooks, a table named like `invoices`). Ten tasks in `bench/task.ts`.
+**Task level: against plain Claude Code.** One task is a question a person asks about a codebase, asked once with `claude -p` in a fresh copy of a project. Two suites:
 
-- **Plain Claude Code** (find-files off) searches with its own tools: Glob, Grep, Read, Explore agents, whatever it picks.
-- **Claude Code with find-files on** is also offered `find_files`. The prompt is the same and never mentions the tool, so whether the model reaches for it is part of the result (the row's decision calls say how often it did).
-- **Answer and checker:** the reply ends with an `ANSWERS` block, one `path` (or `path:line`) per line. The checker, in code, compares it with the gold: precision and recall of the files (of file:line, within two lines, for the questions that ask for lines). Score is F1; success is every gold item found and nothing else listed.
-- **Measured:** accuracy, wall time, Claude's cost, the decision model's cost, and the total.
+- **The small fixture** (ten tasks): tillbox, a TypeScript billing and orders API of 320 files (`bench/task-fixture/`, made by `bench/task-fixture-gen.py`): "which file defines the retry schedule for webhook deliveries?", "what calls refundPayment?", "find every place that reads TAX_RATE", "which migrations change the invoices table?", with near-misses that share the words of each answer (a retry policy for payment calls, a rounding helper, `TAX_RATE_OVERRIDE`, `refundPaymentLater`, the signing side of the webhooks, a table named like `invoices`). The questions share the code's words, so grep leaves little to win: both arms were right on all ten.
+- **The large project** (thirteen tasks, ids `saleor-*`, `bench/task-repo.ts`): [Saleor](https://github.com/saleor/saleor) 3.23.0 (commit `e11a5557eff2`, BSD-3-Clause), an e-commerce API in Python of about 4,500 files, cloned at that commit once per run into the run's scratch folder and hard-linked into each arm's project (never vendored here). Its questions are the kind grep is worst at:
+
+| case | what it tests |
+|---|---|
+| `saleor-guest-cart-expiry` | paraphrase: "a shopper who is not signed in" for anonymous checkouts; the user and empty-cart periods 3 and 6 lines below are near-misses |
+| `saleor-webhook-proof` | paraphrase: "a proof that the request comes from the shop" for the payload signature; the Stripe and JWT signature code are near-misses |
+| `saleor-stock-hold` | paraphrase: "held back from other shoppers" for stock reservations; the reservation-expiry task is a near-miss |
+| `saleor-giftcard-expiry` | paraphrase: "a prepaid store-credit card" for a gift card; vouchers (discount codes) and `is_gift_card_expired` are near-misses |
+| `saleor-unpaid-orders` | paraphrase: "marked as lapsed" for expired orders; the Celery task that calls it and `delete_expired_orders_task` are near-misses |
+| `saleor-failing-app-share` | paraphrase: the circuit breaker's failure percentage, not named; its recovery twin 6 lines below is the near-miss |
+| `saleor-picture-resize` | paraphrase, two files: the thumbnail view and the image processing, not models, signals or the GraphQL side |
+| `saleor-refund-callers` | callers among homonyms: `order_refunded` is also a plugin-manager method, a webhook-plugin method, a GraphQL field and a string |
+| `saleor-checkout-total-callers` | callers among near names: not `..._with_gift_cards`, not `_calculate_checkout_total`, not `manager.calculate_checkout_total` |
+| `saleor-order-created-def` | which of five `order_created` definitions checkout completion calls (follow the import) |
+| `saleor-none-loyalty` | no right answer: loyalty points do not exist |
+| `saleor-none-sms` | no right answer: no text messages are sent; e-mail notifications are the near-miss |
+| `saleor-none-captcha` | no right answer: no CAPTCHA anywhere; account creation and its throttling are near-misses |
+
+- **Arms:** plain Claude Code (find-files off) searches with its own tools: Glob, Grep, Read, Explore agents, whatever it picks. Claude Code with find-files on is also offered `find_files`. The prompt is the same and never mentions the tool, so whether the model reaches for it is part of the result: each row's `tool_calls` says how many times it called `find_files` and how each call was answered (`jev`, `clear`, `local`, `symbol`), read from the bench ledger, so a call that asked no decision model still counts.
+- **Answer and checker:** the reply ends with an `ANSWERS` block, one `path` (or `path:line`) per line; on the large project, `NONE` when nothing in it does what is asked. The checker, in code, compares it with the gold: precision and recall of the files (of file:line, within two lines, for the questions that ask for lines). Score is F1; success is every gold item found and nothing else. A question with no gold is right only when nothing is answered.
+- **Gold:** read from the code at the pinned commit; `task-check.ts --repo` checks it against a fresh clone (each gold line matches its pattern, and the greps that would find a wrong answer find only the gold) and runs both arms on a stand-in `claude` in the linked clone.
+- **Measured:** accuracy, wall time, Claude's cost, the decision model's cost, the total, and, per suite, how often `find_files` was called (the report's "By suite" table).
 
 ```bash
-bun src/features/find-files/bench/task-check.ts                                   # the fixture against the gold, and a free fake run
-bun src/bench/run.ts find-files --level task --backend openrouter --claude-arg --plugin-dir --claude-arg "$PWD"          # the plan
-bun src/bench/run.ts find-files --level task --backend openrouter --claude-arg --plugin-dir --claude-arg "$PWD" --yes   # spends money
+bun src/features/find-files/bench/task-check.ts                 # the small fixture against the gold, and a free fake run
+bun src/features/find-files/bench/task-check.ts --repo          # the large project: clones it (about 100 MB), checks the gold, a free fake run
+bun src/bench/run.ts find-files --level task --backend openrouter --claude-arg --plugin-dir --claude-arg "$PWD"                        # the plan, both suites
+bun src/bench/run.ts find-files --level task --backend openrouter --cases 'saleor-*' --claude-arg --plugin-dir --claude-arg "$PWD"     # the plan, the large project
+bun src/bench/run.ts find-files --level task --backend openrouter --cases 'saleor-*' --claude-arg --plugin-dir --claude-arg "$PWD" --yes   # spends money
 ```
+
+The plan for the large project: 26 headless Claude calls (13 questions × 2 arms), about $11.70 of Claude at $0.45 a question and under $0.02 of decisions. A smoke run of two of its questions (`saleor-refund-callers`, `saleor-giftcard-expiry`) cost $0.54 of Claude in all ($0.10 to $0.20 a call, 8 to 13 s each); both arms were right on both, and the model with find-files on did not call it. The run's scratch folder keeps the clone (about 110 MB with every arm's links) for inspection.
 
 <!-- bench:start -->
 **Bench** (`bun src/bench/report.ts find-files`; 0.11.0@14f7f68, 0.12.0@55065cf).

@@ -12,7 +12,7 @@ const TREE: Record<string, string> = {
   '/proj/node_modules/retry/index.js': '// retry backoff\n',
 }
 
-function setUp(on: any, mode: string, sent: any[], registered: any[] = [], files: Record<string, string> = {}) {
+function setUp(on: any, mode: string | Record<string, unknown>, sent: any[], registered: any[] = [], files: Record<string, string> = {}) {
   mock.store(on)
   mock.clock(on, { now: Date.now() }) // held waits: the request's deadline never fires
   on('session.start', async (_$: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
@@ -28,7 +28,7 @@ function setUp(on: any, mode: string, sent: any[], registered: any[] = [], files
   on('session.id', async () => ({ value: 'find-files-test' }))
   on('session.root', async () => ({ value: '/proj' }))
   on('fs.read', async (_$: unknown, e: { path: string }) => {
-    if (e.path === '/cfg/jev-mod/config.json') return { value: JSON.stringify({ features: { 'find-files': { mode } } }) }
+    if (e.path === '/cfg/jev-mod/config.json') return { value: JSON.stringify({ features: { 'find-files': typeof mode === 'string' ? { mode } : mode } }) }
     if (e.path in files) return { value: files[e.path] }
     if (e.path in TREE) return { value: TREE[e.path] }
     throw new Error('no such file')
@@ -59,10 +59,11 @@ const TOOL = 'mcp__jev-mod__find_files'
 test('on: the tool is offered at session start and answers with the decision model\'s ranking', async ($, on) => {
   const sent: any[] = []
   const registered: any[] = []
-  setUp(on, 'on', sent, registered)
+  setUp(on, { mode: 'on', shortcut: false }, sent, registered) // the shortcut would answer this one locally
   await $.session.start({ cwd: '/proj', surface: null, isInteractive: false })
   expect(registered.map(t => t.name)).toEqual(['find_files'])
-  expect(registered[0].inputSchema.required).toEqual(['query'])
+  expect(registered[0].inputSchema.required).toEqual([])
+  expect(Object.keys(registered[0].inputSchema.properties)).toContain('symbol')
   const ran: any = await $.tool.call({ tool: TOOL, query: 'retries with exponential backoff' } as never)
   const text = String(ran.text ?? ran.result)
   expect(text.split('\n')[0]).toContain('ranked by the decision model')
@@ -109,4 +110,17 @@ test('a project may turn redact_contacts on, never off', async ($, on) => {
 test('a project\'s redactContacts: false leaves /config\'s on standing', { options: { redact_contacts: true } }, async ($, on) => {
   expect(await sentQuery($, on, { '/proj/.claude/jev-mod.json': JSON.stringify({ redactContacts: false }) }))
     .toBe('retries with exponential backoff, ask [email] or [phone], card [card]')
+})
+
+test('a symbol through the kit: definitions and uses read from the code, no request sent', async ($, on) => {
+  const sent: any[] = []
+  setUp(on, 'on', sent)
+  await $.session.start({ cwd: '/proj', surface: null, isInteractive: false })
+  const ran: any = await $.tool.call({ tool: TOOL, symbol: 'withBackoff' } as never)
+  const text = String(ran.text ?? ran.result)
+  // no git and no ripgrep here: every code file was read; node_modules was never walked
+  expect(text.split('\n')[0]).toBe('withBackoff in /proj: 1 definition, 0 calls, 0 other uses, 1 import; in code only (not in comments or strings, not inside longer names); 3 files searched (read).')
+  expect(text).toContain('  src/net/retry.ts:2 (function)  export async function withBackoff() {}')
+  expect(text).toContain("  src/net/client.ts:2  import { withBackoff } from './retry'")
+  expect(sent.length).toBe(0)
 })

@@ -9,6 +9,7 @@ import { adapter as compact } from '../features/compact/bench/adapter'
 import { task as compactTask } from '../features/compact/bench/task'
 import { adapter as findFiles } from '../features/find-files/bench/adapter'
 import { task as findFilesTask } from '../features/find-files/bench/task'
+import '../features/find-files/bench/task-sys' // its large project is cloned through it
 import { adapter as reviewTriage } from '../features/review-triage/bench/adapter'
 import { task as reviewTriageTask } from '../features/review-triage/bench/task-check'
 import { adapter as routing } from '../features/routing/bench/adapter'

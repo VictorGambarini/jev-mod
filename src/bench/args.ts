@@ -10,6 +10,11 @@ export function parseRepeat(v: string): number {
   return n
 }
 
+/** Whether a case id is among the --cases filters: an id, or a prefix ending in * (`saleor-*`). */
+export function caseWanted(filters: readonly string[] | null, id: string): boolean {
+  return !filters || filters.some(f => (f.endsWith('*') ? id.startsWith(f.slice(0, -1)) : f === id))
+}
+
 export type Args = { feature: string; level: 'decision' | 'task'; backends: string[]; sweep: Sweep | null; settings: Record<string, Setting>;
   cases: string[] | null; timeoutMs: number; yes: boolean; usdPerCall: number | null; maxUsdPerCall: number | null; claudeArgs: string[]
   /** Runs of each case × arm, task level only (`--repeat`). */

@@ -39,7 +39,10 @@ src/
     rules-gate/        index.ts (glue, on tool.check: rule files by mtime) · rules.ts (pure: rule extraction, globs,
                        selection, the change, one question per rule, the refusal) · their tests
     find-files/        the find_files tool: index.ts (glue: listing, git grep, the backend) · rank.ts (pure: terms,
-                       scores, cards, ranking) · their tests; src/find-files.test.ts drives it through the kit
+                       scores, the shortcut, cards, ranking, places) · symbols.ts (pure: comments and strings
+                       stripped, definitions and occurrences per language) · symbol-index.ts (glue: the cached
+                       index of definitions, the symbol lookup) · their tests; src/find-files.test.ts drives it
+                       through the kit
     review-triage/     the review_triage tool: index.ts (glue: git, the backend) · triage.ts (pure: git's args, the
                        diff split, the capped redacted summary, the questions, the verdict, the answer) · their tests;
                        src/review-triage.test.ts drives it through the kit
@@ -276,10 +279,33 @@ session: turned off, it stays listed and answers that it is off.
 
 It narrows locally first (`git ls-files -co --exclude-standard`, else a walk that skips
 `node_modules`, `dist`, `build`, `vendor` and the like; `git grep -c` for how many lines of
-each file mention the query's words; then the first 40 lines of the best few dozen), and
-sends only the best `maxCandidates` to the decision model, as redacted cards, about 40 to a
-request, packed by encoded size as compaction's turns are. Every failure (no key, private mode,
-the budget, the cool-off, a timeout) answers with the local ranking, labelled as such.
+each file mention the query's words, as one case-blind alternation, since git's case-blind
+search for many fixed strings is two orders of magnitude slower on a large project; then the
+first 40 lines of the best few dozen). The model may add `identifiers` and `synonyms`: they are
+scored at 0.7 of the query's own words and a file defining a guessed name exactly gets a bonus
+(from its head, or from the symbol index), but they are never sent. Test files count 0.6 of
+their score, so their repeated words do not crowd out the code. When one to three files lead
+clearly (`clearLead`: each at least 1.5 times the next, a score of 6 or more, three quarters of
+the query's words in its path, names or header), the answer is that ranking and the decision
+model is not asked (`shortcut`, on by default). Otherwise only the best `maxCandidates` go to
+the decision model, as redacted cards, about 40 to a request, packed by encoded size as
+compaction's turns are; when it judges every one unrelated, the answer says nothing here
+implements it. Each file listed comes with its places: the definitions named by the query's
+words, then the code lines holding the most of them. Every failure (no key, private mode, the
+budget, the cool-off, a timeout) answers with the local ranking, labelled as such.
+
+With `symbol` (one identifier) it asks no decision model: `git grep -w -l` (ripgrep without git;
+every code file read without either) finds the files holding the word, each is stripped of
+comments and strings (`symbols.ts`, per language: TS/JS, Python, Go, Rust, Java and its kin,
+Ruby) and each line holding the name is a definition, an import, a call or another use; tests
+are listed after the code. An index of every code file's definitions is kept per project folder
+under `<XDG_CACHE_HOME or ~/.cache>/jev-mod/find-files/` (0700), each file keyed by its git blob
+(`git ls-files -s`): a commit re-reads only the files it changed, files changed but not committed
+are read every time and never kept, and a call spends at most 4 s adding to it (the next call goes
+on). It names definitions alike to the one asked for (another case style, a longer name holding
+it). In a bench run it lives in the run's ledger folder instead. Each call, in a bench run, also
+writes a `kind: tool` ledger record with how it answered (`jev`, `clear`, `local`, `symbol`,
+`none`), so the bench sees calls that cost nothing.
 
 `review-triage` also runs at prompt submit: `analyse` (as skills' does) matches a review request with a cheap local
 check (`asksForReview`), runs the same triage on the git diff and adds the verdict beside the prompt (nothing in

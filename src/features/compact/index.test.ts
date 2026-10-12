@@ -3,40 +3,56 @@ import type { FetchInit, IO } from '../../core/io'
 import { readLedger } from '../../bench/task-rows'
 import { compact, isOurs, MARK } from './index'
 
-// /jev-mod compact end to end with a fake IO: a fake decision backend answers each question by
-// what the unit it asks about says, and records every request. No real key, no real config.
+// /jev-mod compact end to end with a fake IO: a fake decision backend answers each keep-or-drop
+// question by the text it asks about, and each trim question by the result it asks about, and
+// records every request. Files go to a fake disk. No real key, no real config.
 
 type Fate = { choice: 'keep' | 'drop'; confidence: number }
-type Fake = IO & { asked: { state: { turns: Record<string, string> }; questions: Record<string, unknown> }[] }
+type Size = { choice: '0' | '100' | '300' | '600'; confidence: number }
+type Body = { state: { turns?: Record<string, string>; results?: Record<string, string> }; questions: Record<string, unknown> }
+type Fake = IO & { asked: Body[]; disk: Record<string, string>; ran: string[][]; toasts: string[] }
 
-function io(judge: (turn: string) => Fate, backend: 'up' | 'down' = 'up', failFrom = Infinity): Fake {
+function io(judge: (turn: string) => Fate, size: (result: string, end: 'h' | 'e') => Size = () => ({ choice: '0', confidence: 0.9 }),
+  backend: 'up' | 'down' = 'up', failFrom = Infinity): Fake {
   const store: Record<string, unknown> = {}
-  const asked: Fake['asked'] = []
+  const asked: Body[] = []
+  const disk: Record<string, string> = {}
+  const ran: string[][] = []
+  const toasts: string[] = []
   const env: Record<string, string> = { JEV_HOME: '/jev', JEV_LIMITS: 'off', XDG_CONFIG_HOME: '/scratch-cfg', TYPESAFE_API_KEY: 'test-not-a-key' }
   return {
-    asked,
+    asked, disk, ran, toasts,
     option: () => undefined,
-    readFile: async () => { throw new Error('ENOENT') },
-    writeFile: async () => {},
+    readFile: async (path: string) => { if (path in disk) return disk[path]!; throw new Error('ENOENT') },
+    writeFile: async (path: string, text: string) => { disk[path] = text },
+    folders: async () => [],
+    files: async () => [],
     env: async (name: string) => env[name],
     home: async () => '/home/u',
-    run: async () => ({ exitCode: 1, stdout: '', stderr: '' }),
+    run: async (argv: string[]) => { ran.push(argv); return { exitCode: 0, stdout: '', stderr: '' } },
     // retries' back-off passes at once; a request's deadline never comes
     sleep: (ms: number) => (ms >= 5000 ? new Promise<void>(() => {}) : Promise.resolve()),
     sessionId: async () => 's1',
     storeGet: async (key: string) => store[key],
     storeSet: async (key: string, value: unknown) => { store[key] = value },
-    status: () => {}, toast: () => {},
+    status: () => {}, toast: (t: string) => { toasts.push(t) },
     fetch: async (_url: string, init?: FetchInit) => {
       if (backend === 'down' || asked.length + 1 >= failFrom) return { status: 503, ok: false, text: '' }
-      const body = JSON.parse(init!.body!)
+      const body = JSON.parse(init!.body!) as Body
       asked.push(body)
       const answers: Record<string, unknown> = {}
       for (const q of Object.keys(body.questions)) {
-        const fate = judge(body.state.turns[`T${q.slice(1)}`])
-        const other = fate.choice === 'keep' ? 'drop' : 'keep'
-        answers[q] = { type: 'choice', choice: fate.choice, confidence: fate.confidence,
-          probabilities: { [fate.choice]: fate.confidence, [other]: Math.round((1 - fate.confidence) * 1000) / 1000 } }
+        if (body.state.turns) {
+          const fate = judge(body.state.turns[`T${q.slice(1)}`]!)
+          const other = fate.choice === 'keep' ? 'drop' : 'keep'
+          answers[q] = { type: 'choice', choice: fate.choice, confidence: fate.confidence,
+            probabilities: { [fate.choice]: fate.confidence, [other]: Math.round((1 - fate.confidence) * 1000) / 1000 } }
+        } else {
+          const s = size(body.state.results![`R${q.slice(1)}`]!, q[0] as 'h' | 'e')
+          const rest = Math.round((1 - s.confidence) * 1000) / 3000
+          answers[q] = { type: 'choice', choice: s.choice, confidence: s.confidence,
+            probabilities: Object.fromEntries(['0', '100', '300', '600'].map(k => [k, k === s.choice ? s.confidence : rest])) }
+        }
       }
       return { status: 200, ok: true, text: JSON.stringify({ answers, model: 'jev-test', usage: { input_tokens: 100 } }) }
     },
@@ -44,72 +60,99 @@ function io(judge: (turn: string) => Fate, backend: 'up' | 'down' = 'up', failFr
 }
 
 const SECRET = `ghp_${'Zx9y'.repeat(9)}`
+const LOG = `== app log ==\n${Array.from({ length: 200 }, (_, i) => `line ${i}: request ok`).join('\n')}\n== 2 errors ==`
 const m = (role: string, text: string, extra: object = {}) => ({ role, text, toolUses: [], ...extra })
 const use = (id: string, command: string) => ({ tool_use_id: id, tool: 'Bash', input: { command } })
 const res = (id: string, text: string) => ({ tool_use_id: id, text, isError: false })
 
 const convo = () => [
-  m('user', 'fix the failing test'),                                                             // 0
-  m('assistant', 'Let me run the tests', { toolUses: [use('t1', 'npm test')] }),                // 1
-  m('user', '', { toolResults: [res('t1', 'FAIL src/a.test.ts\nexpected 2, got 3')] }),          // 2
-  m('assistant', '', { toolUses: [use('t2', 'ls')] }),                                          // 3
-  m('user', '', { toolResults: [res('t2', `a.ts b.ts\nleftover ${SECRET} in old output`)] }),     // 4
-  m('assistant', '', { toolUses: [use('t3', 'cat notes.txt')] }),                               // 5
-  m('user', '', { toolResults: [res('t3', 'nothing useful here')] }),                            // 6
-  ...Array.from({ length: 6 }, (_, i) => m(i % 2 ? 'assistant' : 'user', `tail ${i}`)),           // 7..12
+  m('user', 'fix the failing test', { handle: 'h0' }),                                          // 0
+  m('assistant', 'Let me run the tests', { toolUses: [use('t1', 'npm test')], handle: 'h1' }),   // 1
+  m('user', '', { toolResults: [res('t1', 'FAIL src/a.test.ts\nexpected 2, got 3')], handle: 'h2' }), // 2: short, whole
+  m('assistant', '', { toolUses: [use('t2', 'cat app.log')], handle: 'h3' }),                     // 3
+  m('user', '', { toolResults: [res('t2', LOG)], handle: 'h4' }),                                 // 4: trimmed
+  m('assistant', '', { toolUses: [use('t3', 'env')], handle: 'h5' }),                             // 5
+  m('user', '', { toolResults: [res('t3', `${LOG}\nGITHUB_TOKEN=${SECRET}`)], handle: 'h6' }),    // 6: sensitive, whole
+  m('assistant', 'ok, noted'),                                                                  // 7
+  ...Array.from({ length: 6 }, (_, i) => m(i % 2 ? 'assistant' : 'user', `tail ${i}`)),           // 8..13
 ]
-const indexes = (out: Awaited<ReturnType<typeof compact>>, messages: object[]) =>
-  'messages' in out ? out.messages.slice(1).map(x => messages.indexOf(x)) : out.skip
+type Out = Awaited<ReturnType<typeof compact>>
+const body = (out: Out) => ('messages' in out ? out.messages.slice(1) : [])
+const resultText = (out: Out, id: string) =>
+  body(out).flatMap((x: any) => x.toolResults ?? []).find((r: any) => r.tool_use_id === id)?.text as string | undefined
+const DIR = '/home/u/.cache/jev-mod/compact/s1'
 
-test('Jev down: nothing is removed, tool pairs included', async () => {
-  const messages = convo()
-  const out = await compact(io(() => ({ choice: 'drop', confidence: 0.99 }), 'down'), messages)
-  expect(out).toEqual({ skip: 'Jev did not answer; nothing was removed' })
+test('Jev down: nothing is removed or trimmed, and no file is written', async () => {
+  const fake = io(() => ({ choice: 'drop', confidence: 0.99 }), undefined, 'down')
+  expect(await compact(fake, convo())).toEqual({ skip: 'Jev did not answer; nothing was removed' })
+  expect(Object.keys(fake.disk).filter(p => p.startsWith(DIR))).toEqual([])
 })
 
-test('a partial answer: the pairs in the batch that failed are kept, whole', async () => {
-  const filler = Array.from({ length: 40 }, (_, i) => m(i % 2 ? 'assistant' : 'user', `ok ${i}`))
-  const messages = [...filler, ...convo()]
-  const fake = io(() => ({ choice: 'drop', confidence: 0.95 }), 'up', 2) // the second request fails
+test('a long result is trimmed to what Jev keeps, saved in full first; the call, short and sensitive results stay whole', async () => {
+  const messages = convo()
+  const fake = io(() => ({ choice: 'keep', confidence: 0.9 }), (_r, end) => (end === 'h' ? { choice: '100', confidence: 0.9 } : { choice: '300', confidence: 0.9 }))
   const out = await compact(fake, messages)
-  expect(fake.asked.length).toBe(1)
-  expect(indexes(out, messages)).toEqual(Array.from({ length: 13 }, (_, i) => 40 + i))
-})
-
-test('tool pairs are judged: a confident drop takes the pair whole, a keep and an unjudged pair stay', async () => {
-  const messages = convo()
-  // narration and the cat pair: drop; the npm test pair: keep; the ls pair holds a token: never sent
-  const fake = io(turn => (turn.includes('npm test') ? { choice: 'keep', confidence: 0.9 } : { choice: 'drop', confidence: 0.9 }))
-  const out = await compact(fake, messages)
-  expect(indexes(out, messages)).toEqual([1, 2, 3, 4, 7, 8, 9, 10, 11, 12])
-  if ('messages' in out) expect(out.messages[0]!.text).toContain('A tool call and its result were judged together')
-})
-
-test('a low-confidence drop of a pair keeps it whole', async () => {
-  // a valid answer has confidence >= 0.5, so the bar is set to 0.7 by a bench overlay: a 0.6 drop is below it
-  const messages = convo()
-  const fake = io(turn => (turn.includes('cat notes') ? { choice: 'drop', confidence: 0.6 }
-    : turn.includes('npm test') ? { choice: 'keep', confidence: 0.6 } : { choice: 'drop', confidence: 0.95 }))
-  const files: Record<string, string> = { '/scratch/overlay.json': JSON.stringify({ compact: { dropConfidence: 0.7 } }) }
-  const env = fake.env
-  const benchFake = Object.assign(fake, {
-    env: async (name: string) => (name === 'JEV_MOD_BENCH_OVERLAY' ? '/scratch/overlay.json' : env(name)),
-    readFile: async (path: string) => { if (path in files) return files[path]!; throw new Error('ENOENT') },
-  })
-  expect(indexes(await compact(benchFake, messages), messages)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-})
-
-test('the request holds the redacted tool summary and never a secret from a tool result; contact details stay', async () => {
-  const messages = convo()
-  messages[6] = m('user', '', { toolResults: [res('t3', 'mail me at bob@example.com when done')] })
-  const fake = io(() => ({ choice: 'keep', confidence: 0.9 }))
-  await compact(fake, messages)
+  expect('messages' in out).toBe(true)
+  // every message stays (texts were judged keep); only message 4 is rebuilt, without its handle
+  expect(body(out)).toHaveLength(messages.length)
+  body(out).forEach((x: any, i: number) => { if (i !== 4) expect(x).toBe(messages[i]) })
+  expect(body(out)[4].handle).toBe(undefined)
+  const file = `${DIR}/t2.txt`
+  const text = resultText(out, 't2')!
+  expect(text.startsWith(`${LOG.slice(0, 100)}\n[jev-mod compact trimmed this Bash (cat app.log) result: `)).toBe(true)
+  expect(text).toContain(`keeping its first 100 and last 300. The full call and result are in ${file}; Read it if you need the rest.]`)
+  expect(text.endsWith(`\n${LOG.slice(-300)}`)).toBe(true)
+  expect(fake.disk[file]).toContain(`input:\n{\n  "command": "cat app.log"\n}`)
+  expect(fake.disk[file]!.endsWith(LOG)).toBe(true)
+  // the folder is made 0700 before the file is written, the file 0600 after
+  expect(fake.ran[0]).toEqual(['mkdir', '-p', '-m', '700', DIR])
+  expect(fake.ran[1]).toEqual(['chmod', '700', '/home/u/.cache/jev-mod/compact', DIR])
+  expect(fake.ran[2]).toEqual(['chmod', '600', '--', file])
+  expect(resultText(out, 't1')).toBe('FAIL src/a.test.ts\nexpected 2, got 3')
+  expect(resultText(out, 't3')).toContain(SECRET) // never sent, so never judged: left whole, and not saved
+  expect(Object.keys(fake.disk).filter(p => p.startsWith(DIR))).toEqual([file])
+  // the secret result was never sent, nor the tail
   const sent = JSON.stringify(fake.asked)
-  const turns = fake.asked.flatMap(b => Object.values(b.state.turns))
-  expect(turns).toContain('tool: tool call Bash: npm test\nresult: FAIL src/a.test.ts\nexpected 2, got 3')
-  expect(turns).toContain('tool: tool call Bash: cat notes.txt\nresult: mail me at bob@example.com when done')
   expect(sent).not.toContain(SECRET)
-  expect(sent).not.toContain('tail 0') // the tail is kept without asking
+  expect(sent).not.toContain('tail 0')
+  const note = (out as { messages: any[] }).messages[0].text as string
+  expect(note).toContain('It trimmed 1 old tool results')
+  expect(note).toContain(DIR)
+  expect(note).toContain('nothing was summarised')
+  expect(fake.toasts.at(-1)).toContain('trimmed 1 tool results')
+})
+
+test('a confident drop takes a text-only message; a message with a tool call stays with its text', async () => {
+  const messages = convo()
+  const fake = io(() => ({ choice: 'drop', confidence: 0.9 }), () => ({ choice: '600', confidence: 0.9 }))
+  const out = await compact(fake, messages)
+  // 0 and 7 are text only and go; 1 (narration with a call) is never sent and stays; 600+600 still cuts the long log
+  expect(body(out).map((x: any) => messages.indexOf(x)).filter((i: number) => i >= 0)).toEqual([1, 2, 3, 5, 6, 8, 9, 10, 11, 12, 13])
+  expect(resultText(out, 't2')).toContain('keeping its first 600 and last 600')
+  const turns = fake.asked.flatMap(b => Object.values(b.state.turns ?? {}))
+  expect(turns).toEqual(['user: fix the failing test', 'assistant: ok, noted'])
+})
+
+test('doubt keeps more: a low-confidence size keeps 600 of that end; an unjudged result stays whole', async () => {
+  const lowHead = io(() => ({ choice: 'keep', confidence: 0.9 }), (_r, end) => (end === 'h' ? { choice: '0', confidence: 0.3 } : { choice: '0', confidence: 0.9 }))
+  expect(resultText(await compact(lowHead, convo()), 't2')).toContain('keeping its first 600.')
+  // the trim request fails (the second request), the keep-or-drop one answered keep: nothing to remove
+  const lost = io(() => ({ choice: 'keep', confidence: 0.9 }), undefined, 'up', 2)
+  expect(await compact(lost, convo())).toEqual({ skip: 'Jev marked nothing to drop or trim; nothing to remove' })
+  expect(Object.keys(lost.disk).filter(p => p.startsWith(DIR))).toEqual([])
+})
+
+test('a result whose file cannot be made private is left whole', async () => {
+  const fake = io(() => ({ choice: 'keep', confidence: 0.9 }))
+  fake.run = async () => ({ exitCode: 1, stdout: '', stderr: 'denied' })
+  expect(await compact(fake, convo())).toEqual({ skip: 'Jev marked nothing to drop or trim; nothing to remove' })
+})
+
+test('a private profile sends nothing and removes nothing', async () => {
+  const fake = io(() => ({ choice: 'drop', confidence: 0.99 }))
+  fake.option = (name: string) => (name === 'private' ? true : undefined)
+  expect(await compact(fake, convo())).toEqual({ skip: 'this profile is private, so nothing is sent; nothing was removed' })
+  expect(fake.asked).toHaveLength(0)
 })
 
 test('a /compact with the marker is ours when typed or sent headless; never a subagent\'s or an automatic one', () => {
@@ -121,31 +164,30 @@ test('a /compact with the marker is ours when typed or sent headless; never a su
   expect(isOurs({ trigger: 'manual', instructions: MARK, agentId: 'a1' })).toBe(false)
 })
 
-// a bench run: the overlay names a ledger folder, and each compaction writes what it kept and dropped there
-function benched(fake: Fake): Fake & { files: Record<string, string> } {
-  const files: Record<string, string> = { '/scratch/overlay.json': JSON.stringify({ ledger: '/scratch/ledger' }) }
+// a bench run: the overlay names a ledger folder; each compaction writes what it did there, and its files go under it
+function benched(fake: Fake): Fake {
+  fake.disk['/scratch/overlay.json'] = JSON.stringify({ ledger: '/scratch/ledger' })
   const env = fake.env
-  return Object.assign(fake, {
-    files,
-    env: async (name: string) => (name === 'JEV_MOD_BENCH_OVERLAY' ? '/scratch/overlay.json' : env(name)),
-    readFile: async (path: string) => { if (path in files) return files[path]!; throw new Error('ENOENT') },
-    writeFile: async (path: string, text: string) => { files[path] = text },
-  })
+  return Object.assign(fake, { env: async (name: string) => (name === 'JEV_MOD_BENCH_OVERLAY' ? '/scratch/overlay.json' : env(name)) })
 }
-const ledgerOf = (files: Record<string, string>) =>
-  readLedger(Object.entries(files).filter(([p]) => p.startsWith('/scratch/ledger/')).map(([p, text]) => ({ name: p.split('/').pop()!, text })))
+const ledgerOf = (disk: Record<string, string>) =>
+  readLedger(Object.entries(disk).filter(([p]) => /^\/scratch\/ledger\/[^/]+$/.test(p)).map(([p, text]) => ({ name: p.split('/').pop()!, text })))
 
-test('a bench run records what the compaction kept and dropped, and why nothing went when nothing did', async () => {
-  const messages = convo()
-  const fake = benched(io(turn => (turn.includes('npm test') ? { choice: 'keep', confidence: 0.9 } : { choice: 'drop', confidence: 0.9 })))
-  const out = await compact(fake, messages)
+test('a bench run records what the compaction dropped and trimmed, and saves its files in the run\'s folder', async () => {
+  const fake = benched(io(t => (t.includes('noted') ? { choice: 'drop', confidence: 0.9 } : { choice: 'keep', confidence: 0.9 })))
+  const out = await compact(fake, convo())
   expect('messages' in out).toBe(true)
-  // 13 messages: the user's first message, its narration and the cat pair go; the ls pair (unsent) and the tail stay
-  expect(ledgerOf(fake.files).compaction).toEqual({ messages: 13, kept: 10, dropped: 3, skip: null })
-  const down = benched(io(() => ({ choice: 'drop', confidence: 0.99 }), 'down'))
+  const removed = LOG.length - resultText(out, 't2')!.length
+  expect(ledgerOf(fake.disk).compaction).toEqual({ messages: 14, kept: 13, dropped: 1, trimmed: 1, charsRemoved: removed, files: 1, skip: null })
+  expect(Object.keys(fake.disk).filter(p => p.startsWith('/scratch/ledger/compact-files/s1/'))).toEqual(['/scratch/ledger/compact-files/s1/t2.txt'])
+  expect(Object.keys(fake.disk).some(p => p.startsWith('/home/u/.cache'))).toBe(false)
+  const down = benched(io(() => ({ choice: 'drop', confidence: 0.99 }), undefined, 'down'))
   await compact(down, convo())
-  expect(ledgerOf(down.files).compaction).toEqual({ messages: 13, kept: 13, dropped: 0, skip: 'Jev did not answer; nothing was removed' })
-  // the decision calls are counted apart from the compaction: one file per request, the failed one too
-  expect(ledgerOf(fake.files).decisions).toBe(fake.asked.length)
-  expect(ledgerOf(down.files).decisions).toBe(1)
+  expect(ledgerOf(down.disk).compaction).toEqual({ messages: 14, kept: 14, dropped: 0, trimmed: 0, charsRemoved: 0, files: 0,
+    skip: 'Jev did not answer; nothing was removed' })
+  // the decisions are counted apart from the compaction: one file for the keep-or-drop requests, one for the trim
+  // requests, failed ones too
+  expect(ledgerOf(fake.disk).decisions).toBe(2)
+  expect(ledgerOf(fake.disk).calls).toBe(fake.asked.length)
+  expect(ledgerOf(down.disk).decisions).toBe(2)
 })

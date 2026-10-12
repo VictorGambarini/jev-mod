@@ -1,18 +1,16 @@
 import { test, expect } from 'claude-code/testing'
-import { ALWAYS_KEEP_LAST, keepOnly, unitsOf, type Msg, type Unit } from './keep'
-import { KEEP_LAST } from '../../engine/compact'
+import { ALWAYS_KEEP_LAST, cut, keepOnly, placeholder, saved, TRIM_MIN_CHARS, trimmed, trimsOf, unitsOf, type Msg, type Unit } from './keep'
+import { KEEP_LAST, TRIM_SHOWN, trimText } from '../../engine/compact'
 
 const m = (role: string, text: string, extra: Partial<Msg> = {}): Msg => ({ role, text, ...extra })
 const call = (id: string, tool = 'Read', input: Record<string, unknown> = { file_path: `/p/${id}.ts` }) => ({ tool_use_id: id, tool, input })
 const result = (id: string, text = `contents of ${id}`) => ({ tool_use_id: id, text, isError: false })
 const tail = () => Array.from({ length: 6 }, (_, i) => m(i % 2 ? 'assistant' : 'user', `tail ${i}`))
-/** The fates Jev gave, by unit: a text unit by its message index, a pair by its id. */
-const fatesFor = (units: Unit[], by: Record<string, 'keep' | 'drop'>) =>
-  Object.fromEntries(units.flatMap((u, j) => {
-    const fate = by['text' in u ? `m${u.text}` : u.pair]
-    return fate ? [[String(j), fate]] : []
-  }))
-const keptIdx = (messages: Msg[], by: Record<string, 'keep' | 'drop'>) => {
+const big = (label: string, n = 5000) => `${label} first line\n${'y'.repeat(n)}\n${label} last line`
+/** The fates Jev gave, by message index. */
+const fatesFor = (units: Unit[], by: Record<number, 'keep' | 'drop'>) =>
+  Object.fromEntries(units.flatMap((u, j) => (by[u.text] ? [[String(j), by[u.text]!]] : [])))
+const keptIdx = (messages: Msg[], by: Record<number, 'keep' | 'drop'>) => {
   const { units } = unitsOf(messages)
   return keepOnly(messages, units, fatesFor(units, by)).map(x => messages.indexOf(x))
 }
@@ -21,110 +19,113 @@ test('the tail kept by message is the engine\'s own default tail', () => {
   expect(ALWAYS_KEEP_LAST).toBe(KEEP_LAST)
 })
 
-test('each message text and each tool pair is one unit; the tail is not sent', () => {
+test('only the text of a message with no tool call or result is a keep-or-drop unit; the tail is not sent', () => {
   const messages = [
     m('user', 'set up the project'),
     m('assistant', 'Let me read the file', { toolUses: [call('t1')] }),
     m('user', '', { toolResults: [result('t1')] }),
+    m('assistant', 'Done reading.'),
     ...tail(),
   ]
   const { units, toJev } = unitsOf(messages)
-  expect(units).toEqual([{ text: 0 }, { text: 1 }, { pair: 't1' }])
-  expect(toJev[2]).toEqual({ role: 'tool', content: 'tool call Read: /p/t1.ts\nresult: contents of t1' })
+  expect(units).toEqual([{ text: 0 }, { text: 3 }])
+  expect(toJev).toEqual([{ role: 'user', content: 'set up the project' }, { role: 'assistant', content: 'Done reading.' }])
 })
 
-test('an unjudged tool pair is kept, whole', () => {
+test('a message holding a tool call or result is never dropped, so no tool_use loses its tool_result', () => {
   const messages = [
-    m('user', 'fix the build'),                                                // 0
-    m('assistant', '', { toolUses: [call('t1', 'Bash', { command: 'npm test' })] }), // 1
-    m('user', '', { toolResults: [result('t1', 'FAIL src/a.test.ts')] }),       // 2
+    m('user', 'fix the build'),                                                   // 0
+    m('assistant', 'Let me run it', { toolUses: [call('t1', 'Bash', { command: 'npm test' })] }), // 1
+    m('user', '', { toolResults: [result('t1', 'FAIL')] }),                        // 2
+    m('assistant', 'ok'),                                                         // 3
     ...tail(),
   ]
-  // Jev answered only the text (down for the pair's batch, a partial answer, or it was not sent)
-  expect(keptIdx(messages, { m0: 'drop' })).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
-})
-
-test('a tool pair judged drop goes as a whole pair; one judged keep stays whole', () => {
-  const messages = [
-    m('user', 'fix the build'),                                // 0
-    m('assistant', '', { toolUses: [call('t1')] }),            // 1
-    m('user', '', { toolResults: [result('t1')] }),            // 2
-    m('assistant', '', { toolUses: [call('t2')] }),            // 3
-    m('user', '', { toolResults: [result('t2')] }),            // 4
-    ...tail(),
-  ]
-  expect(keptIdx(messages, { m0: 'keep', t1: 'drop', t2: 'keep' })).toEqual([0, 3, 4, 5, 6, 7, 8, 9, 10])
-})
-
-test('dropping narration never removes a tool pair Jev did not judge drop', () => {
-  const messages = [
-    m('user', 'look at a.ts'),                                                // 0
-    m('assistant', 'Let me read the file', { toolUses: [call('t1')] }),       // 1
-    m('user', '', { toolResults: [result('t1')] }),                           // 2
-    m('assistant', 'And the other one', { toolUses: [call('t2')] }),          // 3
-    m('user', '', { toolResults: [result('t2')] }),                           // 4
-    m('assistant', 'Both read', { toolUses: [call('t3')] }),                  // 5
-    m('user', '', { toolResults: [result('t3')] }),                           // 6
-    ...tail(),
-  ]
-  // t1 unjudged, t2 judged keep: their narration's drop takes neither; t3 and its narration both drop
-  expect(keptIdx(messages, { m0: 'keep', m1: 'drop', m3: 'drop', t2: 'keep', m5: 'drop', t3: 'drop' }))
-    .toEqual([0, 1, 2, 3, 4, 7, 8, 9, 10, 11, 12])
-})
-
-test('a kept narration keeps its call, and so the result, even when the pair was judged drop', () => {
-  const messages = [
-    m('assistant', 'the build needs node 20', { toolUses: [call('t1')] }),  // 0
-    m('user', '', { toolResults: [result('t1')] }),                          // 1
-    ...tail(),
-  ]
-  expect(keptIdx(messages, { m0: 'keep', t1: 'drop' })).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
-})
-
-test('a result message for two calls goes only when both pairs go', () => {
-  const messages = [
-    m('assistant', '', { toolUses: [call('a'), call('b')] }),       // 0
-    m('user', '', { toolResults: [result('a'), result('b')] }),     // 1
-    ...tail(),
-  ]
-  expect(keptIdx(messages, { a: 'drop' })).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
-  expect(keptIdx(messages, { a: 'drop', b: 'drop' })).toEqual([2, 3, 4, 5, 6, 7])
-})
-
-test('never keeps half a tool pair from the tail', () => {
-  const messages = [
-    m('user', 'go'),                                                         // 0
-    m('assistant', '', { toolUses: [call('x')] }),                           // 1
-    m('user', 't0', { toolResults: [result('x')] }),                         // 2 (tail)
-    ...Array.from({ length: 5 }, (_, i) => m(i % 2 ? 'user' : 'assistant', `t${i + 1}`)),
-  ]
+  // even a drop handed for message 1 (it is not a unit) takes nothing
   const { units } = unitsOf(messages)
-  expect(units).toEqual([{ text: 0 }]) // the pair reaches into the tail: not sent
-  expect(keptIdx(messages, { m0: 'drop', x: 'drop' })).toEqual([1, 2, 3, 4, 5, 6, 7])
+  expect(keepOnly(messages, [...units, { text: 1 }], { '0': 'drop', '1': 'drop', '2': 'drop' }).map(x => messages.indexOf(x)))
+    .toEqual([1, 2, 4, 5, 6, 7, 8, 9])
 })
 
-test('a message with no fate is kept', () => {
+test('a text with no fate, or judged keep, is kept; the tail always is', () => {
   const messages = Array.from({ length: 10 }, (_, i) => m('user', `t${i}`))
+  expect(keptIdx(messages, { 1: 'drop', 2: 'keep' })).toEqual([0, 2, 3, 4, 5, 6, 7, 8, 9])
   const { units } = unitsOf(messages)
-  expect(keepOnly(messages, units, { '1': 'drop' }).map(x => messages.indexOf(x))).toEqual([0, 2, 3, 4, 5, 6, 7, 8, 9])
+  expect(keepOnly(messages, [...units, { text: 7 }], { [String(units.length)]: 'drop' })).toHaveLength(10)
 })
 
-test('a tool pair is sent redacted and capped: the call, the head and tail of the result, and how much is not shown', () => {
-  const key = `sk-${'A1b2C3d4'.repeat(4)}`
-  const long = `first line of output\n${'x'.repeat(3000)}\nlast line: email bob@example.com`
+test('what is sent to trim: long results outside the tail, with the call, the size, and each end as long as may be kept', () => {
   const messages = [
-    m('assistant', '', { toolUses: [call('t1', 'Bash', { command: 'npm test', timeout: 5 })] }),
-    m('user', '', { toolResults: [result('t1', long)] }),
-    m('assistant', '', { toolUses: [call('t2', 'Bash', { command: `echo ${key}` })] }),
-    m('user', '', { toolResults: [result('t2', 'ok')] }),
+    m('assistant', '', { toolUses: [call('long', 'Bash', { command: 'cat app.log', timeout: 5 })] }), // 0
+    m('user', '', { toolResults: [result('long', big('app'))] }),                                  // 1
+    m('assistant', '', { toolUses: [call('short')] }),                                            // 2
+    m('user', '', { toolResults: [result('short', 'x'.repeat(TRIM_MIN_CHARS))] }),                 // 3: too short to bother
+    m('user', '', { toolResults: [result('orphan', big('orphan'))] }),                             // 4: its call is not here
+    m('assistant', '', { toolUses: [call('intail', 'Bash', { command: 'ls' })] }),                  // 5
+    m('user', '', { toolResults: [result('intail', big('tail'))] }),                               // 6..: the tail
+    ...tail().slice(1),
+  ]
+  const { pairs, views } = trimsOf(messages)
+  expect(pairs.map(p => p.id)).toEqual(['long'])
+  expect(views[0]).toMatchObject({ tool: 'Bash', arg: 'cat app.log', size: [...big('app')].length, isError: false })
+  expect([...views[0]!.head].length).toBe(TRIM_SHOWN)
+  expect(views[0]!.head.startsWith('app first line')).toBe(true)
+  expect(views[0]!.tail.endsWith('app last line')).toBe(true)
+  expect(trimText(views[0]!).startsWith(`tool call Bash: cat app.log\nresult: ${[...big('app')].length} characters\nstart: app first line`)).toBe(true)
+})
+
+test('a pair whose call or result looks sensitive is not sent, so it stays whole; the text sent is redacted', () => {
+  const key = `sk-${'A1b2C3d4'.repeat(4)}`
+  const messages = [
+    m('assistant', '', { toolUses: [call('a', 'Bash', { command: `echo ${key}` })] }),
+    m('user', '', { toolResults: [result('a', big('a'))] }),
+    m('assistant', '', { toolUses: [call('b', 'Bash', { command: 'env' })] }),
+    m('user', '', { toolResults: [result('b', `${big('b')}\nGITHUB_TOKEN=ghp_${'Zx9y'.repeat(9)}`)] }),
+    m('assistant', '', { toolUses: [call('c', 'Bash', { command: 'cat contacts.txt' })] }),
+    m('user', '', { toolResults: [result('c', `${big('c')}\nmail bob@example.com`)] }),
     ...tail(),
   ]
-  const { units, toJev } = unitsOf(messages)
-  expect(units).toEqual([{ pair: 't1' }]) // t2's call holds a key: never sent, so unjudged and kept
-  const sent = toJev[0]!.content
-  expect(sent.startsWith('tool call Bash: npm test\nresult: first line of output')).toBe(true)
-  expect(sent).toMatch(/\n… \d+ chars not shown …\n/)
-  expect(sent.endsWith('last line: email bob@example.com')).toBe(true) // contact details are kept by default
-  expect([...sent].length).toBeLessThanOrEqual(700)
-  expect(JSON.stringify(toJev)).not.toContain(key)
+  const { pairs, views } = trimsOf(messages)
+  expect(pairs.map(p => p.id)).toEqual(['c'])
+  expect(trimText(views[0]!)).toContain('mail bob@example.com') // contact details are kept by default
+})
+
+test('a trimmed result keeps the chosen start and end around a line naming the tool, its argument, the sizes and the file', () => {
+  const text = big('log')
+  const messages = [m('assistant', '', { toolUses: [call('t1', 'Bash', { command: 'cat\n  logs/app.log' })] }),
+    m('user', '', { toolResults: [result('t1', text)] }), ...tail()]
+  const p = trimsOf(messages).pairs[0]!
+  const note = placeholder(p, 100, 300, '/c/s1/t1.txt')
+  expect(note).toBe(`[jev-mod compact trimmed this Bash (cat logs/app.log) result: ${(text.length - 400).toLocaleString('en-US')} of its ` +
+    `${text.length.toLocaleString('en-US')} characters were cut, keeping its first 100 and last 300. The full call and result are in ` +
+    '/c/s1/t1.txt; Read it if you need the rest.]')
+  const out = cut(text, 100, 300, note)!
+  expect(out).toBe(`${text.slice(0, 100)}\n${note}\n${text.slice(-300)}`)
+  expect(cut(text, 0, 0, note)).toBe(note)
+  expect(cut(text, 0, 600, note)).toBe(`${note}\n${text.slice(-600)}`)
+  // nothing changes when head and tail cover it, or when the line would not make it shorter
+  expect(cut('short', 600, 600, note)).toBe(null)
+  expect(cut('x'.repeat(700), 300, 300, note)).toBe(null)
+})
+
+test('the saved file holds the whole call and the whole result', () => {
+  const text = big('out')
+  const messages = [m('assistant', '', { toolUses: [call('t1', 'Bash', { command: 'make', timeout: 9 })] }),
+    m('user', '', { toolResults: [{ tool_use_id: 't1', text, isError: true }] }), ...tail()]
+  const file = saved(trimsOf(messages).pairs[0]!, 's1')
+  expect(file).toContain('tool: Bash\ntool_use_id: t1\ninput:\n{\n  "command": "make",\n  "timeout": 9\n}')
+  expect(file).toContain(`result (error), ${text.length.toLocaleString('en-US')} characters:\n${text}`)
+  expect(file).toContain('(session s1)')
+})
+
+test('trimmed: only a message with a trimmed result is rebuilt, without its handle; the call and the other results stay', () => {
+  const messages = [
+    m('assistant', 'reading', { toolUses: [call('a'), call('b')], handle: 'h0' }),
+    m('user', '', { toolResults: [{ ...result('a', 'A'), result: { stdout: 'A' } }, { ...result('b', 'B'), result: { stdout: 'B' } }], handle: 'h1' }),
+    m('user', 'next', { handle: 'h2' }),
+  ]
+  const out = trimmed(messages, new Map([['a', 'A trimmed']]))
+  expect(out[0]).toBe(messages[0])
+  expect(out[2]).toBe(messages[2])
+  expect(out[1]).toEqual({ role: 'user', text: '', toolResults: [{ tool_use_id: 'a', text: 'A trimmed', isError: false },
+    { tool_use_id: 'b', text: 'B', isError: false, result: { stdout: 'B' } }] })
 })

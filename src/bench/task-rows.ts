@@ -62,7 +62,9 @@ export function readLedger(files: readonly { name: string; text: string }[]): Le
       const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
       if ((e.at ?? 0) >= last) {
         last = e.at ?? 0
-        out.compaction = { messages: n(e.messages), kept: n(e.kept), dropped: n(e.dropped), skip: typeof e.skip === 'string' ? e.skip : null }
+        out.compaction = { messages: n(e.messages), kept: n(e.kept), dropped: n(e.dropped),
+          ...('trimmed' in e ? { trimmed: n(e.trimmed), charsRemoved: n(e.charsRemoved), files: n(e.files) } : {}),
+          skip: typeof e.skip === 'string' ? e.skip : null }
       }
       continue
     }

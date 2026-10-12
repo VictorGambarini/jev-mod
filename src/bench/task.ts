@@ -198,7 +198,8 @@ export async function runTasks(o: TaskOptions): Promise<Row[]> {
         for (const { arm, row } of done) {
           rows.push(row)
           await f.appendFile(o.out, toLine(row) + '\n')
-          const kept = row.compaction ? `, kept ${row.compaction.kept} of ${row.compaction.messages} messages` : ''
+          const trimmed = row.compaction?.trimmed ? `, trimmed ${row.compaction.trimmed} results (${Math.round((row.compaction.charsRemoved ?? 0) / 1000)}k chars)` : ''
+          const kept = row.compaction ? `, kept ${row.compaction.kept} of ${row.compaction.messages} messages${trimmed}` : ''
           const read = row.context_tokens ? `, question read ${Math.round(row.context_tokens / 1000)}k tokens` : ''
           say(`${c.id} · ${arm.id}${repeats > 1 ? ` · run ${r + 1}/${repeats}` : ''}: ${row.outcome === 'ok' ? `score ${row.score?.toFixed(2)}` : `error (${row.error})`}${read}${kept}, ` +
             `$${row.claude_cost_usd!.toFixed(3)} Claude, $${row.cost_usd.toFixed(5)} decisions`)

@@ -4,7 +4,7 @@ import type { Row } from '../../../bench/types'
 import { ALWAYS_KEEP_LAST, unitsOf } from '../keep'
 import { adapter, keptAt } from './adapter'
 import { SESSIONS } from './cases'
-import { answersOf, checkAnswers, questionPrompt, TASKS } from './task'
+import { answersOf, checkAnswers, questionPrompt, TASKS, verify } from './task'
 
 const meta = { schema: 1 as const, run: 'r', feature: 'compact', level: 'decision' as const, jevmod: '0.10.0', git: 'abc', date: 'd', settings: {}, sweep: null }
 
@@ -51,27 +51,31 @@ test('the sweep is monotone: a higher bar never drops more, and at 1.01 nothing 
   expect(adapter.evaluate(rows, 0.5).tp).toBeGreaterThan(0)
 })
 
-test('a message goes only when all its units reach the bar; a judged keep or an unjudged unit keeps it', () => {
+test('a text goes when its drop reaches the bar; a judged keep or an unjudged text stays; a tool pair is never dropped', () => {
   // m0 text, m1 text, m2+m3 a tool pair, then the 6-message tail
   const skeleton = [
     { i: 0, role: 'user', text: 'x' }, { i: 1, role: 'assistant', text: 'x' },
-    { i: 2, role: 'assistant', text: '', toolUses: [{ tool_use_id: 'a' }] }, { i: 3, role: 'user', text: '', toolResults: [{ tool_use_id: 'a' }] },
+    { i: 2, role: 'assistant', text: 'x', toolUses: [{ tool_use_id: 'a' }] }, { i: 3, role: 'user', text: '', toolResults: [{ tool_use_id: 'a' }] },
     ...[4, 5, 6, 7, 8, 9].map(i => ({ i, role: 'user', text: 'x' })),
   ]
-  const units = [{ text: 0 }, { text: 1 }, { pair: 'a' }]
-  const d = { skeleton, gold: [], units, scores: [0.9, -1, 0.75] }
+  const units = [{ text: 0 }, { text: 1 }]
+  const d = { skeleton, gold: [], units, scores: [0.9, -1] }
+  expect([...keptAt(d as never, 0.95)].sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
   expect([...keptAt(d as never, 0.8)].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
-  expect([...keptAt(d as never, 0.7)].sort((a, b) => a - b)).toEqual([1, 4, 5, 6, 7, 8, 9])
-  expect([...keptAt({ ...d, scores: [0.9, null, null] } as never, 0.5)].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+  expect([...keptAt({ ...d, scores: [null, null] } as never, 0.5)].sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  // a row recorded when pairs were units: the pair is passed over, not dropped and not scored
+  const old = { ...d, units: [...units, { pair: 'a' }], scores: [0.9, -1, 0.99], gold: ['drop', 'keep', 'drop', 'drop', ...Array(6).fill('keep')] }
+  expect([...keptAt(old as never, 0.5)].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+  expect(adapter.evaluate([{ outcome: 'ok', detail: old } as never], 0.5)).toMatchObject({ tp: 1, tn: 1, fp: 0, fn: 0 })
 })
 
-test('the fake is told the gold label of each unit it is asked about', () => {
+test('only a message with text and no tool call or result is a unit, and the fake is told its gold label', () => {
   const s = SESSIONS[0]!
   const { units } = unitsOf(s.messages)
   units.forEach((u, j) => {
-    const truth = adapter.truth(s, {}, `t${j}`)
-    if ('text' in u) expect(truth).toBe(s.messages[u.text]!.gold)
-    else expect(['keep', 'drop']).toContain(truth)
+    const m = s.messages[u.text]!
+    expect(!!(m.toolUses?.length || m.toolResults?.length)).toBe(false)
+    expect(adapter.truth(s, {}, `t${j}`)).toBe(m.gold)
   })
 })
 
@@ -165,4 +169,22 @@ test('task level: an answer may run over several lines, bold or bulleted; a valu
   expect(checkAnswers(t, '1. BIL-231\n5. round_half_up').detail).toEqual({ right: t.questions.map((_, i) => i === 0 || i === 4) })
   expect(checkAnswers(t, '9. unknown').detail).toEqual({ right: t.questions.map(() => false) })
   expect(checkAnswers(t, '').score).toBe(0)
+})
+
+test('task level: a jev-mod arm that trimmed results counts as compacted; one that removed nothing meaningful does not', () => {
+  const jev = { id: 'jev-mod openrouter', kind: 'jev-mod' as const, backend: 'openrouter', settings: {} }
+  const run = (contextTokens: number, compaction: object | null) =>
+    ({ ledgerEntries: 2, byFeature: { compact: { requests: 2, calls: 6, cost_usd: 0.001 } }, contextTokens, compaction }) as never
+  const all = (r: never) => new Map([['no compaction', { contextTokens: 170_000 } as never], ['jev-mod openrouter', r]])
+  const trimmedOnly = run(60_000, { messages: 144, kept: 144, dropped: 0, trimmed: 70, charsRemoved: 400_000, files: 70, skip: null })
+  expect(verify(TASKS[0]!, jev, trimmedOnly, all(trimmedOnly))).toBe(null)
+  // nothing dropped, nothing trimmed
+  const nothing = run(60_000, { messages: 144, kept: 144, dropped: 0, trimmed: 0, charsRemoved: 0, files: 0, skip: null })
+  expect(verify(TASKS[0]!, jev, nothing, all(nothing))).toBe('not_compacted')
+  // a few small results trimmed: the question read nearly the whole context
+  const little = run(165_000, { messages: 144, kept: 144, dropped: 0, trimmed: 2, charsRemoved: 3_000, files: 2, skip: null })
+  expect(verify(TASKS[0]!, jev, little, all(little))).toBe('not_compacted')
+  // a record from before trimming, with nothing dropped
+  const old = run(60_000, { messages: 144, kept: 144, dropped: 0, skip: null })
+  expect(verify(TASKS[0]!, jev, old, all(old))).toBe('not_compacted')
 })

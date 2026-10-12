@@ -62,8 +62,8 @@ export type ArmSummary = {
   tokens: number | null
   /** The final step's context in tokens (what a compacted question read), over every run that reported it, failed ones too. */
   context: number | null
-  /** What the mod's compactions kept and dropped, in messages, over the runs that recorded one. */
-  compaction: { messages: number; kept: number; dropped: number } | null
+  /** What the mod's compactions kept and dropped, in messages, and the tool results they trimmed (with the characters that took out), over the runs that recorded one. */
+  compaction: { messages: number; kept: number; dropped: number; trimmed?: number; charsRemoved?: number } | null
   /** Scored runs that succeeded, of the scored runs: `success` is their share. */
   passed: number
   scored: number
@@ -196,7 +196,9 @@ export function summarise(adapter: DecisionAdapter, rows: readonly Row[], fake: 
         // a compaction that did too little is an error, and what it read and kept is the reason: these count every run
         context: all(r => r.context_tokens),
         compaction: compacted.length ? { messages: all(r => r.compaction?.messages)!, kept: all(r => r.compaction?.kept)!,
-          dropped: all(r => r.compaction?.dropped)! } : null,
+          dropped: all(r => r.compaction?.dropped)!,
+          // a record from before results were trimmed has no count: such an arm shows none
+          ...(all(r => r.compaction?.trimmed) === null ? {} : { trimmed: all(r => r.compaction?.trimmed)!, charsRemoved: all(r => r.compaction?.charsRemoved) ?? 0 }) } : null,
       }
     })
   const total = (mine: readonly Row[], f: (r: Row) => number | undefined) => mine.reduce((n, r) => n + (f(r) ?? 0), 0)
@@ -381,9 +383,11 @@ export function markdown(adapter: DecisionAdapter, s: Summary, images: Record<st
     }
     if (s.arms.some(a => a.context !== null || a.compaction)) {
       const kd = (a: ArmSummary) => (a.compaction ? `${Math.round(a.compaction.kept)} / ${Math.round(a.compaction.dropped)} of ${Math.round(a.compaction.messages)}` : '–')
-      lines.push('| arm | question context | kept / dropped | Claude tokens |', '|---|---|---|---|')
-      for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${tok(a.context)} | ${kd(a)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
-      lines.push('', '- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it.', '')
+      const tr = (a: ArmSummary) => (a.compaction?.trimmed === undefined ? '–'
+        : `${Math.round(a.compaction.trimmed)} (${Math.round((a.compaction.charsRemoved ?? 0) / 1000)}k chars)`)
+      lines.push('| arm | question context | kept / dropped | results trimmed | Claude tokens |', '|---|---|---|---|---|')
+      for (const a of s.arms) lines.push(`| ${armLabel(a)} | ${tok(a.context)} | ${kd(a)} | ${tr(a)} | ${a.tokens === null ? '–' : Math.round(a.tokens)} |`)
+      lines.push('', '- question context: what the last step read, in tokens (a smaller one is a compaction that worked); kept / dropped: messages the compaction kept and dropped, of those before it; results trimmed: tool results the compaction cut down, and the characters that took out (each saved in full to a file).', '')
     }
     if (s.spend) {
       const setup = s.setup ? `, of which the shared setup ${usd(s.setup.claudeCost)} (${s.setup.cases} case(s), ${ms(s.setup.wallMs)})` : ''

@@ -30,7 +30,8 @@ src/
     web-filter/        index.ts (glue: the goal, one request, counts) · filter.ts (pure: hits, duplicates, hosts,
                        units and overlapping chunks, what stays without asking, markers) · their tests;
                        src/web-filter.test.ts drives it after screening through the kit
-    compact/           /jev-mod compact: index.ts · index.test.ts · keep.ts (pure) · keep.test.ts
+    compact/           /jev-mod compact: index.ts (glue) · keep.ts (pure: units, trims, the cut) · files.ts (where full
+                       results are saved) · their tests
     stop-gate/         the completion gate: index.ts · gate.ts (pure) · gate.test.ts
     access-gate/       index.ts (glue: the session's allows in $.state, /jev-mod access) · rules.ts (pure: the
                        categories, hosts, keys, the verdict, the refusal) · their tests; src/access-gate.test.ts
@@ -80,6 +81,16 @@ These come from Claude Code's plugin validator and test kit (checked in the spik
   `/jev-mod compact` queues the built-in `/compact` with a marker from a timer, and answers that
   compaction itself. A `claude -p` process ends before the timer fires, so headless the way is
   `/compact` with the marker as its instructions, which the mod answers the same way.
+- **What a compaction hands back is messages.** `session.compact`'s `e.messages` carry the
+  engine's `handle`; a message handed back with it stands as the engine has it, and one without
+  is built from its role, text and tool blocks. `/jev-mod compact` hands back every message it
+  keeps untouched with its handle, and only a message whose tool result it trimmed is rebuilt
+  (handle and the result's stored record left out, the result's text replaced). It drops only
+  messages that hold no tool call or result, so a tool_use never loses its tool_result. Before a
+  result is trimmed, its call and full result are saved to
+  `<XDG_CACHE_HOME or ~/.cache>/jev-mod/compact/<session>/<tool_use_id>.txt` (folder 0700, files
+  0600; through `io.run` for mkdir and chmod, since `$.fs.write` takes no mode), and the line
+  that replaces the result's middle names that file, so Claude can Read what was cut.
 - **The kit cannot raise `turn.step`, and does not route a mod's `$.process.run` to a test's
   stub.** It does stub `http.fetch`, `fs.read` and `env.get` (a stub answers `{ value: ... }`).
   So decisions live in pure files with kit tests, the engine reaches the network through

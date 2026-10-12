@@ -1,15 +1,17 @@
-// Compaction without a summary: the decision model marks each turn keep or drop, and in doubt a
-// turn is kept.
+// Compaction without a summary, in two decisions. The decision model marks each turn keep or
+// drop, and in doubt a turn is kept (`select`). And for each old tool result it says how much of
+// its start and of its end should stay in context, the full result being saved to a file a later
+// step can read (`trim`); in doubt it keeps more.
 //
-// Ported from jev-skills' jevkit/compact.py `select`, the part /jev-mod compact uses, with one
-// deliberate divergence (docs/PORTING.md): jev-skills also offers "summarize", and the mod has no
-// summariser, so a summarize turn would be deleted. Here the question is keep or drop only, the
-// keep criterion also covers background whose gist later work needs, and an unjudged turn is kept.
-// One request
-// per batch of up to 40 turns, packed by encoded size; a long turn is judged on its first and
-// last 350 characters, redacted. Dropping is the only fate that cannot be undone, so it needs a
-// confident answer: a drop below DROP_CONFIDENCE (or the caller's `dropConfidence`) is a keep. The digest and handoff prompts are for jev-skills' handoff writer, which
-// the mod does not have.
+// `select` is ported from jev-skills' jevkit/compact.py `select`, the part /jev-mod compact uses,
+// with one deliberate divergence (docs/PORTING.md): jev-skills also offers "summarize", and the
+// mod has no summariser, so a summarize turn would be deleted. Here the question is keep or drop
+// only, the keep criterion also covers background whose gist later work needs, and an unjudged
+// turn is kept. One request per batch of up to 40 turns, packed by encoded size; a long turn is
+// judged on its first and last 350 characters, redacted. Dropping is the only fate that cannot be
+// undone, so it needs a confident answer: a drop below DROP_CONFIDENCE (or the caller's
+// `dropConfidence`) is a keep. `trim` is the mod's own (jev-skills has no counterpart). The digest
+// and handoff prompts are for jev-skills' handoff writer, which the mod does not have.
 
 import { ask, choice, JevError, type Asked, type Host } from './client'
 import { isSensitive, redact } from './privacy'
@@ -45,23 +47,28 @@ export function textOf(message: Message): string {
   return content === null || content === undefined ? '' : String(content)
 }
 
-/** Turn indexes grouped into requests that fit, by encoded size and not by count. */
-export function pack(messages: readonly Message[], judged: number[]): number[][] {
+/** Items grouped into requests of at most `most` that fit STATE_BUDGET, by each one's encoded size. */
+function packBy(items: readonly number[], costOf: (item: number) => number, most: number): number[][] {
   const batches: number[][] = []
   let current: number[] = []
   let used = 0
-  for (const index of judged) {
-    const cost = encode(redact(textOf(messages[index]!), TURN_CHARS), { ensureAscii: true }).length + PER_TURN_OVERHEAD
-    if (current.length && (current.length >= BATCH || used + cost > STATE_BUDGET)) {
+  for (const item of items) {
+    const cost = costOf(item)
+    if (current.length && (current.length >= most || used + cost > STATE_BUDGET)) {
       batches.push(current)
       current = []
       used = 0
     }
-    current.push(index)
+    current.push(item)
     used += cost
   }
   if (current.length) batches.push(current)
   return batches
+}
+
+/** Turn indexes grouped into requests that fit, by encoded size and not by count. */
+export function pack(messages: readonly Message[], judged: number[]): number[][] {
+  return packBy(judged, i => encode(redact(textOf(messages[i]!), TURN_CHARS), { ensureAscii: true }).length + PER_TURN_OVERHEAD, BATCH)
 }
 
 export type Selection = {
@@ -122,4 +129,96 @@ export async function select(host: Host, messages: readonly Message[],
     status, fates: Object.fromEntries([...fates].sort(([a], [b]) => a - b).map(([i, fate]) => [String(i), fate])),
     counts, jev_calls: calls.length, errors, latency_ms: latency, unjudged: judged.filter(i => !answered.has(i)), calls,
   }
+}
+
+// ── trimming tool results ───────────────────────────────────────────────────
+
+/** What may stay of a tool result's start, and of its end, in characters. */
+export const TRIM_SIZES = [0, 100, 300, 600] as const
+export type TrimSize = (typeof TRIM_SIZES)[number]
+/** Each end Jev is shown is as long as the most it may keep of it. */
+export const TRIM_SHOWN = 600
+/** Pairs per request; each pair is two questions. */
+export const TRIM_BATCH = 20
+const ARG_CHARS = 160
+
+/** The options for one end of a result: how many of its characters stay. */
+export function trimOptions(end: 'start' | 'end'): Record<string, string> {
+  return {
+    0: `None of its ${end}: nothing there is needed later, or a later step could re-read the file if it ever is`,
+    100: `About a line of its ${end}: a later step needs only what it was, such as a header, a count or a final status`,
+    300: `A few lines of its ${end}: a later step needs a short passage there, such as an error or a result it refers to`,
+    600: `All ${TRIM_SHOWN} characters of its ${end} shown: a later step depends on exact values, paths, code or errors there`,
+  }
+}
+
+/** One tool call with its result, as Jev sees it: `head` and `tail` are the result's raw first and last TRIM_SHOWN characters. */
+export type TrimView = { tool: string; arg: string; size: number; isError: boolean; head: string; tail: string }
+export type Trim = { head: TrimSize; tail: TrimSize }
+
+export type Trimming = {
+  status: 'ok' | 'partial' | 'fail_open'
+  /** What to keep of each judged view, by its index; an unjudged one has none. */
+  trims: Record<string, Trim>
+  jev_calls: number
+  errors: string[]
+  latency_ms: number
+  unjudged: number[]
+  calls?: Asked[]
+}
+
+/** A view as the request holds it: the call, the result's size, and its start and end, redacted. */
+export function trimText(v: TrimView): string {
+  return `tool call ${v.tool}: ${redact(v.arg, ARG_CHARS)}\nresult${v.isError ? ' (error)' : ''}: ${v.size} characters` +
+    `\nstart: ${redact(v.head, Number.POSITIVE_INFINITY)}\nend: ${redact(v.tail, Number.POSITIVE_INFINITY)}`
+}
+
+/**
+ * How much of each tool result's start and end stays, from the decision model. The caller saves
+ * every full result to a file first, so a later step can read what was cut; the question is
+ * whether a later step needs those characters in front of it, or could re-read the file. In
+ * doubt it keeps more: an answer below the confidence bar (DROP_CONFIDENCE, or the caller's)
+ * keeps all TRIM_SHOWN characters of that end, and a view Jev did not judge gets no trim.
+ */
+export async function trim(host: Host, views: readonly TrimView[],
+  opts: { timeoutMs?: number; confidence?: number } = {}): Promise<Trimming> {
+  const bar = opts.confidence ?? DROP_CONFIDENCE
+  const texts = views.map(trimText)
+  const calls: Asked[] = []
+  const errors: string[] = []
+  const trims: Record<string, Trim> = {}
+  let latency = 0
+  const sizeOf = (answer: { choice: string; confidence: number } | undefined): TrimSize | undefined => {
+    if (!answer) return undefined
+    const n = Number(answer.choice) as TrimSize
+    if (!TRIM_SIZES.includes(n)) return undefined
+    return answer.confidence < bar ? TRIM_SHOWN : n
+  }
+  const all = [...views.keys()]
+  for (const group of packBy(all, i => encode(texts[i]!, { ensureAscii: true }).length + PER_TURN_OVERHEAD, TRIM_BATCH)) {
+    const state = { results: Object.fromEntries(group.map(i => [`R${i}`, texts[i]!])) }
+    const questions = Object.fromEntries(group.flatMap(i => [
+      [`h${i}`, choice(`Result R${i} is saved in full to a file a later step can read. Would a later step need the first ` +
+        `characters of R${i} in front of it, or could it re-read the file? How many of its first characters should stay?`, trimOptions('start'))],
+      [`e${i}`, choice(`Result R${i} is saved in full to a file a later step can read. Would a later step need the last ` +
+        `characters of R${i} in front of it, or could it re-read the file? How many of its last characters should stay?`, trimOptions('end'))],
+    ]))
+    let reply: Asked
+    try {
+      reply = await ask(host, state, questions, { timeoutMs: opts.timeoutMs ?? 8000 })
+    } catch (error) {
+      if (!(error instanceof JevError)) throw error
+      errors.push(error.code)
+      continue
+    }
+    calls.push(reply)
+    latency += reply.latency_ms
+    for (const i of group) {
+      const head = sizeOf(reply.answers[`h${i}`] as { choice: string; confidence: number } | undefined)
+      const tail = sizeOf(reply.answers[`e${i}`] as { choice: string; confidence: number } | undefined)
+      if (head !== undefined && tail !== undefined) trims[String(i)] = { head, tail }
+    }
+  }
+  const status = !views.length ? 'ok' : !calls.length ? 'fail_open' : errors.length ? 'partial' : 'ok'
+  return { status, trims, jev_calls: calls.length, errors, latency_ms: latency, unjudged: all.filter(i => !trims[String(i)]), calls }
 }

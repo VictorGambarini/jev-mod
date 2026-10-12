@@ -1,150 +1,167 @@
-// /jev-mod compact's selection: what Jev is asked to judge, and which messages survive a
-// compaction with no summariser: all but those Jev confidently marked drop.
+// /jev-mod compact's selection: what Jev is asked, and what the conversation becomes after a
+// compaction with no summariser.
 //
-// Jev judges units, not messages. A message's text (its narration) is one unit; a tool call and
-// its result are one unit together (the call: the tool's name and its main argument; the result:
-// its head and tail, redacted), so a pair always shares one fate: a request with half a pair is
-// refused by the API. A message goes only when every part of it (its text and each tool pair it
-// holds) was judged drop; a part Jev did not judge keeps its message, and so does the other
-// half of any kept pair.
+// Two kinds of thing are judged. A message's text, in a message holding no tool call or result,
+// is kept or dropped (`unitsOf`, `keepOnly`): it goes only when Jev confidently marked it drop.
+// A tool call with its result is never dropped: the call stays as it is, and the result is
+// trimmed to the start and end Jev says later work needs (`trimsOf`, `trimmed`), the full call
+// and result being saved to a file first. A message that holds a tool call or result therefore
+// always stays, with its text, so every tool_use keeps its tool_result and the API never sees
+// half a pair; its text is not sent to Jev, since nothing would be done with the answer.
 
-import { KEEP_LAST, TURN_CHARS } from '../../engine/compact'
-import { isSensitive, redact } from '../../engine/privacy'
+import { KEEP_LAST, TRIM_SHOWN, type TrimView } from '../../engine/compact'
+import { isSensitive } from '../../engine/privacy'
 
 export type Msg = {
   role: string
   text: string
   toolUses?: readonly { tool_use_id: string; tool?: string; input?: Record<string, unknown>; text?: string; isError?: boolean }[]
-  toolResults?: readonly { tool_use_id: string; text?: string; isError?: boolean }[]
+  toolResults?: readonly { tool_use_id: string; text?: string; isError?: boolean; result?: unknown }[]
+  handle?: string
 }
 
 /** The last messages, kept whatever Jev says: the same tail the engine keeps by default. */
 export const ALWAYS_KEEP_LAST = KEEP_LAST
 
-/** One thing Jev judges: a message's text (by message index), or a tool call with its result (by id). */
-export type Unit = { text: number } | { pair: string }
+/** A result this short or shorter is kept whole and not sent: trimming it saves too little. */
+export const TRIM_MIN_CHARS = 1300
 
-const INPUT_CHARS = 160
-// What a pair's summary may take, below the engine's own cap so that cap never cuts it again
-// (the engine redacts the summary once more, which can lengthen a masked value a little).
-const PAIR_CHARS = TURN_CHARS - 50
+/** One text Jev judges keep or drop, by message index. */
+export type Unit = { text: number }
+
 // The arguments that say what a call did, in the order they are shown.
 const MAIN_ARGS = ['command', 'file_path', 'notebook_path', 'path', 'pattern', 'glob', 'url', 'query', 'skill', 'description', 'prompt']
 
-/** Redacted, and when longer than `cap`, its head and tail with how much is not shown. */
-export function clip(text: string, cap: number): string {
-  const points = [...redact(text, Number.POSITIVE_INFINITY)]
-  if (points.length <= cap) return points.join('')
-  const half = Math.max(1, Math.floor((cap - 30) / 2))
-  return `${points.slice(0, half).join('')}\n… ${points.length - 2 * half} chars not shown …\n${points.slice(-half).join('')}`
-}
-
-function argsOf(input: Record<string, unknown> | undefined): string {
+/** A call's main argument (its command, path, pattern...), else its whole input as JSON. */
+export function argsOf(input: Record<string, unknown> | undefined): string {
   if (!input) return ''
   const main = MAIN_ARGS.map(k => input[k]).filter((v): v is string => typeof v === 'string' && v.trim() !== '')
   if (main.length) return main.join(' ')
   try { return JSON.stringify(input) } catch { return '' }
 }
 
-type Pair = { call?: number; result?: number; tool: string; input: string; output: string; isError: boolean }
-
-function pairsOf(messages: readonly Msg[]): Map<string, Pair> {
-  const pairs = new Map<string, Pair>()
-  const get = (id: string) => {
-    let p = pairs.get(id)
-    if (!p) { p = { tool: 'tool', input: '', output: '', isError: false }; pairs.set(id, p) }
-    return p
-  }
-  messages.forEach((m, i) => {
-    for (const use of m.toolUses ?? []) {
-      const p = get(use.tool_use_id)
-      p.call = i
-      p.tool = use.tool || 'tool'
-      p.input = argsOf(use.input)
-      if (!p.output && typeof use.text === 'string') p.output = use.text
-      if (use.isError) p.isError = true
-    }
-    for (const result of m.toolResults ?? []) {
-      const p = get(result.tool_use_id)
-      p.result = i
-      if (typeof result.text === 'string' && result.text) p.output = result.text
-      if (result.isError) p.isError = true
-    }
-  })
-  return pairs
-}
+const hasTools = (m: Msg) => !!(m.toolUses?.length || m.toolResults?.length)
 
 /**
- * What to send Jev, in order, with the unit each entry judges. The last ALWAYS_KEEP_LAST
- * messages, and a pair with a half among them, are not sent (they are kept anyway); nor is a
- * pair whose call or full result looks sensitive: unsent, it is unjudged, and so kept.
+ * What to send Jev for keep or drop, in order, with the message each entry judges: the text of
+ * each message outside the last ALWAYS_KEEP_LAST that holds no tool call or result.
  */
 export function unitsOf(messages: readonly Msg[]): { units: Unit[]; toJev: { role: string; content: string }[] } {
   const tail = Math.max(0, messages.length - ALWAYS_KEEP_LAST)
-  const pairs = pairsOf(messages)
   const units: Unit[] = []
   const toJev: { role: string; content: string }[] = []
   messages.forEach((m, i) => {
-    if (i >= tail) return
-    if (typeof m.text === 'string' && m.text.trim()) { units.push({ text: i }); toJev.push({ role: m.role, content: m.text }) }
-    const ids = [...(m.toolUses ?? []).map(u => u.tool_use_id), ...(m.toolResults ?? []).map(r => r.tool_use_id)]
-    for (const id of ids) {
-      const p = pairs.get(id)!
-      if ((p.call ?? p.result) !== i) continue // each pair once, where it starts
-      if ((p.call ?? -1) >= tail || (p.result ?? -1) >= tail) continue
-      if (isSensitive(`${p.tool} ${p.input}\n${p.output}`)) continue
-      const answered = p.result !== undefined || p.output !== ''
-      const head = `${p.call === undefined ? 'result of a tool call' : `tool call ${p.tool}`}: ${clip(p.input, INPUT_CHARS)}`
-      const label = answered ? `\nresult${p.isError ? ' (error)' : ''}: ` : '\nresult: none'
-      const room = Math.max(100, PAIR_CHARS - [...head].length - label.length)
-      units.push({ pair: id })
-      toJev.push({ role: 'tool', content: head + label + (answered ? clip(p.output, room) : '') })
-    }
+    if (i >= tail || hasTools(m) || typeof m.text !== 'string' || !m.text.trim()) return
+    units.push({ text: i })
+    toJev.push({ role: m.role, content: m.text })
   })
   return { units, toJev }
 }
 
 /**
  * The messages `/jev-mod compact` keeps, in order. `fates` is indexed by position in `units`
- * (the engine already turns a low-confidence drop into keep). A message goes only when it has a
- * part and every part (its text, each tool pair it holds) is a unit marked drop; the last
- * ALWAYS_KEEP_LAST stay, and so does whatever completes a kept tool call or a kept result.
+ * (the engine already turns a low-confidence drop into keep). A message goes only when its text
+ * is a unit marked drop and it holds no tool call or result; the last ALWAYS_KEEP_LAST stay.
  */
 export function keepOnly<M extends Msg>(messages: readonly M[], units: readonly Unit[], fates: Record<string, string>): M[] {
-  const textFate = new Map<number, string>()
-  const pairFate = new Map<string, string>()
-  units.forEach((u, j) => {
-    const fate = fates[String(j)]
-    if (fate === undefined) return
-    if ('text' in u) textFate.set(u.text, fate); else pairFate.set(u.pair, fate)
-  })
   const tail = Math.max(0, messages.length - ALWAYS_KEEP_LAST)
-  const keep = new Set<number>()
-  messages.forEach((m, i) => {
-    const parts: (string | undefined)[] = [
-      ...(typeof m.text === 'string' && m.text.trim() ? [textFate.get(i)] : []),
-      ...(m.toolUses ?? []).map(u => pairFate.get(u.tool_use_id)),
-      ...(m.toolResults ?? []).map(r => pairFate.get(r.tool_use_id)),
-    ]
-    if (i >= tail || !parts.length || parts.some(f => f !== 'drop')) keep.add(i)
+  const drop = new Set<number>()
+  units.forEach((u, j) => {
+    if (fates[String(j)] === 'drop' && u.text < tail && messages[u.text] && !hasTools(messages[u.text]!)) drop.add(u.text)
   })
-  const callAt = new Map<string, number>()
-  const resultAt = new Map<string, number>()
+  return messages.filter((_, i) => !drop.has(i))
+}
+
+/** One tool call with its result, both in the conversation. */
+export type Pair = { id: string; tool: string; input: Record<string, unknown>; text: string; isError: boolean; call: number; result: number }
+
+function pairsOf(messages: readonly Msg[]): Pair[] {
+  const calls = new Map<string, { i: number; tool: string; input: Record<string, unknown> }>()
   messages.forEach((m, i) => {
-    for (const use of m.toolUses ?? []) callAt.set(use.tool_use_id, i)
-    for (const result of m.toolResults ?? []) resultAt.set(result.tool_use_id, i)
+    for (const use of m.toolUses ?? []) calls.set(use.tool_use_id, { i, tool: use.tool || 'tool', input: use.input ?? {} })
   })
-  let grew = true
-  while (grew) {
-    grew = false
-    for (const i of [...keep]) {
-      const m = messages[i]!
-      const partners = [
-        ...(m.toolUses ?? []).map(u => resultAt.get(u.tool_use_id)),
-        ...(m.toolResults ?? []).map(r => callAt.get(r.tool_use_id)),
-      ]
-      for (const j of partners) if (j !== undefined && !keep.has(j)) { keep.add(j); grew = true }
+  const pairs: Pair[] = []
+  messages.forEach((m, i) => {
+    for (const r of m.toolResults ?? []) {
+      const call = calls.get(r.tool_use_id)
+      if (!call || typeof r.text !== 'string') continue // a result without its call is left whole
+      pairs.push({ id: r.tool_use_id, tool: call.tool, input: call.input, text: r.text, isError: !!r.isError, call: call.i, result: i })
     }
+  })
+  return pairs
+}
+
+/**
+ * The tool results Jev is asked to trim, each with what it sees: the call, the result's size,
+ * and its first and last TRIM_SHOWN characters (the engine redacts them). Left whole and not
+ * sent: a pair with a half among the last ALWAYS_KEEP_LAST messages, a result of TRIM_MIN_CHARS
+ * or fewer, and a pair whose call or full result looks sensitive.
+ */
+export function trimsOf(messages: readonly Msg[]): { pairs: Pair[]; views: TrimView[] } {
+  const tail = Math.max(0, messages.length - ALWAYS_KEEP_LAST)
+  const pairs: Pair[] = []
+  const views: TrimView[] = []
+  for (const p of pairsOf(messages)) {
+    if (p.call >= tail || p.result >= tail) continue
+    const points = [...p.text]
+    if (points.length <= TRIM_MIN_CHARS) continue
+    const arg = argsOf(p.input)
+    if (isSensitive(`${p.tool} ${arg}\n${p.text}`)) continue
+    pairs.push(p)
+    views.push({ tool: p.tool, arg, size: points.length, isError: p.isError,
+      head: points.slice(0, TRIM_SHOWN).join(''), tail: points.slice(-TRIM_SHOWN).join('') })
   }
-  return messages.filter((_, i) => keep.has(i))
+  return { pairs, views }
+}
+
+const count = (n: number) => n.toLocaleString('en-US')
+
+/** The line that stands where a result's middle was: what was cut, and the file that holds it all. */
+export function placeholder(p: Pair, head: number, tail: number, file: string): string {
+  const size = [...p.text].length
+  const arg = argsOf(p.input).replace(/\s+/g, ' ').trim()
+  const shown = arg.length > 160 ? `${arg.slice(0, 157)}...` : arg
+  const kept = head && tail ? `its first ${head} and last ${tail}` : head ? `its first ${head}` : tail ? `its last ${tail}` : 'none of it'
+  return `[jev-mod compact trimmed this ${p.tool}${shown ? ` (${shown})` : ''} result: ${count(size - head - tail)} of its ` +
+    `${count(size)} characters were cut, keeping ${kept}. The full call and result are in ${file}; Read it if you need the rest.]`
+}
+
+/** The result with its middle replaced by `note`, or null when that would not make it shorter. */
+export function cut(text: string, head: number, tail: number, note: string): string | null {
+  const points = [...text]
+  if (head + tail >= points.length) return null
+  const out = [head ? points.slice(0, head).join('') : null, note, tail ? points.slice(-tail).join('') : null]
+    .filter((s): s is string => s !== null).join('\n')
+  return [...out].length < points.length ? out : null
+}
+
+/** What a saved file holds: the call and its full result, so a later step can read what was cut. */
+export function saved(p: Pair, session: string | null): string {
+  let input: string
+  try { input = JSON.stringify(p.input, null, 2) } catch { input = String(p.input) }
+  return [`jev-mod compact saved this tool call and its full result before trimming the result in the conversation` +
+    `${session ? ` (session ${session})` : ''}.`, `tool: ${p.tool}`, `tool_use_id: ${p.id}`, `input:\n${input}`,
+    `result${p.isError ? ' (error)' : ''}, ${count([...p.text].length)} characters:`, p.text].join('\n')
+}
+
+/**
+ * The messages with each trimmed result's text replaced (`texts`, by tool_use_id). A message
+ * that changed is handed back without the engine's `handle`, so the engine builds it from its
+ * role, text and tool blocks; a trimmed result loses its stored record (`result`), which held
+ * the bulk. Every other message is the engine's own, untouched.
+ */
+export function trimmed<M extends Msg>(messages: readonly M[], texts: ReadonlyMap<string, string>): M[] {
+  return messages.map(m => {
+    if (!m.toolResults?.some(r => texts.has(r.tool_use_id))) return m
+    const { handle: _handle, ...rest } = m
+    return {
+      ...rest,
+      toolResults: m.toolResults.map(r => {
+        const text = texts.get(r.tool_use_id)
+        if (text === undefined) return r
+        const { result: _result, ...kept } = r
+        return { ...kept, text }
+      }),
+    } as unknown as M
+  })
 }

@@ -23,7 +23,7 @@ test('interactive: the command answers at once and queues /compact with the mark
   setUp(on, summarised, fetched, queued)
   const clock = mock.clock(on)
   const ran = await $.command.run({ command: 'jev-mod', args: 'compact', origin: { kind: 'composer' } } as never)
-  expect(ran.text).toBe('jev-mod compact: asking Jev which turns to drop; nothing will be summarised.')
+  expect(ran.text).toBe('jev-mod compact: asking Jev what to drop and how far to trim old tool results; nothing will be summarised.')
   expect(queued).toEqual([])
   await clock.advance(10)
   expect(queued).toEqual([MARK])

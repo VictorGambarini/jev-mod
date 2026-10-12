@@ -1,12 +1,13 @@
 # `/jev-mod compact`
 
-A compaction with no summary: the decision model marks what to keep, and everything else is dropped.
+A compaction with no summary. Old tool results, where most of a session's tokens are, are cut down to the start and end the decision model says later work needs, each saved in full to a file Claude can Read; messages it confidently marks as chatter are dropped. Nothing is summarised.
 
 There is no mode setting: it runs when you type it. `/compact` is left as Claude Code has it, unless its instructions are this compaction's marker (below).
 
 ## What it decides
 
-For each message's text, and for each tool call together with its result, *keep* or *drop*. A call and its result always share one fate.
+- **For each tool result** outside the last six messages: how many characters of its start to keep (0, 100, 300 or 600), and how many of its end (0, 100, 300 or 600). The tool call stays exactly as it was.
+- **For each message with text and no tool call or result**: *keep* or *drop*.
 
 ## When it runs
 
@@ -22,12 +23,24 @@ A `/compact` typed with that marker as its instructions is answered the same way
 
 ## How it decides
 
-- The decision model sees the tool, its main argument such as the command or file path, and the result's start and end, redacted and cut to under 700 characters, saying how much is not shown. Requests are packed by encoded size, up to 40 turns each.
-- Keep means: a decision, a constraint, a user preference, an unfinished task, an exact value, path, id, command or error that later work depends on, or background whose gist later work needs. Drop means chatter, acknowledgements, superseded attempts, repeated output, or detail nothing later depends on.
-- A message goes only when every part of it was judged drop with confidence of at least 0.7.
-- Everything else stays: low-confidence drops, anything it did not judge (it was down, timed out, answered only part, or the text, call or result held something sensitive that is never sent), the last six messages, and both halves of any kept tool call.
-- A note replaces what was removed, saying how many messages were kept and that nothing was summarised.
-- Nothing is summarised.
+- **Trimming.** For each tool call and its result, the decision model sees the tool, its main argument (the command, file path, pattern or URL), the result's size, and its first and last 600 characters, redacted. It is asked, for the start and for the end, whether a later step would need those characters in front of it or could re-read the file. Before anything is cut, the full call and result are written to a file. The result then becomes: the kept start, one line, the kept end. The line names the tool, its main argument, how many characters were cut of how many, and the file, and says to Read it for the rest. For example:
+
+  ```
+  …the first 100 characters…
+  [jev-mod compact trimmed this Bash (cat logs/staging-app.log) result: 47,310 of its 47,710 characters were cut, keeping its first 100 and last 300. The full call and result are in /home/you/.cache/jev-mod/compact/<session>/toolu_01AbC.txt; Read it if you need the rest.]
+  …the last 300 characters…
+  ```
+
+  When the kept start and end cover the whole result, or the line would not make it shorter, it is left as it was.
+- **Dropping.** Keep means: a decision, a constraint, a user preference, an unfinished task, an exact value, path, id, command or error that later work depends on, or background whose gist later work needs. Drop means chatter, acknowledgements, superseded attempts, repeated output, or detail nothing later depends on. A message goes only when its text was judged drop with confidence of at least 0.5 (`DROP_CONFIDENCE` in `src/engine/compact.ts`). A long text is judged on its first and last 350 characters, redacted.
+- **Text and tool calls together.** A message that holds a tool call or a result is never dropped and keeps its text: removing it would part a tool call from its result, which the API refuses. Its text (usually a line like "Let me read the file") is not sent. Only its result, if long, is trimmed.
+- **Doubt keeps, sized to the choice.** A trim answer below the same 0.5 confidence keeps all 600 characters of that end. A result is left whole, and no file is written for it, when the decision model did not judge it (it was down, timed out, or answered only part), when the call or the full result held something sensitive (never sent), when it is 1,300 characters or shorter (too little to gain; never sent), when its call is no longer in the conversation, when it or its call is among the last six messages, or when its file could not be written privately. A text it did not judge stays. Errors are judged like any other result; the file keeps them whole.
+- Requests are packed by encoded size: texts up to 40 to a request, tool results up to 20 (two questions each).
+- A note goes first in the compacted conversation: how many messages were dropped, how many results were trimmed, and the folder that holds their files. Nothing is summarised.
+
+## The files
+
+One folder per session, one file per trimmed result: `<XDG_CACHE_HOME or ~/.cache>/jev-mod/compact/<session id>/<tool_use_id>.txt`, holding the call (its tool and full input) and the whole result. The folder is made private (0700) before anything is written, and each file is 0600; if that fails, nothing is trimmed. They are never written into your project. A session folder untouched for 30 days is removed at the next compaction. In a bench run they go to the run's scratch folder instead (`compact-files/` under the run's ledger).
 
 ## Settings
 
@@ -35,17 +48,18 @@ None.
 
 ## Failing open, privacy and budget
 
-Nothing is removed when the decision model does not answer, when it marks no turn drop, or when today's budget is spent (one compaction is charged against it, its batches together). A toast says why. Text is redacted before it is sent.
+Nothing is removed when the decision model does not answer, when it marks nothing to drop or trim, when today's budget is spent (one compaction is charged against it, all its requests together), or when the profile is private (nothing is sent). A toast says why. Text is redacted before it is sent, and a text, call or result that looks sensitive is never sent.
 
 ## Limits
 
-- Dropping is the one decision that cannot be undone, so doubt keeps.
-- The tail (six messages) is always kept.
-- A text with something sensitive is never judged, so it stays.
+- Dropping and trimming are not undone in the conversation; a trimmed result is still whole in its file, a dropped message is gone. So doubt keeps.
+- The tail (six messages) is always kept whole.
+- A message that holds a tool call keeps its text, even chatter.
+- Claude has to Read a file to see what was cut. The task bench refuses every tool when it asks its questions, so it measures what survives in context only.
 
 ## Benchmarks
 
-Two benches (src/bench/README.md). The decision level asks Jev about ten labelled sessions and sweeps the drop bar. The task level builds three long, real coding sessions in `bench/task-fixture/` (a bug fix, a feature, an investigation; about 105k tokens of conversation each), compacts a fork of each with `/compact`, with this compaction at each drop bar, and not at all, then asks what a continuation needs with every tool refused. In a bench run the compaction writes what it kept and dropped to the run's ledger; an arm whose question did not read a meaningfully smaller context, or that dropped nothing, is `not_compacted`, never a score. It is not run yet: one pass costs about $105 in Claude calls (`bun src/bench/run.ts compact --level task --backend <name> --sweep drop=0.6:0.9:0.1` prints the plan).
+Two benches (src/bench/README.md). The decision level asks Jev about ten labelled sessions and sweeps the drop bar; it scores only keep or drop, on messages with text and no tool call (its labels say nothing about how far to trim). The task level builds three long, real coding sessions in `bench/task-fixture/` (a bug fix, a feature, an investigation; about 105k tokens of conversation each), compacts a fork of each with `/compact`, with this compaction at its default, and not at all, then asks what a continuation needs with every tool refused. In a bench run the compaction writes what it dropped and trimmed to the run's ledger; an arm whose question did not read a meaningfully smaller context, or that neither dropped nor trimmed anything, is `not_compacted`, never a score. One pass of three cases costs about $69 in Claude calls (`bun src/bench/run.ts compact --level task --backend <name>` prints the plan).
 
 <!-- bench:start -->
 **Bench** (`bun src/bench/report.ts compact`; 0.11.0@14f7f68, 0.11.0@40135d0).

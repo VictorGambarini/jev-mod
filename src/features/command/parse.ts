@@ -31,7 +31,7 @@ export const WORDS = ['list', 'status', 'compact', 'dashboard', 'access', 'help'
 const ABOUT: Record<(typeof WORDS)[number], string> = {
   list: 'every feature, its mode and settings',
   status: "the backend, its key source, a live check, today's spend",
-  compact: 'compact dropping only what Jev confidently marks drop; no summary',
+  compact: 'compact with no summary: old tool results trimmed to what Jev says later work needs (each saved in full to a file), and messages Jev confidently marks drop removed',
   dashboard: 'a page in your browser to see and set every feature (stop ends it)',
   access: "the access gate's allows for this session: ssh, tunnels, keys, ...",
   help: 'how to use /jev-mod',

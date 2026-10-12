@@ -1,11 +1,14 @@
 // /jev-mod compact's decision-level bench (src/bench/README.md): each synthetic session in
 // cases.ts goes through the feature's own path (keep.ts's units, engine/compact.ts's requests),
-// and every unit's keep/drop answer and confidence is recorded. A sweep of the drop confidence
-// (the feature's 0.7) is then computed from those answers with keep.ts's keepOnly, so a sweep
+// and every text's keep/drop answer and confidence is recorded. A sweep of the drop confidence
+// (the feature's 0.5) is then computed from those answers with keep.ts's keepOnly, so a sweep
 // costs one pass.
 //
-// Scored per message, outside the last six (always kept): positive = dropped. A message labelled
-// keep that is dropped is the costly mistake (counted as "keep lost").
+// Scored per message Jev judges keep or drop: one with text and no tool call or result, outside
+// the last six (always kept); positive = dropped. A message labelled keep that is dropped is the
+// costly mistake (counted as "keep lost"). A message holding a tool call or result is never
+// dropped (its result is trimmed instead, and the labels say nothing about how far), so it is not
+// scored here.
 
 import { DROP_CONFIDENCE, select } from '../../../engine/compact'
 import { scores } from '../../../bench/metrics'
@@ -27,13 +30,6 @@ function skeleton(messages: readonly Msg[]): Skeleton[] {
   }))
 }
 
-/** The message a unit belongs to: its text's message, or where the tool call (else its result) is. */
-function unitMessage(messages: readonly Msg[], unit: Unit): number {
-  if ('text' in unit) return unit.text
-  const call = messages.findIndex(m => m.toolUses?.some(u => u.tool_use_id === unit.pair))
-  return call >= 0 ? call : messages.findIndex(m => m.toolResults?.some(r => r.tool_use_id === unit.pair))
-}
-
 type Detail = { skeleton: Skeleton[]; gold: Gold[]; units: Unit[]; scores: (number | null)[] }
 
 /** Messages kept at a threshold: units whose drop confidence reaches it are dropped, the rest kept. */
@@ -48,7 +44,9 @@ export function metricsOf(details: readonly Detail[], threshold: number): Metric
   for (const d of details) {
     const kept = keptAt(d, threshold)
     const tail = Math.max(0, d.skeleton.length - ALWAYS_KEEP_LAST)
-    for (let i = 0; i < tail; i++) {
+    // a row recorded before tool results were trimmed also holds tool pairs as units: not scored now
+    for (const { text: i } of d.units) {
+      if (typeof i !== 'number' || i >= tail) continue
       const dropped = !kept.has(i)
       const drop = d.gold[i] === 'drop'
       if (dropped && drop) c.tp++
@@ -66,7 +64,7 @@ export const adapter: DecisionAdapter<Session> = {
   title: '/jev-mod compact',
   explain: {
     oneCase: "a made-up coding session, each message labelled keep or drop by a careful person (keep: a decision, a constraint, an exact path or error; drop: chatter, superseded attempts).",
-    measured: "for each message outside the last six (always kept), whether Jev's keep or drop call matches the label. Dropping a message labelled keep is the costly mistake: it cannot be had back.",
+    measured: "for each message with text and no tool call or result (a tool result is trimmed, never dropped), outside the last six (always kept), whether Jev's keep or drop call matches the label. Dropping a message labelled keep is the costly mistake: it cannot be had back.",
     setting: "how sure Jev must be that a message can go before /jev-mod compact drops it. Higher keeps more.",
     result: "Jev makes the same keep or drop call as the label on {pct} of the messages in {n} sessions",
     columns: {"keep lost": "messages labelled keep that were dropped: the costly mistake."},
@@ -93,7 +91,7 @@ export const adapter: DecisionAdapter<Session> = {
     }
     const gold = session.messages.map(m => m.gold)
     const items: Item[] = units.map((u, j) => ({
-      id: 'text' in u ? `m${u.text}` : `p${u.pair}`, gold: gold[unitMessage(messages, u)] === 'drop',
+      id: `m${u.text}`, gold: gold[u.text] === 'drop',
       score: unitScores[j] === null || unitScores[j]! < 0 ? null : unitScores[j]!,
     }))
     // -1 marks "judged keep": scored, never dropped; null is unjudged
@@ -105,7 +103,7 @@ export const adapter: DecisionAdapter<Session> = {
     const { units } = unitsOf(messages)
     const unit = units[Number(question.slice(1))]
     if (!unit) return undefined
-    return session.messages[unitMessage(messages, unit)]?.gold
+    return session.messages[unit.text]?.gold
   },
   evaluate(rows: readonly Row[], threshold: number): Metrics {
     const details = rows.filter(r => r.outcome === 'ok' && r.detail).map(r => r.detail as unknown as Detail)

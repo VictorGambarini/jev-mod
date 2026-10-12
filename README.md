@@ -45,7 +45,7 @@ The context stays small after the task too: every later question in that session
 | [Review triage](src/features/review-triage/README.md) (`review-triage`) | at submit when the prompt asks for a code review; or when the model calls `review_triage` | Whether a diff needs a quick or a full first review pass. | off |
 | [Browser](src/features/browser/README.md) (`browser`) | when the model calls `browse` | Each step of a web run toward a goal. | off |
 | [The band](src/features/band/README.md) | always | Nothing; it shows what jev-mod decided, its cost and the backend. | on |
-| [`/jev-mod compact`](src/features/compact/README.md) | when you type it | Which messages to drop in a compaction with no summary. | none (a command) |
+| [`/jev-mod compact`](src/features/compact/README.md) | when you type it | How far to trim each old tool result (the full one saved to a file), and which messages to drop, in a compaction with no summary. | none (a command) |
 | [`/jev-mod dashboard`](src/features/dashboard/README.md) | when you type it | Nothing; a page to see and set every feature. | none (a command) |
 | [`/jev-mod status`](src/features/status/README.md) | when you type it | Nothing; the backend, key source, a live check and each feature's mode. | none (a command) |
 
